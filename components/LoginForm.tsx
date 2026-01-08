@@ -54,18 +54,25 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         'raffiweran@gmail.com'
       ];
       
-      // Verificar no banco de dados
+      // Verificar no banco de dados (com tratamento de erro robusto)
       console.log('🔍 Verificando se é administrador:', normalizedEmail);
-      const { adminsApi } = await import('../lib/database');
-      const isAdminInDB = await adminsApi.isAdmin(normalizedEmail);
-      console.log('📊 Resultado da verificação no banco:', isAdminInDB);
+      let isAdminInDB = false;
+      try {
+        const { adminsApi } = await import('../lib/database');
+        isAdminInDB = await adminsApi.isAdmin(normalizedEmail);
+        console.log('📊 Resultado da verificação no banco:', isAdminInDB);
+      } catch (error: any) {
+        console.warn('⚠️ Erro ao verificar admin no banco (usando fallback):', error?.message || error);
+        // Em caso de erro, continuamos com o fallback
+        isAdminInDB = false;
+      }
       
       // Se não encontrou no banco, verifica na lista de fallback
       const isFallbackAdmin = fallbackAdminEmails.some(email => email.toLowerCase().trim() === normalizedEmail);
       console.log('📋 É admin na lista de fallback:', isFallbackAdmin);
       
       const isAdmin = isAdminInDB || isFallbackAdmin;
-      console.log('✅ É administrador?', isAdmin);
+      console.log('✅ É administrador?', isAdmin, `(banco: ${isAdminInDB}, fallback: ${isFallbackAdmin})`);
       
       if (isAdmin) {
         // In a real app, you would verify the password here
