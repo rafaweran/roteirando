@@ -13,6 +13,9 @@ interface NewTripFormProps {
 const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     destination: '',
@@ -45,8 +48,17 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
     e.preventDefault();
     setIsLoading(true);
     
+    // Se houver imagem selecionada, converter para URL (em produção, você faria upload para Supabase Storage)
+    let imageUrl = '';
+    if (imagePreview) {
+      // Por enquanto, usamos a preview como URL
+      // Em produção, você faria upload para Supabase Storage e obteria a URL
+      imageUrl = imagePreview;
+    }
+    
     const finalData = {
       ...formData,
+      imageUrl: imageUrl || '',
       links: links.filter(l => l.title && l.url)
     };
 
@@ -64,6 +76,60 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
       setDragActive(true);
     } else if (e.type === "dragleave") {
       setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileSelect = (file: File) => {
+    // Validar tipo de arquivo
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Tipo de arquivo inválido. Use PNG, JPG ou WebP.');
+      return;
+    }
+
+    // Validar tamanho (5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB em bytes
+    if (file.size > maxSize) {
+      alert('Arquivo muito grande. Tamanho máximo: 5MB.');
+      return;
+    }
+
+    setSelectedImage(file);
+
+    // Criar preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileSelect(e.target.files[0]);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRemoveImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -194,28 +260,59 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
               <ImageIcon size={16} />
               Imagem de Capa (opcional)
             </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
             <div 
               className={`
-                border-2 border-dashed rounded-custom p-8 text-center transition-all duration-200 cursor-pointer
+                border-2 border-dashed rounded-custom p-8 text-center transition-all duration-200 cursor-pointer relative
                 ${dragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-surface'}
               `}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
-              onDrop={handleDrag}
+              onDrop={handleDrop}
+              onClick={handleUploadClick}
             >
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-text-secondary">
-                  <Upload size={20} />
+              {imagePreview ? (
+                <div className="relative">
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    className="max-h-64 mx-auto rounded-lg object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                    title="Remover imagem"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <div className="text-sm">
-                  <span className="font-semibold text-primary">Clique para upload</span> ou arraste e solte
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-text-secondary">
+                    <Upload size={20} />
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-semibold text-primary">Clique para upload</span> ou arraste e solte
+                  </div>
+                  <p className="text-xs text-text-disabled">
+                    PNG, JPG ou WebP (Máx. 5MB)
+                  </p>
                 </div>
-                <p className="text-xs text-text-disabled">
-                  PNG, JPG ou WebP (Máx. 5MB)
-                </p>
-              </div>
+              )}
             </div>
+            {selectedImage && (
+              <p className="text-xs text-text-secondary text-center">
+                Arquivo selecionado: {selectedImage.name} ({(selectedImage.size / 1024 / 1024).toFixed(2)} MB)
+              </p>
+            )}
           </div>
 
           {/* Actions */}

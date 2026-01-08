@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Mail, Lock, LogIn, ArrowRight, Info } from 'lucide-react';
 import Input from './Input';
 import Button from './Button';
-import { MOCK_GROUPS } from '../data';
+import { groupsApi } from '../lib/database';
+import { verifyPassword } from '../lib/password';
 import { UserRole, Group } from '../types';
 
 interface LoginFormProps {
@@ -42,24 +43,114 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     setIsLoading(true);
     setErrors({});
     
-    setTimeout(() => {
-      setIsLoading(false);
-
+    try {
       // 1. Check for Admin
       if (formData.email === 'admin@travel.com') {
+        // In a real app, you would verify the password here
         onSuccess('admin');
+        setIsLoading(false);
         return;
       }
 
-      // 2. Check for Group Leader (User)
-      const userGroup = MOCK_GROUPS.find(g => g.leaderEmail === formData.email);
+      // 2. Check for Group Leader (User) in database
+      const allGroups = await groupsApi.getAll();
+      
+      // Debug: log groups and emails
+      console.log('Total grupos encontrados:', allGroups.length);
+      console.log('Emails dos líderes:', allGroups.map(g => g.leaderEmail));
+      console.log('Email buscado:', formData.email);
+      
+      // Case-insensitive email comparison and trim whitespace
+      const normalizedEmail = formData.email.toLowerCase().trim();
+      const userGroup = allGroups.find(g => {
+        if (!g.leaderEmail) {
+          console.log(`Grupo "${g.name}" não tem leaderEmail`);
+          return false;
+        }
+        const match = g.leaderEmail.toLowerCase().trim() === normalizedEmail;
+        if (match) {
+          console.log(`Grupo encontrado: "${g.name}" com email "${g.leaderEmail}"`);
+        }
+        return match;
+      });
       
       if (userGroup) {
-        onSuccess('user', userGroup);
+        // Verificar senha
+        if (!userGroup.leaderPassword) {
+          setErrors({ general: 'Este usuário não possui senha cadastrada. Entre em contato com o administrador.' });
+          return;
+        }
+        
+        const passwordValid = verifyPassword(formData.password, userGroup.leaderPassword);
+        
+        if (!passwordValid) {
+          setErrors({ general: 'Senha incorreta. Verifique suas credenciais.' });
+          return;
+        }
+        
+        console.log('✅ Login bem-sucedido para usuário:', userGroup.leaderName);
+        console.log('📊 Dados do grupo no login:', {
+          id: userGroup.id,
+          name: userGroup.name,
+          leaderEmail: userGroup.leaderEmail,
+          passwordChanged: userGroup.passwordChanged,
+          typeof: typeof userGroup.passwordChanged,
+          hasPasswordChanged: userGroup.passwordChanged !== undefined,
+          needsChange: userGroup.passwordChanged !== true,
+        });
+        
+        // Recarregar o grupo do banco para garantir dados atualizados
+        console.log('='.repeat(60));
+        console.log('🔄 Recarregando grupo do banco...');
+        console.log('='.repeat(60));
+        
+        try {
+          const { groupsApi } = await import('../lib/database');
+          const freshGroup = await groupsApi.getById(userGroup.id);
+          
+          if (freshGroup) {
+            console.log('✅ Grupo recarregado com sucesso!');
+            console.log('📦 Dados do grupo do banco:', JSON.stringify(freshGroup, null, 2));
+            console.log('🔍 Campo passwordChanged do banco:', {
+              valor: freshGroup.passwordChanged,
+              tipo: typeof freshGroup.passwordChanged,
+              isTrue: freshGroup.passwordChanged === true,
+              isFalse: freshGroup.passwordChanged === false,
+              isUndefined: freshGroup.passwordChanged === undefined,
+            });
+            console.log('='.repeat(60));
+            console.log('📞 Chamando onSuccess com grupo recarregado...');
+            console.log('='.repeat(60));
+            onSuccess('user', freshGroup);
+          } else {
+            console.log('⚠️ Grupo não encontrado no banco, usando dados do cache');
+            console.log('📞 Chamando onSuccess com grupo do cache...');
+            onSuccess('user', userGroup);
+          }
+        } catch (error) {
+          console.error('❌ ERRO ao recarregar grupo:', error);
+          console.log('📞 Usando dados do cache devido ao erro...');
+          // Usar dados do cache se falhar
+          onSuccess('user', userGroup);
+        }
       } else {
-        setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
+        // More helpful error message
+        if (allGroups.length === 0) {
+          setErrors({ general: 'Nenhum grupo cadastrado no sistema. Entre em contato com o administrador.' });
+        } else {
+          const availableEmails = allGroups
+            .filter(g => g.leaderEmail)
+            .map(g => g.leaderEmail)
+            .join(', ');
+          setErrors({ general: `Usuário não encontrado. Verifique se o e-mail "${formData.email}" está cadastrado como líder de um grupo.${availableEmails ? ` Emails cadastrados: ${availableEmails}` : ''}` });
+        }
       }
-    }, 1000);
+    } catch (err: any) {
+      setErrors({ general: 'Erro ao fazer login. Tente novamente.' });
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

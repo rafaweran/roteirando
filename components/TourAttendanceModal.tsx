@@ -20,22 +20,69 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
 }) => {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
-  // Initialize selection based on existing data or select all by default if empty (optional logic)
-  useEffect(() => {
-    if (isOpen) {
-      const existingAttendance = group.tourAttendance?.[tour.id];
-      if (existingAttendance) {
-        setSelectedMembers(existingAttendance);
-      } else {
-        // Default: Select all members initially for easier UX
-        setSelectedMembers(group.members);
-      }
+  // Criar lista completa incluindo o líder
+  // O líder sempre deve estar incluído na lista de membros disponíveis
+  // IMPORTANTE: useMemo sempre é chamado, mesmo se group for undefined
+  const allMembersIncludingLeader = React.useMemo(() => {
+    if (!group) return [];
+    const members = [...(group.members || [])];
+    // Adicionar líder se não estiver na lista e se o líder existir
+    if (group.leaderName && !members.includes(group.leaderName)) {
+      members.unshift(group.leaderName); // Adicionar no início
     }
-  }, [isOpen, group, tour]);
+    return members;
+  }, [group?.members, group?.leaderName]);
 
+  // Initialize selection based on existing data or select all by default if empty (optional logic)
+  // IMPORTANTE: useEffect sempre é chamado, mas o conteúdo interno é condicional
+  useEffect(() => {
+    // Só atualizar quando o modal abrir
+    if (!isOpen) {
+      return; // Early return dentro do useEffect é seguro
+    }
+    
+    try {
+      const existingAttendance = group.tourAttendance?.[tour.id];
+      if (existingAttendance && existingAttendance.length > 0) {
+        // Garantir que o líder está incluído se já havia presença confirmada
+        const attendanceWithLeader = [...existingAttendance];
+        if (group.leaderName && !attendanceWithLeader.includes(group.leaderName)) {
+          attendanceWithLeader.unshift(group.leaderName);
+        }
+        setSelectedMembers(attendanceWithLeader);
+      } else {
+        // Default: Select all members including leader initially
+        setSelectedMembers([...allMembersIncludingLeader]);
+      }
+    } catch (error) {
+      console.error('Erro ao inicializar seleção:', error);
+      // Fallback: selecionar apenas o líder ou lista vazia
+        setSelectedMembers(group?.leaderName ? [group.leaderName] : []);
+    }
+  }, [isOpen, group?.id, group?.tourAttendance, tour?.id, allMembersIncludingLeader]);
+
+  // Calcular com líder sempre incluído
+  // IMPORTANTE: useMemo sempre é chamado, mesmo se group for undefined
+  const membersWithLeader = React.useMemo(() => {
+    const members = [...selectedMembers];
+    if (group?.leaderName && !members.includes(group.leaderName)) {
+      members.unshift(group.leaderName);
+    }
+    return members;
+  }, [selectedMembers, group?.leaderName]);
+  
+  const allSelected = selectedMembers.length === allMembersIncludingLeader.length;
+  const totalPrice = membersWithLeader.length * tour.price;
+
+  // IMPORTANTE: return null DEPOIS de todos os hooks para evitar erro "Rendered fewer hooks"
   if (!isOpen) return null;
 
   const handleToggleMember = (member: string) => {
+    // O líder não pode ser desmarcado - sempre deve estar presente
+    if (group?.leaderName && member === group.leaderName) {
+      return; // Não permitir desmarcar o líder
+    }
+    
     if (selectedMembers.includes(member)) {
       setSelectedMembers(prev => prev.filter(m => m !== member));
     } else {
@@ -44,20 +91,56 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   };
 
   const handleToggleAll = () => {
-    if (selectedMembers.length === group.members.length) {
-      setSelectedMembers([]);
+    // Quando desmarcar todos, manter apenas o líder
+    // Quando marcar todos, incluir todos incluindo o líder
+    const hasAllSelected = selectedMembers.length === allMembersIncludingLeader.length;
+    
+    if (hasAllSelected) {
+      // Desmarcar todos, mas manter o líder se existir
+        setSelectedMembers(group?.leaderName ? [group.leaderName] : []);
     } else {
-      setSelectedMembers([...group.members]);
+      // Selecionar todos incluindo o líder
+      setSelectedMembers([...allMembersIncludingLeader]);
     }
   };
 
   const handleSave = () => {
-    onConfirm(tour.id, selectedMembers);
-    onClose();
+    try {
+      // Garantir que o líder sempre está incluído na lista de presença
+      const membersToSave = [...selectedMembers];
+      if (group?.leaderName && !membersToSave.includes(group.leaderName)) {
+        membersToSave.unshift(group.leaderName); // Adicionar líder no início se não estiver
+      }
+      
+      // Validar que temos pelo menos o líder ou algum membro
+      if (membersToSave.length === 0) {
+        console.warn('⚠️ Tentando salvar lista vazia de membros');
+        return; // Não salvar se não houver ninguém
+      }
+      
+      console.log('💾 Salvando presença:', {
+        tourId: tour.id,
+        members: membersToSave,
+        leaderIncluded: group?.leaderName ? membersToSave.includes(group.leaderName) : false,
+        totalCount: membersToSave.length,
+      });
+      
+      // Fechar o modal primeiro para evitar problemas de estado
+      onClose();
+      
+      // Chamar onConfirm após fechar o modal para evitar problemas de renderização
+      setTimeout(() => {
+        try {
+          onConfirm(tour.id, membersToSave);
+        } catch (error) {
+          console.error('❌ Erro ao chamar onConfirm:', error);
+        }
+      }, 0);
+    } catch (error) {
+      console.error('❌ Erro ao salvar presença:', error);
+      // Não fechar o modal se houver erro
+    }
   };
-
-  const allSelected = selectedMembers.length === group.members.length;
-  const totalPrice = selectedMembers.length * tour.price;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -103,30 +186,46 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            {group.members.map((member, idx) => {
-              const isSelected = selectedMembers.includes(member);
+            {allMembersIncludingLeader.map((member, idx) => {
+              const isLeader = group?.leaderName ? member === group.leaderName : false;
+              // Líder sempre está selecionado (não pode ser desmarcado)
+              const isSelected = isLeader ? true : selectedMembers.includes(member);
+              
               return (
                 <div 
                   key={idx}
-                  onClick={() => handleToggleMember(member)}
+                  onClick={() => !isLeader && handleToggleMember(member)}
                   className={`
-                    flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all duration-200 group
-                    ${isSelected 
+                    flex items-center justify-between p-3 rounded-xl border transition-all duration-200 group
+                    ${isLeader 
+                      ? 'cursor-not-allowed border-primary/40 bg-primary/10 ring-1 ring-primary/30' 
+                      : 'cursor-pointer border-border hover:border-primary/30 hover:bg-surface'
+                    }
+                    ${isSelected && !isLeader
                       ? 'border-primary bg-primary/5' 
-                      : 'border-border hover:border-primary/30 hover:bg-surface'
+                      : ''
                     }
                   `}
+                  title={isLeader ? 'O líder sempre participa e não pode ser desmarcado' : ''}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`
                       w-5 h-5 rounded-md border flex items-center justify-center transition-colors
                       ${isSelected ? 'bg-primary border-primary text-white' : 'bg-white border-text-disabled group-hover:border-primary'}
+                      ${isLeader ? 'ring-1 ring-primary/50' : ''}
                     `}>
                       {isSelected && <Check size={14} strokeWidth={3} />}
                     </div>
-                    <span className={`text-sm ${isSelected ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
-                      {member}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm ${isSelected ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
+                        {member}
+                      </span>
+                      {isLeader && (
+                        <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full font-medium border border-primary/30">
+                          Líder
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <User size={16} className={`${isSelected ? 'text-primary' : 'text-text-disabled'}`} />
                 </div>
@@ -140,15 +239,15 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
           <div className="flex justify-between items-center mb-4 text-sm">
              <span className="text-text-secondary">Total estimado:</span>
              <span className="font-bold text-lg text-text-primary">
-               R$ {totalPrice.toFixed(2)} <span className="text-xs font-normal text-text-secondary">({selectedMembers.length}x)</span>
+               R$ {totalPrice.toFixed(2)} <span className="text-xs font-normal text-text-secondary">({membersWithLeader.length}x)</span>
              </span>
           </div>
           <Button 
             fullWidth
             onClick={handleSave}
-            disabled={selectedMembers.length === 0}
+            disabled={membersWithLeader.length === 0}
           >
-            Confirmar {selectedMembers.length} Pessoa{selectedMembers.length !== 1 ? 's' : ''}
+            Confirmar {membersWithLeader.length} Pessoa{membersWithLeader.length !== 1 ? 's' : ''}
           </Button>
         </div>
       </div>

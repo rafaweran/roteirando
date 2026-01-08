@@ -70,7 +70,7 @@ const TourCard: React.FC<TourCardProps> = ({
         <div className="flex flex-wrap gap-2 mb-4">
           <div className="inline-flex items-center text-xs font-medium text-text-secondary bg-surface px-2.5 py-1 rounded-md border border-border/50">
             <CalendarDays size={14} className="mr-1.5 text-primary" />
-            {new Date(tour.date).toLocaleDateString()}
+            {new Date(tour.date).toLocaleDateString('pt-BR')}
           </div>
           <div className="inline-flex items-center text-xs font-medium text-text-secondary bg-surface px-2.5 py-1 rounded-md border border-border/50">
             <Clock size={14} className="mr-1.5 text-primary" />

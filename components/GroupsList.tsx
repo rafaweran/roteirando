@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MoreVertical, Download, Edit, Trash2, Users, X, User, Plus } from 'lucide-react';
-import { MOCK_GROUPS, MOCK_TRIPS } from '../data';
 import Button from './Button';
 import Modal from './Modal';
-import { Group } from '../types';
+import { Group, Trip } from '../types';
 
 interface GroupsListProps {
+  groups: Group[];
+  trips: Trip[];
   onEdit?: (group: Group) => void;
   onDelete?: (groupId: string) => void;
   onAddGroup: () => void;
 }
 
-const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup }) => {
+const GroupsList: React.FC<GroupsListProps> = ({ groups, trips, onEdit, onDelete, onAddGroup }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -53,8 +54,8 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
   };
 
   // Enrich groups with Trip data
-  const enrichedGroups = MOCK_GROUPS.map(group => {
-    const trip = MOCK_TRIPS.find(t => t.id === group.tripId);
+  const enrichedGroups = groups.map(group => {
+    const trip = trips.find(t => t.id === group.tripId);
     return {
       ...group,
       tripName: trip ? trip.name : 'Viagem desconhecida',

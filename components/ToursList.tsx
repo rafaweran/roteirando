@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Calendar, Clock, MapPin, MoreVertical, Filter, Download, Edit, Trash2, Users, X, DollarSign, CheckCircle2 } from 'lucide-react';
-import { MOCK_TOURS, MOCK_TRIPS } from '../data';
 import Button from './Button';
 import Modal from './Modal';
-import { Tour } from '../types';
+import { Tour, Trip } from '../types';
 
 interface ToursListProps {
+  tours: Tour[];
+  trips: Trip[];
   onEdit: (tour: Tour) => void;
   onViewGroup: (tripId: string) => void;
   onDelete: (tourId: string) => void;
 }
 
-const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) => {
+const ToursList: React.FC<ToursListProps> = ({ tours, trips, onEdit, onViewGroup, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -73,8 +74,8 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
   };
 
   // Join Tours with Trip data to access Trip Status and Name
-  const enrichedTours = MOCK_TOURS.map(tour => {
-    const trip = MOCK_TRIPS.find(t => t.id === tour.tripId);
+  const enrichedTours = tours.map(tour => {
+    const trip = trips.find(t => t.id === tour.tripId);
     return {
       ...tour,
       tripName: trip ? trip.name : 'Viagem desconhecida',
@@ -335,7 +336,7 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
                         Data & Hora
                       </span>
                       <span className="text-sm font-medium text-text-primary">
-                        {new Date(tour.date).toLocaleDateString()} às {tour.time}
+                        {new Date(tour.date).toLocaleDateString('pt-BR')} às {tour.time}
                       </span>
                     </div>
 
@@ -401,7 +402,7 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
                           <div className="flex flex-col text-sm text-text-secondary">
                             <div className="flex items-center gap-1.5 font-medium text-text-primary">
                               <Calendar size={14} className="text-primary/70" />
-                              {new Date(tour.date).toLocaleDateString()}
+                              {new Date(tour.date).toLocaleDateString('pt-BR')}
                             </div>
                             <div className="flex items-center gap-1.5 mt-1 text-xs">
                               <Clock size={14} className="text-text-disabled" />

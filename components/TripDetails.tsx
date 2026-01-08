@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Trip, Tour, Group, UserRole } from '../types';
 import { Calendar, MapPin, Map as MapIcon, Users, ArrowLeft, Plus, Camera, ExternalLink, Info } from 'lucide-react';
 import TourCard from './TourCard';
@@ -36,6 +36,10 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
+  
+  // Memoize tour and group to prevent unnecessary re-renders
+  const memoizedTour = useMemo(() => selectedTourForAttendance, [selectedTourForAttendance?.id]);
+  const memoizedGroup = useMemo(() => userGroup, [userGroup?.id]);
 
   const isUser = userRole === 'user';
 
@@ -50,9 +54,16 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   };
 
   const handleConfirmAttendance = (tourId: string, members: string[]) => {
-     if (onSaveAttendance) {
-       onSaveAttendance(tourId, members);
-     }
+    try {
+      console.log('📝 TripDetails: handleConfirmAttendance chamado', { tourId, membersCount: members.length });
+      if (onSaveAttendance) {
+        onSaveAttendance(tourId, members);
+      } else {
+        console.warn('⚠️ onSaveAttendance não está definido');
+      }
+    } catch (error) {
+      console.error('❌ Erro em handleConfirmAttendance:', error);
+    }
   };
 
   return (
@@ -85,7 +96,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               </div>
               <div className="flex items-center bg-surface px-3 py-1.5 rounded-lg">
                 <Calendar size={18} className="mr-2 text-primary" />
-                {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}
+                {new Date(trip.startDate).toLocaleDateString('pt-BR')} - {new Date(trip.endDate).toLocaleDateString('pt-BR')}
               </div>
             </div>
 
@@ -207,7 +218,16 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           {activeTab === 'tours' || isUser ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {tours.map(tour => {
-                const attendingMembers = userGroup?.tourAttendance?.[tour.id] || [];
+                let attendingMembers = userGroup?.tourAttendance?.[tour.id] || [];
+                // Garantir que o líder sempre está incluído na lista de presença
+                // (para compatibilidade com dados antigos que podem não ter o líder)
+                if (userGroup?.leaderName && attendingMembers.length > 0 && !attendingMembers.includes(userGroup.leaderName)) {
+                  attendingMembers = [userGroup.leaderName, ...attendingMembers];
+                }
+                
+                // Incluir o líder no total de membros (líder sempre conta)
+                const totalMembersIncludingLeader = (userGroup?.members.length || 0) + 1; // +1 para o líder
+                
                 return (
                   <TourCard 
                     key={tour.id} 
@@ -215,7 +235,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                     onViewGroup={!isUser ? () => setActiveTab('groups') : undefined}
                     isUserView={isUser}
                     attendanceCount={attendingMembers.length}
-                    totalMembers={userGroup?.members.length}
+                    totalMembers={totalMembersIncludingLeader}
                     onOpenAttendance={handleOpenAttendance}
                   />
                 );
@@ -243,13 +263,19 @@ const TripDetails: React.FC<TripDetailsProps> = ({
         </div>
       </div>
 
-      {/* Attendance Modal */}
-      {selectedTourForAttendance && userGroup && (
+      {/* Attendance Modal - Use memoized values to prevent hook issues */}
+      {memoizedTour && memoizedGroup && (
         <TourAttendanceModal 
           isOpen={attendanceModalOpen}
-          onClose={() => setAttendanceModalOpen(false)}
-          tour={selectedTourForAttendance}
-          group={userGroup}
+          onClose={() => {
+            setAttendanceModalOpen(false);
+            // Clear selected tour after a delay to allow modal to close
+            setTimeout(() => {
+              setSelectedTourForAttendance(null);
+            }, 300);
+          }}
+          tour={memoizedTour}
+          group={memoizedGroup}
           onConfirm={handleConfirmAttendance}
         />
       )}
