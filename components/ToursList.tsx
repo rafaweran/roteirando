@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, Clock, MapPin, MoreVertical, Filter, Download, Edit, Trash2, Users, X, DollarSign, CheckCircle2, Circle } from 'lucide-react';
-import { MOCK_TOURS, MOCK_TRIPS } from '../data';
+import { Search, Calendar, Clock, MapPin, MoreVertical, Filter, Download, Edit, Trash2, Users, X, DollarSign, CheckCircle2, Circle, Plus } from 'lucide-react';
+import { toursApi, tripsApi } from '../lib/database';
 import Button from './Button';
 import Modal from './Modal';
-import { Tour } from '../types';
+import { Tour, Trip } from '../types';
 
 interface ToursListProps {
   onEdit: (tour: Tour) => void;
   onViewGroup: (tripId: string) => void;
   onDelete: (tourId: string) => void;
+  onAddTour?: () => void;
 }
 
-const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) => {
+const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, onAddTour }) => {
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -25,6 +29,29 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
     minPrice: '',
     maxPrice: ''
   });
+
+  // Load data from database
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [toursData, tripsData] = await Promise.all([
+          toursApi.getAll(),
+          tripsApi.getAll()
+        ]);
+        setTours(toursData);
+        setTrips(tripsData);
+        console.log('✅ ToursList: Dados carregados', { tours: toursData.length, trips: tripsData.length });
+      } catch (err: any) {
+        console.error('Erro ao carregar dados:', err);
+        setTours([]);
+        setTrips([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -73,8 +100,8 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
   };
 
   // Join Tours with Trip data to access Trip Status and Name
-  const enrichedTours = MOCK_TOURS.map(tour => {
-    const trip = MOCK_TRIPS.find(t => t.id === tour.tripId);
+  const enrichedTours = tours.map(tour => {
+    const trip = trips.find(t => t.id === tour.tripId);
     return {
       ...tour,
       tripName: trip ? trip.name : 'Viagem desconhecida',
@@ -157,6 +184,15 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
             <p className="text-text-secondary mt-1">Gerencie os passeios de todas as viagens cadastradas</p>
           </div>
           <div className="flex gap-2">
+            {onAddTour && (
+              <Button 
+                className="h-10 px-4 text-sm"
+                onClick={onAddTour}
+              >
+                <Plus size={18} className="mr-2" />
+                Novo Passeio
+              </Button>
+            )}
             <Button variant="outline" className="h-10 px-4 text-sm">
               <Download size={18} className="mr-2" />
               Exportar
@@ -262,11 +298,11 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
           {/* Search Bar & Clear Action */}
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1 group">
-              <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors" />
+              <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors z-10" />
               <input
                 type="text"
                 placeholder="Buscar por nome do passeio, cidade ou viagem..."
-                className="w-full h-10 pl-10 pr-4 rounded-lg border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
+                className="w-full h-10 pl-10 pr-4 rounded-lg border border-border bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

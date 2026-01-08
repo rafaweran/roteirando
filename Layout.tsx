@@ -133,7 +133,7 @@ const Layout: React.FC<LayoutProps> = ({ children, onLogout, onNavigateHome, onN
               <DropdownItem icon={Users} label="Grupos" onClick={onNavigateGroups} />
             </NavItem>
 
-            <NavItem icon={CreditCard} label="Financeiro" />
+            <NavItem icon={CreditCard} label="Administrativo" />
             <NavItem icon={Settings} label="Configurações" />
           </nav>
 
@@ -243,7 +243,7 @@ const Layout: React.FC<LayoutProps> = ({ children, onLogout, onNavigateHome, onN
                 </div>
               )}
 
-              <MobileNavItem icon={CreditCard} label="Financeiro" />
+              <MobileNavItem icon={CreditCard} label="Administrativo" />
               <MobileNavItem icon={Settings} label="Configurações" />
             </div>
 

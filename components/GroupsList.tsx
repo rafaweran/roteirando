@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MoreVertical, Download, Edit, Trash2, Users, X, User, Plus } from 'lucide-react';
-import { MOCK_GROUPS, MOCK_TRIPS } from '../data';
+import { groupsApi, tripsApi } from '../lib/database';
 import Button from './Button';
 import Modal from './Modal';
-import { Group } from '../types';
+import { Group, Trip } from '../types';
 
 interface GroupsListProps {
   onEdit?: (group: Group) => void;
@@ -12,10 +12,36 @@ interface GroupsListProps {
 }
 
 const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup }) => {
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
+
+  // Load data from database
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [groupsData, tripsData] = await Promise.all([
+          groupsApi.getAll(),
+          tripsApi.getAll()
+        ]);
+        setGroups(groupsData);
+        setTrips(tripsData);
+        console.log('✅ GroupsList: Dados carregados', { groups: groupsData.length, trips: tripsData.length });
+      } catch (err: any) {
+        console.error('Erro ao carregar dados:', err);
+        setGroups([]);
+        setTrips([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -53,8 +79,8 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
   };
 
   // Enrich groups with Trip data
-  const enrichedGroups = MOCK_GROUPS.map(group => {
-    const trip = MOCK_TRIPS.find(t => t.id === group.tripId);
+  const enrichedGroups = groups.map(group => {
+    const trip = trips.find(t => t.id === group.tripId);
     return {
       ...group,
       tripName: trip ? trip.name : 'Viagem desconhecida',
@@ -128,6 +154,7 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
                 type="text"
                 placeholder="Buscar por nome do grupo, líder ou viagem..."
                 className="w-full h-10 pl-10 pr-4 rounded-lg border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                style={{ opacity: 0, color: 'rgba(102, 102, 102, 1)' }}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -144,7 +171,9 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
           </div>
         </div>
 
-        {filteredGroups.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-12 text-text-secondary">Carregando grupos...</div>
+        ) : filteredGroups.length > 0 ? (
           <>
             {/* MOBILE VIEW: Cards */}
             <div className="md:hidden flex flex-col gap-4">

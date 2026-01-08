@@ -175,21 +175,41 @@ export const tripsApi = {
   },
 
   async create(trip: Omit<Trip, 'id'>): Promise<Trip> {
+    console.log('🗄️ tripsApi.create: Recebendo dados:', {
+      name: trip.name,
+      destination: trip.destination,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      status: trip.status,
+      hasDescription: !!trip.description,
+      hasImage: !!trip.imageUrl,
+      linksCount: trip.links?.length || 0
+    });
+    
+    const insertData = {
+      name: trip.name,
+      destination: trip.destination,
+      start_date: trip.startDate,
+      end_date: trip.endDate,
+      description: trip.description || null,
+      status: trip.status,
+      image_url: trip.imageUrl || null,
+    };
+    
+    console.log('📤 tripsApi.create: Dados para insert:', insertData);
+    
     const { data, error } = await supabase
       .from('trips')
-      .insert({
-        name: trip.name,
-        destination: trip.destination,
-        start_date: trip.startDate,
-        end_date: trip.endDate,
-        description: trip.description,
-        status: trip.status,
-        image_url: trip.imageUrl,
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ tripsApi.create: Erro do Supabase:', error);
+      throw error;
+    }
+    
+    console.log('✅ tripsApi.create: Viagem criada com sucesso:', data);
 
     // Insert links if provided
     if (trip.links && trip.links.length > 0) {
@@ -661,24 +681,36 @@ export const adminsApi = {
   async isAdmin(email: string): Promise<boolean> {
     try {
       const normalizedEmail = email.toLowerCase().trim();
+      console.log('🔍 adminsApi.isAdmin: Verificando email:', normalizedEmail);
+      
       const { data, error } = await supabase
         .from('admins')
         .select('email')
         .eq('email', normalizedEmail)
         .single();
 
+      console.log('📥 Resposta do Supabase:', { data, error });
+
       if (error) {
         // Se a tabela não existir ou não encontrar, retorna false
-        if (error.code === 'PGRST116' || error.code === '42P01') {
-          console.log('⚠️ Tabela admins não existe ainda, usando lista hardcoded');
+        if (error.code === 'PGRST116' || error.code === '42P01' || error.message?.includes('does not exist')) {
+          console.log('⚠️ Tabela admins não existe ainda ou registro não encontrado, usando lista hardcoded');
+          console.log('   Código do erro:', error.code);
+          console.log('   Mensagem:', error.message);
           return false;
         }
+        console.log('❌ Erro ao verificar admin:', error.code, error.message);
         return false;
       }
 
-      return !!data;
-    } catch (error) {
-      console.error('Erro ao verificar se é admin:', error);
+      const isAdmin = !!data;
+      console.log('✅ Resultado da verificação:', isAdmin);
+      return isAdmin;
+    } catch (error: any) {
+      console.error('❌ Erro ao verificar se é admin:', error);
+      console.error('   Tipo:', typeof error);
+      console.error('   Mensagem:', error?.message);
+      console.error('   Stack:', error?.stack);
       return false;
     }
   },

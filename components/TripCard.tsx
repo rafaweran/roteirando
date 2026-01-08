@@ -58,7 +58,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
 
         <div className="flex items-center justify-between pt-4 border-t border-surface mt-auto">
           <span className="text-sm font-medium text-text-secondary">Ver detalhes</span>
-          <div className="w-8 h-8 rounded-full bg-surface flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+          <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center group-hover:bg-primary/50 transition-colors">
             <ArrowRight size={16} />
           </div>
         </div>

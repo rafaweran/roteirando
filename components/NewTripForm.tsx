@@ -44,21 +44,36 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
     setLinks(newLinks);
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validação básica
+    if (!formData.name || !formData.destination || !formData.startDate || !formData.endDate) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+    
     setIsLoading(true);
     
-    const finalData = {
-      ...formData,
-      imageUrl: imagePreview || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800&auto=format&fit=crop', // Default fallback
-      links: links.filter(l => l.title && l.url)
-    };
+    try {
+      const finalData = {
+        ...formData,
+        imageUrl: imagePreview || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800&auto=format&fit=crop', // Default fallback
+        links: links.filter(l => l.title && l.url)
+      };
 
-    // Simulate API call
-    setTimeout(() => {
+      console.log('📝 NewTripForm: Enviando dados:', finalData);
+      
+      // Chamar onSave diretamente (sem setTimeout)
+      await onSave(finalData);
+      
+      console.log('✅ NewTripForm: Dados enviados com sucesso');
+    } catch (err: any) {
+      console.error('❌ NewTripForm: Erro ao enviar dados:', err);
+      alert(`Erro ao salvar viagem: ${err.message || 'Erro desconhecido'}`);
+    } finally {
       setIsLoading(false);
-      onSave(finalData);
-    }, 1000);
+    }
   };
 
   // Drag and Drop Logic

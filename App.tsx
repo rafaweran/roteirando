@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LoginForm from './components/LoginForm';
 import Layout from './components/Layout';
 import TripCard from './components/TripCard';
@@ -9,12 +9,13 @@ import NewGroupForm from './components/NewGroupForm';
 import ToursList from './components/ToursList';
 import GroupsList from './components/GroupsList';
 import TourAttendanceView from './components/TourAttendanceView';
+import FinancialView from './components/FinancialView';
 import { Trip, Tour, UserRole, Group } from './types';
-import { MOCK_TRIPS, MOCK_TOURS, MOCK_GROUPS } from './data';
+import { tripsApi, toursApi, groupsApi } from './lib/database';
 import { Plus } from 'lucide-react';
 import Button from './components/Button';
 
-type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'all-tours' | 'all-groups' | 'tour-attendance';
+type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'financial';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('login');
@@ -23,18 +24,84 @@ const App: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('admin');
   const [currentUserGroup, setCurrentUserGroup] = useState<Group | null>(null);
 
+  // Data State - Carregar do banco de dados
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [editingTour, setEditingTour] = useState<Tour | null>(null);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
   const [tripDetailsInitialTab, setTripDetailsInitialTab] = useState<'tours' | 'groups'>('tours');
 
-  const handleLoginSuccess = (role: UserRole, group?: Group) => {
+  // Load data functions
+  const loadTrips = async () => {
+    try {
+      setLoading(true);
+      const data = await tripsApi.getAll();
+      setTrips(data);
+      console.log('✅ Viagens carregadas:', data.length);
+    } catch (err: any) {
+      console.error('Erro ao carregar viagens:', err);
+      setTrips([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTours = async () => {
+    try {
+      const data = await toursApi.getAll();
+      setTours(data);
+      console.log('✅ Passeios carregados:', data.length);
+    } catch (err: any) {
+      console.error('Erro ao carregar passeios:', err);
+      setTours([]);
+    }
+  };
+
+  const loadGroups = async () => {
+    try {
+      const data = await groupsApi.getAll();
+      setGroups(data);
+      console.log('✅ Grupos carregados:', data.length);
+    } catch (err: any) {
+      console.error('Erro ao carregar grupos:', err);
+      setGroups([]);
+    }
+  };
+
+  // Load all data when user logs in
+  useEffect(() => {
+    if (currentView !== 'login' && userRole === 'admin') {
+      console.log('🔄 Carregando dados do banco...');
+      loadTrips();
+      loadTours();
+      loadGroups();
+    }
+  }, [currentView, userRole]);
+
+  // Debug: Log view changes
+  useEffect(() => {
+    console.log('📍 View atual:', currentView, 'UserRole:', userRole);
+  }, [currentView, userRole]);
+
+  const handleLoginSuccess = async (role: UserRole, group?: Group) => {
     setUserRole(role);
     if (role === 'user' && group) {
       setCurrentUserGroup(group);
       setSelectedTripId(group.tripId);
+      // Carregar dados da viagem do usuário
+      await loadTrips();
+      await loadTours();
+      await loadGroups();
       setCurrentView('trip-details'); // User goes straight to their trip
     } else {
+      // Admin: carregar todos os dados
+      await loadTrips();
+      await loadTours();
+      await loadGroups();
       setCurrentView('dashboard'); // Admin goes to dashboard
     }
   };
@@ -73,9 +140,17 @@ const App: React.FC = () => {
     setSelectedTripId(null);
   };
 
+  const handleNavigateFinancial = () => {
+    setCurrentView('financial');
+    setSelectedTripId(null);
+  };
+
   const handleNewTourClick = () => {
+    console.log('🔄 handleNewTourClick: Criando novo passeio...');
     setEditingTour(null);
+    setSelectedTripId(null); // Limpar seleção de viagem para permitir seleção no formulário
     setCurrentView('new-tour');
+    console.log('✅ handleNewTourClick: View alterada para new-tour');
   };
 
   const handleEditTour = (tour: Tour) => {
@@ -113,15 +188,28 @@ const App: React.FC = () => {
     setCurrentView('new-trip');
   };
 
-  const handleSaveTour = (tourData: any) => {
-    console.log('Saved/Updated tour:', tourData);
-    if (selectedTripId) {
-      setTripDetailsInitialTab('tours');
-      setCurrentView('trip-details');
-    } else {
-      setCurrentView('all-tours');
+  const handleSaveTour = async (tourData: any) => {
+    try {
+      setLoading(true);
+      if (editingTour) {
+        await toursApi.update(editingTour.id, tourData);
+      } else {
+        await toursApi.create(tourData);
+      }
+      // Recarregar passeios após salvar
+      await loadTours();
+      if (selectedTripId) {
+        setTripDetailsInitialTab('tours');
+        setCurrentView('trip-details');
+      } else {
+        setCurrentView('all-tours');
+      }
+      setEditingTour(null);
+    } catch (err: any) {
+      console.error('Erro ao salvar passeio:', err);
+    } finally {
+      setLoading(false);
     }
-    setEditingTour(null);
   };
 
   const handleCancelNewTour = () => {
@@ -133,13 +221,22 @@ const App: React.FC = () => {
     setEditingTour(null);
   };
 
-  const handleSaveGroup = (groupData: any) => {
-    console.log('Saved group:', groupData);
-    if (selectedTripId) {
+  const handleSaveGroup = async (groupData: any) => {
+    try {
+      setLoading(true);
+      await groupsApi.create(groupData);
+      // Recarregar grupos após salvar
+      await loadGroups();
+      if (selectedTripId) {
         setTripDetailsInitialTab('groups');
         setCurrentView('trip-details');
-    } else {
+      } else {
         setCurrentView('all-groups');
+      }
+    } catch (err: any) {
+      console.error('Erro ao salvar grupo:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -151,9 +248,69 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSaveTrip = (tripData: any) => {
-    console.log('Saved trip:', tripData);
-    setCurrentView('dashboard');
+  const handleSaveTrip = async (tripData: any) => {
+    try {
+      setLoading(true);
+      console.log('🔄 handleSaveTrip: Iniciando salvamento...', tripData);
+      
+      // Validação básica
+      if (!tripData.name || !tripData.destination || !tripData.startDate || !tripData.endDate) {
+        alert('Por favor, preencha todos os campos obrigatórios.');
+        setLoading(false);
+        return;
+      }
+      
+      // Determinar status baseado na data
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const startDate = new Date(tripData.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(tripData.endDate);
+      endDate.setHours(0, 0, 0, 0);
+      
+      let status: 'active' | 'upcoming' | 'completed' = 'upcoming';
+      if (endDate < today) {
+        status = 'completed';
+      } else if (startDate <= today && today <= endDate) {
+        status = 'active';
+      }
+      
+      // Preparar dados para o banco
+      const tripToSave = {
+        name: tripData.name.trim(),
+        destination: tripData.destination.trim(),
+        startDate: tripData.startDate,
+        endDate: tripData.endDate,
+        description: tripData.description?.trim() || '',
+        status: status,
+        imageUrl: tripData.imageUrl || '',
+        links: tripData.links || []
+      };
+      
+      console.log('📤 Salvando viagem no banco:', {
+        ...tripToSave,
+        linksCount: tripToSave.links.length
+      });
+      
+      const savedTrip = await tripsApi.create(tripToSave);
+      console.log('✅ Viagem salva com sucesso!', savedTrip);
+      
+      // Recarregar viagens após salvar
+      await loadTrips();
+      
+      // Navegar para dashboard
+      setCurrentView('dashboard');
+      
+      // Mostrar feedback de sucesso
+      alert('Viagem criada com sucesso!');
+      
+    } catch (err: any) {
+      console.error('❌ Erro ao salvar viagem:', err);
+      const errorMessage = err.message || err.error?.message || 'Erro desconhecido ao salvar viagem';
+      alert(`Erro ao salvar viagem: ${errorMessage}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancelNewTrip = () => {
@@ -195,10 +352,10 @@ const App: React.FC = () => {
     );
   }
 
-  // Derive Data
-  const selectedTrip = MOCK_TRIPS.find(t => t.id === selectedTripId);
-  const tripTours = selectedTripId ? MOCK_TOURS.filter(t => t.tripId === selectedTripId) : [];
-  const tripGroups = selectedTripId ? MOCK_GROUPS.filter(g => g.tripId === selectedTripId) : [];
+  // Derive Data from database
+  const selectedTrip = trips.find(t => t.id === selectedTripId);
+  const tripTours = selectedTripId ? tours.filter(t => t.tripId === selectedTripId) : [];
+  const tripGroups = selectedTripId ? groups.filter(g => g.tripId === selectedTripId) : [];
 
   return (
     <Layout 
@@ -206,6 +363,7 @@ const App: React.FC = () => {
       onNavigateHome={handleNavigateHome}
       onNavigateTours={handleNavigateTours}
       onNavigateGroups={handleNavigateGroups}
+      onNavigateFinancial={handleNavigateFinancial}
       userRole={userRole}
       userName={userRole === 'user' ? currentUserGroup?.leaderName : 'Admin User'}
       userEmail={userRole === 'user' ? currentUserGroup?.leaderEmail : 'admin@travel.com'}
@@ -226,15 +384,24 @@ const App: React.FC = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {MOCK_TRIPS.map(trip => (
-              <TripCard 
-                key={trip.id} 
-                trip={trip} 
-                onClick={handleTripClick} 
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="text-center py-12 text-text-secondary">Carregando viagens...</div>
+          ) : trips.length === 0 ? (
+            <div className="text-center py-12 text-text-secondary bg-white rounded-custom border border-border border-dashed">
+              <p className="mb-2">Nenhuma viagem encontrada.</p>
+              <p className="text-sm text-text-disabled">Crie sua primeira viagem!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trips.map(trip => (
+                <TripCard 
+                  key={trip.id} 
+                  trip={trip} 
+                  onClick={handleTripClick} 
+                />
+              ))}
+            </div>
+          )}
 
           {/* Floating Action Button for Mobile */}
           <button 
@@ -251,6 +418,7 @@ const App: React.FC = () => {
           onEdit={handleEditTour}
           onViewGroup={handleViewGroup}
           onDelete={handleDeleteTour}
+          onAddTour={handleNewTourClick}
         />
       )}
 
@@ -282,15 +450,15 @@ const App: React.FC = () => {
         <TourAttendanceView 
           tour={selectedTourForAttendance}
           // Fallback to finding trip if selectedTrip state isn't synced yet
-          trip={selectedTrip || MOCK_TRIPS.find(t => t.id === selectedTourForAttendance.tripId)!}
-          groups={selectedTripId ? tripGroups : MOCK_GROUPS.filter(g => g.tripId === selectedTourForAttendance.tripId)}
+          trip={selectedTrip || trips.find(t => t.id === selectedTourForAttendance.tripId)!}
+          groups={selectedTripId ? tripGroups : groups.filter(g => g.tripId === selectedTourForAttendance.tripId)}
           onBack={() => setCurrentView('trip-details')}
         />
       )}
 
-      {(currentView === 'new-tour' || currentView === 'edit-tour') && selectedTrip && userRole === 'admin' && (
+      {(currentView === 'new-tour' || currentView === 'edit-tour') && userRole === 'admin' && (
         <NewTourForm 
-          trip={selectedTrip}
+          trip={selectedTrip || undefined}
           initialData={editingTour}
           onSave={handleSaveTour}
           onCancel={handleCancelNewTour}
@@ -310,6 +478,10 @@ const App: React.FC = () => {
           onSave={handleSaveTrip}
           onCancel={handleCancelNewTrip}
         />
+      )}
+
+      {currentView === 'financial' && userRole === 'admin' && (
+        <FinancialView />
       )}
     </Layout>
   );

@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, Upload, Link as LinkIcon, MapPin, DollarSign, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Clock, Upload, Link as LinkIcon, MapPin, DollarSign, Image as ImageIcon, Plus, Trash2, Map } from 'lucide-react';
 import { Trip, Tour, TourLink } from '../types';
+import { tripsApi } from '../lib/database';
 import Input from './Input';
 import Button from './Button';
 import DatePicker from './DatePicker';
 
 interface NewTourFormProps {
-  trip: Trip;
+  trip?: Trip;
   initialData?: Tour | null;
   onSave: (data: any) => void;
   onCancel: () => void;
 }
 
 const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, onCancel }) => {
+  const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
+  const [loadingTrips, setLoadingTrips] = useState(false);
+  const [selectedTripId, setSelectedTripId] = useState<string>(trip?.id || '');
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [formData, setFormData] = useState({
@@ -29,6 +33,28 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
   const [links, setLinks] = useState<TourLink[]>([]);
 
   const isEditMode = !!initialData;
+  const activeTrip = trip || availableTrips.find(t => t.id === selectedTripId);
+
+  // Load trips if no trip prop provided
+  useEffect(() => {
+    if (!trip) {
+      console.log('🔄 NewTourForm: Carregando viagens...');
+      const loadTrips = async () => {
+        try {
+          setLoadingTrips(true);
+          const data = await tripsApi.getAll();
+          setAvailableTrips(data);
+          console.log('✅ NewTourForm: Viagens carregadas:', data.length);
+        } catch (err: any) {
+          console.error('❌ NewTourForm: Erro ao carregar viagens:', err);
+          setAvailableTrips([]);
+        } finally {
+          setLoadingTrips(false);
+        }
+      };
+      loadTrips();
+    }
+  }, [trip]);
 
   useEffect(() => {
     if (initialData) {
@@ -68,12 +94,20 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation for Global Mode
+    if (!activeTrip) {
+      alert("Por favor, selecione uma viagem para este passeio.");
+      return;
+    }
+    
     setIsLoading(true);
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       onSave({ 
         ...formData, 
+        tripId: activeTrip.id,
         links: links.filter(l => l.title && l.url), // Filter out empty links
         id: initialData?.id 
       }); 
@@ -104,15 +138,59 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
           <h1 className="text-2xl font-bold text-text-primary">
             {isEditMode ? 'Editar Passeio' : 'Novo Passeio'}
           </h1>
-          <p className="text-text-secondary text-sm">
-            Viagem: {trip.name}
-          </p>
+          {activeTrip ? (
+            <p className="text-text-secondary text-sm">
+              Viagem: {activeTrip.name}
+            </p>
+          ) : (
+            <p className="text-text-secondary text-sm">
+              Selecione a viagem abaixo
+            </p>
+          )}
         </div>
       </div>
 
       {/* Form Card */}
       <div className="bg-white rounded-[24px] border border-border p-6 md:p-8 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Trip Selector (Only visible if no trip prop passed) */}
+          {!trip && (
+            <div className="bg-surface rounded-custom border border-border p-6 mb-6">
+              <h2 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
+                <Map size={20} className="text-primary" />
+                Vincular à Viagem
+              </h2>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="tripSelect" className="text-sm font-medium text-text-primary">
+                  Selecione a Viagem *
+                </label>
+                <div className="relative">
+                  <select
+                    id="tripSelect"
+                    className="w-full h-[48px] appearance-none rounded-custom border border-border bg-white px-4 text-text-primary outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    value={selectedTripId}
+                    onChange={(e) => setSelectedTripId(e.target.value)}
+                    required
+                  >
+                    <option value="" disabled>
+                      {loadingTrips ? 'Carregando viagens...' : 'Selecione uma viagem...'}
+                    </option>
+                    {availableTrips.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.destination})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B6B6B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Name */}
           <Input 

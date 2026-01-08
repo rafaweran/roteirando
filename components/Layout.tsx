@@ -19,7 +19,8 @@ interface LayoutProps {
   onLogout: () => void;
   onNavigateHome: () => void;
   onNavigateTours: () => void;
-  onNavigateGroups: () => void; // New prop
+  onNavigateGroups: () => void;
+  onNavigateFinancial?: () => void;
   title?: string;
   userRole?: UserRole;
   userName?: string;
@@ -32,6 +33,7 @@ const Layout: React.FC<LayoutProps> = ({
   onNavigateHome, 
   onNavigateTours, 
   onNavigateGroups,
+  onNavigateFinancial,
   userRole = 'admin',
   userName = 'Admin User',
   userEmail = 'admin@travel.com'
@@ -152,7 +154,11 @@ const Layout: React.FC<LayoutProps> = ({
 
             {userRole === 'admin' && (
               <>
-                <NavItem icon={CreditCard} label="Financeiro" />
+                <NavItem 
+                  icon={CreditCard} 
+                  label="Administrativo" 
+                  onClick={onNavigateFinancial || (() => {})}
+                />
                 <NavItem icon={Settings} label="Configurações" />
               </>
             )}
@@ -270,7 +276,14 @@ const Layout: React.FC<LayoutProps> = ({
 
               {userRole === 'admin' && (
                 <>
-                  <MobileNavItem icon={CreditCard} label="Financeiro" />
+                  <MobileNavItem 
+                    icon={CreditCard} 
+                    label="Administrativo" 
+                    onClick={() => {
+                      onNavigateFinancial?.();
+                      setIsMobileMenuOpen(false);
+                    }}
+                  />
                   <MobileNavItem icon={Settings} label="Configurações" />
                 </>
               )}

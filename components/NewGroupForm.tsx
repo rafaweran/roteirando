@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Users, User, Phone, Mail, Baby, Plus, X, Check, Map } from 'lucide-react';
 import { Trip } from '../types';
-import { MOCK_TRIPS } from '../data';
+import { tripsApi } from '../lib/database';
 import Input from './Input';
 import Button from './Button';
 
@@ -13,6 +13,8 @@ interface NewGroupFormProps {
 
 const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
+  const [loadingTrips, setLoadingTrips] = useState(false);
   
   // Trip Selection State (if no trip prop provided)
   const [selectedTripId, setSelectedTripId] = useState<string>(trip?.id || '');
@@ -32,8 +34,27 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
   const [currentMember, setCurrentMember] = useState('');
   const [members, setMembers] = useState<string[]>([]);
 
+  // Load trips if no trip prop provided
+  useEffect(() => {
+    if (!trip) {
+      const loadTrips = async () => {
+        try {
+          setLoadingTrips(true);
+          const data = await tripsApi.getAll();
+          setAvailableTrips(data);
+        } catch (err: any) {
+          console.error('Erro ao carregar viagens:', err);
+          setAvailableTrips([]);
+        } finally {
+          setLoadingTrips(false);
+        }
+      };
+      loadTrips();
+    }
+  }, [trip]);
+
   // Derived state for the active trip context
-  const activeTrip = trip || MOCK_TRIPS.find(t => t.id === selectedTripId);
+  const activeTrip = trip || availableTrips.find(t => t.id === selectedTripId);
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -121,8 +142,10 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
                     onChange={(e) => setSelectedTripId(e.target.value)}
                     required
                   >
-                    <option value="" disabled>Selecione uma viagem...</option>
-                    {MOCK_TRIPS.map(t => (
+                    <option value="" disabled>
+                      {loadingTrips ? 'Carregando viagens...' : 'Selecione uma viagem...'}
+                    </option>
+                    {availableTrips.map(t => (
                       <option key={t.id} value={t.id}>
                         {t.name} ({t.destination})
                       </option>

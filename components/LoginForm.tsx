@@ -55,11 +55,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       ];
       
       // Verificar no banco de dados
+      console.log('🔍 Verificando se é administrador:', normalizedEmail);
       const { adminsApi } = await import('../lib/database');
       const isAdminInDB = await adminsApi.isAdmin(normalizedEmail);
+      console.log('📊 Resultado da verificação no banco:', isAdminInDB);
       
       // Se não encontrou no banco, verifica na lista de fallback
-      const isAdmin = isAdminInDB || fallbackAdminEmails.some(email => email.toLowerCase().trim() === normalizedEmail);
+      const isFallbackAdmin = fallbackAdminEmails.some(email => email.toLowerCase().trim() === normalizedEmail);
+      console.log('📋 É admin na lista de fallback:', isFallbackAdmin);
+      
+      const isAdmin = isAdminInDB || isFallbackAdmin;
+      console.log('✅ É administrador?', isAdmin);
       
       if (isAdmin) {
         // In a real app, you would verify the password here
@@ -68,6 +74,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         setIsLoading(false);
         return;
       }
+      
+      console.log('❌ Não é administrador, continuando verificação de usuário...');
 
       // 2. Check for Group Leader (User) in database
       const allGroups = await groupsApi.getAll();
