@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, Upload, Link as LinkIcon, MapPin, DollarSign, Image as ImageIcon, Plus, Trash2, Map } from 'lucide-react';
+import { ArrowLeft, Clock, Upload, Link as LinkIcon, MapPin, DollarSign, Image as ImageIcon, Plus, Trash2, Map, Sparkles, Loader2 } from 'lucide-react';
 import { Trip, Tour, TourLink } from '../types';
 import { tripsApi } from '../lib/database';
+import { generateTourDescription } from '../lib/ai';
 import Input from './Input';
 import Button from './Button';
 import DatePicker from './DatePicker';
@@ -18,7 +19,9 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
   const [loadingTrips, setLoadingTrips] = useState(false);
   const [selectedTripId, setSelectedTripId] = useState<string>(trip?.id || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [timeError, setTimeError] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -75,7 +78,47 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
   }, [initialData]);
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // Validar horas quando ambas estiverem preenchidas
+      if ((field === 'startTime' || field === 'endTime') && updated.startTime && updated.endTime) {
+        const start = new Date(`2000-01-01T${updated.startTime}`);
+        const end = new Date(`2000-01-01T${updated.endTime}`);
+        
+        if (end <= start) {
+          setTimeError('A hora de término deve ser posterior à hora de início');
+        } else {
+          setTimeError('');
+        }
+      } else {
+        setTimeError('');
+      }
+      
+      return updated;
+    });
+  };
+
+  // Calcular duração do passeio
+  const calculateDuration = (): string => {
+    if (!formData.startTime || !formData.endTime) return '';
+    
+    const start = new Date(`2000-01-01T${formData.startTime}`);
+    const end = new Date(`2000-01-01T${formData.endTime}`);
+    
+    if (end <= start) return '';
+    
+    const diffMs = end.getTime() - start.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffHours === 0) {
+      return `${diffMinutes} min`;
+    } else if (diffMinutes === 0) {
+      return `${diffHours}h`;
+    } else {
+      return `${diffHours}h ${diffMinutes}min`;
+    }
   };
 
   const handleAddLink = () => {
@@ -90,6 +133,32 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     const newLinks = [...links];
     newLinks[index] = { ...newLinks[index], [field]: value };
     setLinks(newLinks);
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!formData.name) {
+      alert('Por favor, preencha o nome do passeio primeiro para gerar uma descrição.');
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const description = await generateTourDescription({
+        name: formData.name,
+        date: formData.date,
+        location: formData.location,
+        price: formData.price ? `${formData.currency} ${formData.price}` : undefined,
+        tripName: activeTrip?.name,
+        tripDestination: activeTrip?.destination,
+      });
+      
+      handleChange('description', description);
+    } catch (error: any) {
+      console.error('Erro ao gerar descrição:', error);
+      alert(`Erro ao gerar descrição: ${error.message || 'Erro desconhecido'}`);
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -204,14 +273,35 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
 
           {/* Description */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="description" className="text-sm font-medium text-text-primary">
-              Descrição (opcional)
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="description" className="text-sm font-medium text-text-primary">
+                Descrição (opcional)
+              </label>
+              <button
+                type="button"
+                onClick={handleGenerateDescription}
+                disabled={isGeneratingAI || !formData.name}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary/10"
+                title="Gerar descrição com IA"
+              >
+                {isGeneratingAI ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Gerando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={14} />
+                    <span>Gerar com IA</span>
+                  </>
+                )}
+              </button>
+            </div>
             <textarea
               id="description"
               rows={4}
               className="w-full rounded-custom border border-border bg-white px-4 py-3 text-text-primary outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-disabled resize-none"
-              placeholder="Descreva o passeio..."
+              placeholder="Descreva o passeio... ou clique em 'Gerar com IA' para criar automaticamente"
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
             />
@@ -227,23 +317,58 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
           />
 
           {/* Times */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input 
-              id="startTime"
-              type="time"
-              label="Hora início"
-              icon={Clock}
-              value={formData.startTime}
-              onChange={(e) => handleChange('startTime', e.target.value)}
-            />
-            <Input 
-              id="endTime"
-              type="time"
-              label="Hora fim"
-              icon={Clock}
-              value={formData.endTime}
-              onChange={(e) => handleChange('endTime', e.target.value)}
-            />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-text-primary">
+                Horário do passeio
+              </label>
+              {formData.startTime && formData.endTime && !timeError && (
+                <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-lg">
+                  Duração: {calculateDuration()}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="startTime" className="text-xs text-text-secondary flex items-center gap-1.5">
+                  <Clock size={14} />
+                  Hora de início
+                </label>
+                <Input 
+                  id="startTime"
+                  type="time"
+                  icon={Clock}
+                  value={formData.startTime}
+                  onChange={(e) => handleChange('startTime', e.target.value)}
+                  className={timeError ? 'border-status-error' : ''}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="endTime" className="text-xs text-text-secondary flex items-center gap-1.5">
+                  <Clock size={14} />
+                  Hora de término
+                </label>
+                <Input 
+                  id="endTime"
+                  type="time"
+                  icon={Clock}
+                  value={formData.endTime}
+                  onChange={(e) => handleChange('endTime', e.target.value)}
+                  className={timeError ? 'border-status-error' : ''}
+                />
+              </div>
+            </div>
+            {timeError && (
+              <p className="text-xs text-status-error flex items-center gap-1.5 mt-1">
+                <span>⚠️</span>
+                {timeError}
+              </p>
+            )}
+            {!timeError && formData.startTime && formData.endTime && (
+              <p className="text-xs text-text-disabled mt-1">
+                O passeio terá duração de {calculateDuration()}
+              </p>
+            )}
           </div>
 
           {/* Price & Currency */}
