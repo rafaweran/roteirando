@@ -1,0 +1,315 @@
+import React, { useState } from 'react';
+import { 
+  LogOut, 
+  Map, 
+  LayoutDashboard, 
+  Menu, 
+  X, 
+  Settings, 
+  UserCircle,
+  ChevronDown,
+  Users,
+  TentTree
+} from 'lucide-react';
+import { UserRole } from '../types';
+
+interface LayoutProps {
+  children: React.ReactNode;
+  onLogout: () => void;
+  onNavigateHome: () => void;
+  onNavigateTours: () => void;
+  onNavigateGroups: () => void;
+  userRole: UserRole;
+  userName?: string;
+  userEmail?: string;
+}
+
+const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  onLogout, 
+  onNavigateHome, 
+  onNavigateTours, 
+  onNavigateGroups,
+  userRole,
+  userName = 'Admin User',
+  userEmail = 'admin@travel.com'
+}) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSubmenuOpen, setIsMobileSubmenuOpen] = useState(false);
+
+  // --- Desktop Navigation Components ---
+  
+  const NavItem = ({ icon: Icon, label, isActive, onClick, hasSubmenu, children }: any) => {
+    return (
+      <div className="relative group h-full flex items-center">
+        <button
+          onClick={onClick}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 h-10
+            ${isActive 
+              ? 'bg-primary/10 text-primary' 
+              : 'text-text-secondary hover:text-text-primary hover:bg-surface'
+            }
+          `}
+        >
+          {Icon && <Icon size={18} />}
+          <span>{label}</span>
+          {hasSubmenu && (
+            <ChevronDown size={16} className="text-text-secondary group-hover:text-primary transition-transform duration-200 group-hover:rotate-180" />
+          )}
+        </button>
+
+        {/* Desktop Dropdown */}
+        {hasSubmenu && (
+          <div className="absolute top-full left-0 pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50">
+            <div className="bg-white rounded-xl shadow-xl border border-border overflow-hidden p-1">
+              {children}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const DropdownItem = ({ icon: Icon, label, onClick }: any) => (
+    <button
+      onClick={(e) => {
+        e.stopPropagation(); // Prevent bubbling if needed
+        onClick();
+      }}
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-text-secondary hover:text-primary hover:bg-surface transition-colors text-left"
+    >
+      {Icon && <Icon size={16} />}
+      {label}
+    </button>
+  );
+
+  // --- Mobile Navigation Components ---
+
+  const MobileNavItem = ({ icon: Icon, label, isActive, onClick, hasSubmenu, isOpen, onToggle }: any) => (
+    <div className="flex flex-col">
+      <button
+        onClick={hasSubmenu ? onToggle : onClick}
+        className={`
+          w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors
+          ${isActive 
+            ? 'bg-primary/10 text-primary font-medium' 
+            : 'text-text-secondary hover:bg-surface hover:text-text-primary'
+          }
+        `}
+      >
+        <div className="flex items-center gap-3">
+          {Icon && <Icon size={20} />}
+          <span>{label}</span>
+        </div>
+        {hasSubmenu && (
+          <ChevronDown size={18} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        )}
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-surface flex flex-col">
+      {/* Top Header Navigation */}
+      <header className="bg-white border-b border-border h-16 fixed top-0 left-0 right-0 z-40 px-4 md:px-8 shadow-sm/50">
+        <div className="max-w-[1600px] mx-auto h-full flex items-center justify-between">
+          
+          {/* Logo */}
+          <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigateHome}>
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md shadow-primary/20">
+              <Map size={18} />
+            </div>
+            <h1 className="font-bold text-xl text-text-primary tracking-tight hidden xs:block">Travel<span className="text-primary">Manager</span></h1>
+          </div>
+
+          {/* Desktop Menu (Center) */}
+          <nav className="hidden md:flex items-center gap-2 h-full">
+            {userRole === 'admin' ? (
+              <>
+                <NavItem 
+                  icon={LayoutDashboard} 
+                  label="Dashboard" 
+                  onClick={onNavigateHome} 
+                />
+                
+                <NavItem 
+                  icon={Map} 
+                  label="Viagens" 
+                  isActive={true} 
+                  hasSubmenu={true}
+                  onClick={onNavigateHome}
+                >
+                  <DropdownItem icon={Map} label="Minhas Viagens" onClick={onNavigateHome} />
+                  <div className="h-px bg-border mx-2 my-1"></div>
+                  <DropdownItem icon={TentTree} label="Passeios" onClick={onNavigateTours} />
+                  <DropdownItem icon={Users} label="Grupos" onClick={onNavigateGroups} />
+                </NavItem>
+
+                <NavItem icon={Settings} label="Configurações" />
+              </>
+            ) : (
+              // USER MENU
+              <NavItem 
+                icon={Map} 
+                label="Minha Viagem" 
+                isActive={true} 
+                onClick={onNavigateHome} 
+              />
+            )}
+          </nav>
+
+          {/* User & Actions (Right) */}
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3 pl-4 border-l border-border">
+              <div className="text-right hidden lg:block">
+                <p className="text-sm font-semibold text-text-primary leading-none">{userName}</p>
+                <p className="text-xs text-text-secondary mt-1">{userEmail}</p>
+              </div>
+              <div className="w-9 h-9 bg-surface rounded-full flex items-center justify-center text-text-secondary border border-border">
+                <UserCircle size={20} />
+              </div>
+              <button 
+                onClick={onLogout}
+                className="p-2 text-text-secondary hover:text-status-error hover:bg-status-error/5 rounded-full transition-colors"
+                title="Sair"
+              >
+                <LogOut size={20} />
+              </button>
+            </div>
+
+            {/* Mobile Hamburger */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 text-text-secondary hover:text-primary hover:bg-surface rounded-lg transition-colors"
+            >
+              <Menu size={24} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Drawer */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          
+          {/* Drawer Content */}
+          <div className="absolute top-0 right-0 bottom-0 w-[80%] max-w-xs bg-white shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
+            <div className="p-4 flex items-center justify-between border-b border-border">
+              <span className="font-bold text-lg text-primary">Menu</span>
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 text-text-secondary hover:text-status-error rounded-full hover:bg-surface transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {userRole === 'admin' ? (
+                <>
+                  <MobileNavItem 
+                    icon={LayoutDashboard} 
+                    label="Dashboard" 
+                    onClick={() => {
+                      onNavigateHome();
+                      setIsMobileMenuOpen(false);
+                    }} 
+                  />
+                  
+                  <MobileNavItem 
+                    icon={Map} 
+                    label="Viagens" 
+                    isActive={true}
+                    hasSubmenu={true}
+                    isOpen={isMobileSubmenuOpen}
+                    onToggle={() => setIsMobileSubmenuOpen(!isMobileSubmenuOpen)}
+                  />
+                  
+                  {isMobileSubmenuOpen && (
+                    <div className="pl-4 space-y-1 border-l-2 border-border ml-4 animate-in slide-in-from-top-2 duration-200">
+                      <button 
+                        onClick={() => {
+                          onNavigateHome();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
+                      >
+                        <Map size={16} />
+                        Minhas Viagens
+                      </button>
+                      <button 
+                        onClick={() => {
+                          onNavigateTours();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
+                      >
+                        <TentTree size={16} />
+                        Passeios
+                      </button>
+                      <button 
+                        onClick={() => {
+                          onNavigateGroups();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
+                      >
+                        <Users size={16} />
+                        Grupos
+                      </button>
+                    </div>
+                  )}
+
+                  <MobileNavItem icon={Settings} label="Configurações" />
+                </>
+              ) : (
+                // USER MOBILE MENU
+                <MobileNavItem 
+                  icon={Map} 
+                  label="Minha Viagem" 
+                  isActive={true}
+                  onClick={() => {
+                    onNavigateHome();
+                    setIsMobileMenuOpen(false);
+                  }}
+                />
+              )}
+            </div>
+
+            <div className="p-4 border-t border-border mt-auto">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-surface rounded-full flex items-center justify-center text-text-secondary border border-border">
+                  <UserCircle size={24} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">{userName}</p>
+                  <p className="text-xs text-text-secondary truncate max-w-[180px]">{userEmail}</p>
+                </div>
+              </div>
+              <button 
+                onClick={onLogout}
+                className="w-full flex items-center justify-center gap-2 text-sm font-medium text-text-secondary hover:text-status-error hover:bg-status-error/5 p-3 rounded-lg border border-border hover:border-status-error/30 transition-all"
+              >
+                <LogOut size={18} />
+                Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <main className="flex-1 w-full pt-24 pb-8 px-4 md:px-8 max-w-[1600px] mx-auto transition-all">
+        {children}
+      </main>
+    </div>
+  );
+};
+
+export default Layout;
