@@ -45,8 +45,25 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     
     try {
       // 1. Check for Admin
-      if (formData.email === 'admin@travel.com') {
+      // Primeiro verifica no banco de dados, depois fallback para lista hardcoded
+      const normalizedEmail = formData.email.toLowerCase().trim();
+      
+      // Lista de fallback (caso a tabela admins não exista ainda)
+      const fallbackAdminEmails = [
+        'admin@travel.com',
+        'raffiweran@gmail.com'
+      ];
+      
+      // Verificar no banco de dados
+      const { adminsApi } = await import('../lib/database');
+      const isAdminInDB = await adminsApi.isAdmin(normalizedEmail);
+      
+      // Se não encontrou no banco, verifica na lista de fallback
+      const isAdmin = isAdminInDB || fallbackAdminEmails.some(email => email.toLowerCase().trim() === normalizedEmail);
+      
+      if (isAdmin) {
         // In a real app, you would verify the password here
+        console.log('✅ Login como administrador:', normalizedEmail);
         onSuccess('admin');
         setIsLoading(false);
         return;
@@ -61,7 +78,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       console.log('Email buscado:', formData.email);
       
       // Case-insensitive email comparison and trim whitespace
-      const normalizedEmail = formData.email.toLowerCase().trim();
+      // normalizedEmail já foi declarado acima, reutilizando aqui
       const userGroup = allGroups.find(g => {
         if (!g.leaderEmail) {
           console.log(`Grupo "${g.name}" não tem leaderEmail`);

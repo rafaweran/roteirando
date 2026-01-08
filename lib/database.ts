@@ -656,3 +656,78 @@ export const tourAttendanceApi = {
   },
 };
 
+// Admins API
+export const adminsApi = {
+  async isAdmin(email: string): Promise<boolean> {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      const { data, error } = await supabase
+        .from('admins')
+        .select('email')
+        .eq('email', normalizedEmail)
+        .single();
+
+      if (error) {
+        // Se a tabela não existir ou não encontrar, retorna false
+        if (error.code === 'PGRST116' || error.code === '42P01') {
+          console.log('⚠️ Tabela admins não existe ainda, usando lista hardcoded');
+          return false;
+        }
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('Erro ao verificar se é admin:', error);
+      return false;
+    }
+  },
+
+  async getAll(): Promise<Array<{ id: string; email: string; name: string | null }>> {
+    try {
+      const { data, error } = await supabase
+        .from('admins')
+        .select('id, email, name')
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        if (error.code === '42P01') {
+          console.log('⚠️ Tabela admins não existe ainda');
+          return [];
+        }
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar administradores:', error);
+      return [];
+    }
+  },
+
+  async addAdmin(email: string, name?: string): Promise<boolean> {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      const { error } = await supabase
+        .from('admins')
+        .insert({
+          email: normalizedEmail,
+          name: name || null,
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          console.log('⚠️ Administrador já existe:', normalizedEmail);
+          return true; // Já existe, consideramos sucesso
+        }
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Erro ao adicionar administrador:', error);
+      return false;
+    }
+  },
+};
+
