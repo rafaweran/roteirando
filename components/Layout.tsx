@@ -5,6 +5,7 @@ import {
   LayoutDashboard, 
   Menu, 
   X, 
+  CreditCard, 
   Settings, 
   UserCircle,
   ChevronDown,
@@ -18,8 +19,9 @@ interface LayoutProps {
   onLogout: () => void;
   onNavigateHome: () => void;
   onNavigateTours: () => void;
-  onNavigateGroups: () => void;
-  userRole: UserRole;
+  onNavigateGroups: () => void; // New prop
+  title?: string;
+  userRole?: UserRole;
   userName?: string;
   userEmail?: string;
 }
@@ -30,7 +32,7 @@ const Layout: React.FC<LayoutProps> = ({
   onNavigateHome, 
   onNavigateTours, 
   onNavigateGroups,
-  userRole,
+  userRole = 'admin',
   userName = 'Admin User',
   userEmail = 'admin@travel.com'
 }) => {
@@ -110,7 +112,7 @@ const Layout: React.FC<LayoutProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Top Header Navigation */}
       <header className="bg-white border-b border-border h-16 fixed top-0 left-0 right-0 z-40 px-4 md:px-8 shadow-sm/50">
         <div className="max-w-[1600px] mx-auto h-full flex items-center justify-between">
@@ -125,37 +127,34 @@ const Layout: React.FC<LayoutProps> = ({
 
           {/* Desktop Menu (Center) */}
           <nav className="hidden md:flex items-center gap-2 h-full">
-            {userRole === 'admin' ? (
-              <>
-                <NavItem 
-                  icon={LayoutDashboard} 
-                  label="Dashboard" 
-                  onClick={onNavigateHome} 
-                />
-                
-                <NavItem 
-                  icon={Map} 
-                  label="Viagens" 
-                  isActive={true} 
-                  hasSubmenu={true}
-                  onClick={onNavigateHome}
-                >
+            <NavItem 
+              icon={LayoutDashboard} 
+              label="Dashboard" 
+              onClick={onNavigateHome} 
+            />
+            
+            <NavItem 
+              icon={Map} 
+              label="Viagens" 
+              isActive={true} 
+              hasSubmenu={userRole === 'admin'} 
+              onClick={onNavigateHome}
+            >
+              {userRole === 'admin' && (
+                <>
                   <DropdownItem icon={Map} label="Minhas Viagens" onClick={onNavigateHome} />
                   <div className="h-px bg-border mx-2 my-1"></div>
                   <DropdownItem icon={TentTree} label="Passeios" onClick={onNavigateTours} />
                   <DropdownItem icon={Users} label="Grupos" onClick={onNavigateGroups} />
-                </NavItem>
+                </>
+              )}
+            </NavItem>
 
+            {userRole === 'admin' && (
+              <>
+                <NavItem icon={CreditCard} label="Financeiro" />
                 <NavItem icon={Settings} label="Configurações" />
               </>
-            ) : (
-              // USER MENU
-              <NavItem 
-                icon={Map} 
-                label="Minha Viagem" 
-                isActive={true} 
-                onClick={onNavigateHome} 
-              />
             )}
           </nav>
 
@@ -211,74 +210,69 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {userRole === 'admin' ? (
-                <>
-                  <MobileNavItem 
-                    icon={LayoutDashboard} 
-                    label="Dashboard" 
+              <MobileNavItem 
+                icon={LayoutDashboard} 
+                label="Dashboard" 
+                onClick={() => {
+                  onNavigateHome();
+                  setIsMobileMenuOpen(false);
+                }} 
+              />
+              
+              <MobileNavItem 
+                icon={Map} 
+                label="Viagens" 
+                isActive={true}
+                hasSubmenu={userRole === 'admin'}
+                isOpen={isMobileSubmenuOpen}
+                onToggle={() => setIsMobileSubmenuOpen(!isMobileSubmenuOpen)}
+                onClick={userRole === 'user' ? () => {
+                   onNavigateHome();
+                   setIsMobileMenuOpen(false);
+                } : undefined}
+              />
+              
+              {/* Mobile Submenu Accordion */}
+              {isMobileSubmenuOpen && userRole === 'admin' && (
+                <div className="pl-4 space-y-1 border-l-2 border-border ml-4 animate-in slide-in-from-top-2 duration-200">
+                  <button 
                     onClick={() => {
                       onNavigateHome();
                       setIsMobileMenuOpen(false);
-                    }} 
-                  />
-                  
-                  <MobileNavItem 
-                    icon={Map} 
-                    label="Viagens" 
-                    isActive={true}
-                    hasSubmenu={true}
-                    isOpen={isMobileSubmenuOpen}
-                    onToggle={() => setIsMobileSubmenuOpen(!isMobileSubmenuOpen)}
-                  />
-                  
-                  {isMobileSubmenuOpen && (
-                    <div className="pl-4 space-y-1 border-l-2 border-border ml-4 animate-in slide-in-from-top-2 duration-200">
-                      <button 
-                        onClick={() => {
-                          onNavigateHome();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
-                      >
-                        <Map size={16} />
-                        Minhas Viagens
-                      </button>
-                      <button 
-                        onClick={() => {
-                          onNavigateTours();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
-                      >
-                        <TentTree size={16} />
-                        Passeios
-                      </button>
-                      <button 
-                        onClick={() => {
-                          onNavigateGroups();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
-                      >
-                        <Users size={16} />
-                        Grupos
-                      </button>
-                    </div>
-                  )}
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
+                  >
+                    <Map size={16} />
+                    Minhas Viagens
+                  </button>
+                  <button 
+                    onClick={() => {
+                      onNavigateTours();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
+                  >
+                    <TentTree size={16} />
+                    Passeios
+                  </button>
+                  <button 
+                    onClick={() => {
+                      onNavigateGroups();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
+                  >
+                    <Users size={16} />
+                    Grupos
+                  </button>
+                </div>
+              )}
 
+              {userRole === 'admin' && (
+                <>
+                  <MobileNavItem icon={CreditCard} label="Financeiro" />
                   <MobileNavItem icon={Settings} label="Configurações" />
                 </>
-              ) : (
-                // USER MOBILE MENU
-                <MobileNavItem 
-                  icon={Map} 
-                  label="Minha Viagem" 
-                  isActive={true}
-                  onClick={() => {
-                    onNavigateHome();
-                    setIsMobileMenuOpen(false);
-                  }}
-                />
               )}
             </div>
 
@@ -289,7 +283,7 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-text-primary">{userName}</p>
-                  <p className="text-xs text-text-secondary truncate max-w-[180px]">{userEmail}</p>
+                  <p className="text-xs text-text-secondary">{userEmail}</p>
                 </div>
               </div>
               <button 

@@ -11,6 +11,7 @@ interface TourCardProps {
   attendanceCount?: number; // Number of people going
   totalMembers?: number; // Total people in group
   onOpenAttendance?: (tour: Tour) => void;
+  // Admin props
   onViewAttendanceList?: (tour: Tour) => void;
 }
 

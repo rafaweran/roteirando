@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Calendar, Upload, Image as ImageIcon, Link as LinkIcon, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { ArrowLeft, Calendar, Upload, Image as ImageIcon, Link as LinkIcon, Plus, Trash2, X } from 'lucide-react';
 import Input from './Input';
 import Button from './Button';
 import DatePicker from './DatePicker';
@@ -14,8 +14,8 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     destination: '',
@@ -48,17 +48,9 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Se houver imagem selecionada, converter para URL (em produção, você faria upload para Supabase Storage)
-    let imageUrl = '';
-    if (imagePreview) {
-      // Por enquanto, usamos a preview como URL
-      // Em produção, você faria upload para Supabase Storage e obteria a URL
-      imageUrl = imagePreview;
-    }
-    
     const finalData = {
       ...formData,
-      imageUrl: imageUrl || '',
+      imageUrl: imagePreview || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800&auto=format&fit=crop', // Default fallback
       links: links.filter(l => l.title && l.url)
     };
 
@@ -69,6 +61,7 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
     }, 1000);
   };
 
+  // Drag and Drop Logic
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -85,48 +78,28 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
     setDragActive(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0]);
+      handleFile(e.dataTransfer.files[0]);
     }
-  };
-
-  const handleFileSelect = (file: File) => {
-    // Validar tipo de arquivo
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      alert('Tipo de arquivo inválido. Use PNG, JPG ou WebP.');
-      return;
-    }
-
-    // Validar tamanho (5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB em bytes
-    if (file.size > maxSize) {
-      alert('Arquivo muito grande. Tamanho máximo: 5MB.');
-      return;
-    }
-
-    setSelectedImage(file);
-
-    // Criar preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      handleFileSelect(e.target.files[0]);
+      handleFile(e.target.files[0]);
     }
   };
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
+  const handleFile = (file: File) => {
+    // Validate file type/size here if needed
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setImagePreview(e.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleRemoveImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedImage(null);
+  const handleRemoveImage = () => {
     setImagePreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -260,44 +233,53 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
               <ImageIcon size={16} />
               Imagem de Capa (opcional)
             </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              onChange={handleFileInputChange}
-              className="hidden"
-            />
-            <div 
-              className={`
-                border-2 border-dashed rounded-custom p-8 text-center transition-all duration-200 cursor-pointer relative
-                ${dragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-surface'}
-              `}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              onClick={handleUploadClick}
-            >
-              {imagePreview ? (
-                <div className="relative">
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
-                    className="max-h-64 mx-auto rounded-lg object-cover"
-                  />
+            
+            {imagePreview ? (
+              <div className="relative w-full h-48 rounded-custom overflow-hidden group border border-border animate-in fade-in zoom-in-95 duration-300">
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center backdrop-blur-[2px]">
                   <button
                     type="button"
                     onClick={handleRemoveImage}
-                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
-                    title="Remover imagem"
+                    className="flex items-center gap-2 px-4 py-2 bg-white text-status-error rounded-full font-medium shadow-lg hover:bg-surface transition-transform active:scale-95"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={18} />
+                    Remover Imagem
                   </button>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-text-secondary">
-                    <Upload size={20} />
+              </div>
+            ) : (
+              <div 
+                className={`
+                  relative border-2 border-dashed rounded-custom p-8 text-center transition-all duration-200 cursor-pointer
+                  ${dragActive 
+                    ? 'border-primary bg-primary/5 scale-[0.99]' 
+                    : 'border-border hover:border-primary/50 hover:bg-surface'
+                  }
+                `}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/png, image/jpeg, image/webp"
+                  onChange={handleFileInputChange}
+                />
+                <div className="flex flex-col items-center gap-3 pointer-events-none">
+                  <div className={`
+                    w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-200
+                    ${dragActive ? 'bg-primary text-white' : 'bg-surface text-text-secondary'}
+                  `}>
+                    <Upload size={24} />
                   </div>
                   <div className="text-sm">
                     <span className="font-semibold text-primary">Clique para upload</span> ou arraste e solte
@@ -306,12 +288,7 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
                     PNG, JPG ou WebP (Máx. 5MB)
                   </p>
                 </div>
-              )}
-            </div>
-            {selectedImage && (
-              <p className="text-xs text-text-secondary text-center">
-                Arquivo selecionado: {selectedImage.name} ({(selectedImage.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
+              </div>
             )}
           </div>
 

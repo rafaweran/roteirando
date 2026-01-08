@@ -52,7 +52,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
           </div>
           <div className="flex items-center text-sm text-text-secondary">
             <Calendar size={16} className="mr-2 text-primary" />
-            <span>{new Date(trip.startDate).toLocaleDateString('pt-BR')} - {new Date(trip.endDate).toLocaleDateString('pt-BR')}</span>
+            <span>{new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}</span>
           </div>
         </div>
 

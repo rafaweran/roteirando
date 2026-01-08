@@ -72,6 +72,7 @@ export const MOCK_GROUPS: Group[] = [
     members: ['Roberto Silva', 'Maria Silva', 'Pedro Silva', 'Ana Silva'],
     leaderName: 'Roberto Silva',
     leaderEmail: 'roberto@email.com',
+    leaderPhone: '(11) 98765-4321',
     tourAttendance: {
       '101': ['Roberto Silva', 'Maria Silva', 'Pedro Silva', 'Ana Silva'] // Todos vão
     }
@@ -83,6 +84,7 @@ export const MOCK_GROUPS: Group[] = [
     membersCount: 5,
     members: ['Ana Paula', 'Carlos Souza', 'Fernanda Lima', 'João Vitor', 'Beatriz Costa'],
     leaderName: 'Ana Paula',
+    leaderPhone: '(51) 99988-7766',
     tourAttendance: {}
   },
   {
@@ -92,6 +94,7 @@ export const MOCK_GROUPS: Group[] = [
     membersCount: 2,
     members: ['Carlos Mendes', 'Juliana Mendes'],
     leaderName: 'Carlos Mendes',
+    leaderPhone: '(21) 91234-5678',
     tourAttendance: {}
   }
 ];

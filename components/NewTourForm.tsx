@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Clock, Upload, Link as LinkIcon, MapPin, DollarSign, Image as ImageIcon, Plus, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Clock, Upload, Link as LinkIcon, MapPin, DollarSign, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 import { Trip, Tour, TourLink } from '../types';
 import Input from './Input';
 import Button from './Button';
@@ -15,11 +15,6 @@ interface NewTourFormProps {
 const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
-  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -50,10 +45,6 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       if (initialData.links) {
         setLinks(initialData.links);
       }
-      // If editing and has image, set preview
-      if (initialData.imageUrl) {
-        setImagePreviews([initialData.imageUrl]);
-      }
     }
   }, [initialData]);
 
@@ -75,122 +66,18 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     setLinks(newLinks);
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🚀 ========== INÍCIO handleSubmit NewTourForm ==========');
-    console.log('📋 Form Data:', {
-      name: formData.name,
-      date: formData.date,
-      startTime: formData.startTime,
-      price: formData.price,
-      description: formData.description?.substring(0, 50) + '...',
-      location: formData.location,
-      linksCount: links.length,
-      selectedImagesCount: selectedImages.length,
-      isEditMode: isEditMode,
-      initialDataId: initialData?.id,
-    });
-    
     setIsLoading(true);
-    console.log('⏳ Loading state set to true');
-    
-    try {
-      // Process images - convert to base64 for now (in production, upload to storage service)
-      let imageUrl = '';
-      console.log('🖼️ Processando imagens...');
-      try {
-        if (selectedImages.length > 0) {
-          console.log(`📸 ${selectedImages.length} imagem(ns) selecionada(s)`);
-          // Use the first image as the main image
-          const firstImage = selectedImages[0];
-          console.log('📄 Processando primeira imagem:', {
-            name: firstImage.name,
-            size: firstImage.size,
-            type: firstImage.type,
-          });
-          
-          imageUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              if (reader.result) {
-                const result = reader.result as string;
-                console.log('✅ Imagem processada com sucesso, tamanho base64:', result.length);
-                resolve(result);
-              } else {
-                console.error('❌ reader.result é null');
-                reject(new Error('Falha ao processar imagem'));
-              }
-            };
-            reader.onerror = (error) => {
-              console.error('❌ Erro no FileReader:', error);
-              reject(new Error('Erro ao ler arquivo de imagem'));
-            };
-            console.log('📖 Iniciando leitura do arquivo...');
-            reader.readAsDataURL(firstImage);
-          });
-          console.log('✅ imageUrl definido, tamanho:', imageUrl.length);
-        } else if (initialData?.imageUrl) {
-          // Keep existing image if editing and no new image selected
-          console.log('🔄 Usando imagem existente do initialData');
-          imageUrl = initialData.imageUrl;
-        } else {
-          console.log('ℹ️ Nenhuma imagem selecionada e nenhuma imagem existente');
-        }
-      } catch (imageError) {
-        console.warn('⚠️ Erro ao processar imagem, continuando sem imagem:', imageError);
-        // Continue without image if processing fails
-        imageUrl = initialData?.imageUrl || '';
-      }
-
-      // Prepare data in correct format
-      console.log('📦 Preparando dados do tour...');
-      const tourData: any = {
-        tripId: trip.id,
-        name: formData.name.trim(),
-        date: formData.date,
-        time: formData.startTime || '00:00', // Use startTime, default to 00:00 if empty
-        price: formData.price ? parseFloat(formData.price) : 0,
-        description: formData.description.trim(),
-        imageUrl: imageUrl,
-        links: links.filter(l => l.title && l.url), // Filter out empty links
-      };
-
-      // If editing, include the id
-      if (initialData?.id) {
-        tourData.id = initialData.id;
-        console.log('✏️ Modo edição, incluindo ID:', initialData.id);
-      }
-
-      console.log('📤 Dados do tour preparados:', {
-        tripId: tourData.tripId,
-        name: tourData.name,
-        date: tourData.date,
-        time: tourData.time,
-        price: tourData.price,
-        hasImage: !!tourData.imageUrl,
-        imageUrlLength: tourData.imageUrl?.length || 0,
-        linksCount: tourData.links.length,
-        hasId: !!tourData.id,
-      });
-
-      // Call onSave which will handle the API call
-      console.log('📞 Chamando onSave...');
-      await onSave(tourData);
-      console.log('✅ onSave concluído com sucesso');
-    } catch (error: any) {
-      // Log error but let parent handle it
-      console.error('❌ ========== ERRO em handleSubmit NewTourForm ==========');
-      console.error('Erro completo:', error);
-      console.error('Mensagem:', error?.message);
-      console.error('Stack:', error?.stack);
-      console.error('Tipo:', typeof error);
-      console.error('========================================================');
-      // Re-throw to let parent component handle the error and show toast
-      throw error;
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
       setIsLoading(false);
-      console.log('🏁 ========== FIM handleSubmit NewTourForm ==========');
-    }
+      onSave({ 
+        ...formData, 
+        links: links.filter(l => l.title && l.url), // Filter out empty links
+        id: initialData?.id 
+      }); 
+    }, 1000);
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -201,172 +88,6 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     } else if (e.type === "dragleave") {
       setDragActive(false);
     }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFiles(Array.from(e.dataTransfer.files));
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleFiles(Array.from(e.target.files));
-    }
-  };
-
-  const handleFiles = (files: File[]) => {
-    const validFiles: File[] = [];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    const maxImages = 10;
-
-    files.forEach((file) => {
-      // Validar tipo
-      if (!allowedTypes.includes(file.type)) {
-        console.warn(`Arquivo ${file.name} não é um formato válido. Formatos aceitos: JPG, PNG, WebP, GIF`);
-        return;
-      }
-
-      // Validar tamanho
-      if (file.size > maxSize) {
-        console.warn(`Arquivo ${file.name} excede o tamanho máximo de 5MB`);
-        return;
-      }
-
-      // Validar quantidade máxima
-      if (selectedImages.length + validFiles.length >= maxImages) {
-        console.warn(`Máximo de ${maxImages} imagens permitidas`);
-        return;
-      }
-
-      validFiles.push(file);
-    });
-
-    if (validFiles.length > 0) {
-      const newImages = [...selectedImages, ...validFiles].slice(0, maxImages);
-      setSelectedImages(newImages);
-
-      // Criar previews de forma assíncrona
-      const previewPromises = validFiles.map((file) => {
-        return new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      });
-
-      Promise.all(previewPromises)
-        .then((newPreviews) => {
-          setImagePreviews((prev) => [...prev, ...newPreviews]);
-        })
-        .catch((error) => {
-          console.error('Erro ao criar previews:', error);
-        });
-    }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    const newImages = selectedImages.filter((_, i) => i !== index);
-    const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    setSelectedImages(newImages);
-    setImagePreviews(newPreviews);
-    
-    // Reset input para permitir selecionar o mesmo arquivo novamente
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleImageAreaClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  // Cleanup typing interval on unmount
-  useEffect(() => {
-    return () => {
-      if (typingIntervalRef.current) {
-        clearInterval(typingIntervalRef.current);
-      }
-    };
-  }, []);
-
-  const generateDescription = async () => {
-    if (!formData.name) {
-      return;
-    }
-
-    // Clear any existing interval
-    if (typingIntervalRef.current) {
-      clearInterval(typingIntervalRef.current);
-    }
-
-    setIsGeneratingDescription(true);
-
-    // Simulate AI generation with typing effect
-    const generateText = () => {
-      const name = formData.name;
-      const location = formData.location || trip.destination;
-      const date = formData.date ? new Date(formData.date + 'T12:00:00').toLocaleDateString('pt-BR', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }) : '';
-      const time = formData.startTime ? `às ${formData.startTime}` : '';
-      const price = formData.price ? `R$ ${parseFloat(formData.price).toFixed(2)}` : '';
-
-      // Generate description based on available information
-      let description = `Descubra ${name}${location ? ` em ${location}` : ''}${date ? ` no dia ${date}` : ''}${time ? ` ${time}` : ''}. `;
-      
-      // Add contextual information based on tour name
-      const nameLower = name.toLowerCase();
-      if (nameLower.includes('vinícol') || nameLower.includes('vinho') || nameLower.includes('degustação')) {
-        description += `Uma experiência única de degustação de vinhos, onde você poderá conhecer os melhores rótulos da região, aprender sobre o processo de produção e apreciar harmonizações especiais. `;
-      } else if (nameLower.includes('gastronôm') || nameLower.includes('culinária') || nameLower.includes('restaurante')) {
-        description += `Delicie-se com os sabores autênticos da região em uma experiência gastronômica inesquecível, com pratos típicos preparados com ingredientes frescos e receitas tradicionais. `;
-      } else if (nameLower.includes('caminhada') || nameLower.includes('trilha') || nameLower.includes('natureza')) {
-        description += `Conecte-se com a natureza em uma caminhada guiada por trilhas deslumbrantes, com paisagens incríveis e momentos de contemplação. `;
-      } else if (nameLower.includes('histórico') || nameLower.includes('cultura') || nameLower.includes('museu')) {
-        description += `Explore a rica história e cultura local em um passeio guiado por pontos históricos e culturais, conhecendo as tradições e patrimônios da região. `;
-      } else if (nameLower.includes('aventura') || nameLower.includes('esport') || nameLower.includes('radical')) {
-        description += `Viva momentos de pura adrenalina e diversão em uma experiência de aventura única, com atividades emocionantes e paisagens de tirar o fôlego. `;
-      } else {
-        description += `Uma experiência única e memorável que combina entretenimento, cultura e lazer, perfeita para toda a família. `;
-      }
-
-      if (price) {
-        description += `Investimento: ${price} por pessoa. `;
-      }
-
-      description += `Não perca esta oportunidade de criar memórias inesquecíveis!`;
-
-      return description;
-    };
-
-    // Simulate typing effect
-    const generatedText = generateText();
-    let currentText = '';
-    let index = 0;
-
-    typingIntervalRef.current = setInterval(() => {
-      if (index < generatedText.length) {
-        currentText += generatedText[index];
-        handleChange('description', currentText);
-        index++;
-      } else {
-        if (typingIntervalRef.current) {
-          clearInterval(typingIntervalRef.current);
-          typingIntervalRef.current = null;
-        }
-        setIsGeneratingDescription(false);
-      }
-    }, 30); // Typing speed: 30ms per character
   };
 
   return (
@@ -405,30 +126,9 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
 
           {/* Description */}
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="description" className="text-sm font-medium text-text-primary">
-                Descrição (opcional)
-              </label>
-              <button
-                type="button"
-                onClick={generateDescription}
-                disabled={!formData.name || isGeneratingDescription}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary/10"
-                title="Gerar descrição automaticamente com IA"
-              >
-                {isGeneratingDescription ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>Gerando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={14} />
-                    <span>Gerar com IA</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <label htmlFor="description" className="text-sm font-medium text-text-primary">
+              Descrição (opcional)
+            </label>
             <textarea
               id="description"
               rows={4}
@@ -574,14 +274,6 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
               <ImageIcon size={16} />
               Fotos (opcional)
             </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-            />
             <div 
               className={`
                 border-2 border-dashed rounded-custom p-8 text-center transition-all duration-200 cursor-pointer
@@ -590,8 +282,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
-              onDrop={handleDrop}
-              onClick={handleImageAreaClick}
+              onDrop={handleDrag}
             >
               <div className="flex flex-col items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-text-secondary">
@@ -601,38 +292,10 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                   <span className="font-semibold text-primary">Selecionar imagens</span>
                 </div>
                 <p className="text-xs text-text-disabled">
-                  {selectedImages.length}/10 imagens • Formatos: JPG, PNG, WebP, GIF • Máx: 5MB por imagem
+                  0/10 imagens • Formatos: JPG, PNG, WebP, GIF • Máx: 5MB por imagem
                 </p>
               </div>
             </div>
-            
-            {/* Image Previews */}
-            {imagePreviews.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
-                    <div className="aspect-square rounded-lg overflow-hidden border border-border bg-surface">
-                      <img 
-                        src={preview} 
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute top-2 right-2 w-6 h-6 bg-status-error text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-status-error/80"
-                      title="Remover imagem"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 text-white text-xs rounded">
-                      {selectedImages[index]?.name || `Imagem ${index + 1}`}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Actions */}
