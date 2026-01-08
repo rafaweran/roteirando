@@ -20,6 +20,15 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
 }) => {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
+  // Criar lista completa incluindo líder + membros
+  const allGroupMembers = React.useMemo(() => {
+    return group.leaderName 
+      ? [group.leaderName, ...group.members]
+      : group.members;
+  }, [group.leaderName, group.members]);
+  
+  const totalGroupMembers = allGroupMembers.length;
+
   // Initialize selection based on existing data or select all by default if empty (optional logic)
   useEffect(() => {
     if (isOpen) {
@@ -27,11 +36,11 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
       if (existingAttendance) {
         setSelectedMembers(existingAttendance);
       } else {
-        // Default: Select all members initially for easier UX
-        setSelectedMembers(group.members);
+        // Default: Select all members (including leader) initially for easier UX
+        setSelectedMembers([...allGroupMembers]);
       }
     }
-  }, [isOpen, group, tour]);
+  }, [isOpen, group, tour, allGroupMembers]);
 
   if (!isOpen) return null;
 
@@ -44,10 +53,10 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   };
 
   const handleToggleAll = () => {
-    if (selectedMembers.length === group.members.length) {
+    if (selectedMembers.length === totalGroupMembers) {
       setSelectedMembers([]);
     } else {
-      setSelectedMembers([...group.members]);
+      setSelectedMembers([...allGroupMembers]);
     }
   };
 
@@ -56,7 +65,7 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
     onClose();
   };
 
-  const allSelected = selectedMembers.length === group.members.length;
+  const allSelected = selectedMembers.length === totalGroupMembers;
   const totalPrice = selectedMembers.length * tour.price;
 
   return (
@@ -103,8 +112,9 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            {group.members.map((member, idx) => {
+            {allGroupMembers.map((member, idx) => {
               const isSelected = selectedMembers.includes(member);
+              const isLeader = idx === 0 && group.leaderName && member === group.leaderName;
               return (
                 <div 
                   key={idx}
@@ -124,9 +134,16 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
                     `}>
                       {isSelected && <Check size={14} strokeWidth={3} />}
                     </div>
-                    <span className={`text-sm ${isSelected ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
-                      {member}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm ${isSelected ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
+                        {member}
+                      </span>
+                      {isLeader && (
+                        <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-medium">
+                          Líder
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <User size={16} className={`${isSelected ? 'text-primary' : 'text-text-disabled'}`} />
                 </div>

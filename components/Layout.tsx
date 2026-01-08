@@ -120,11 +120,23 @@ const Layout: React.FC<LayoutProps> = ({
         <div className="max-w-[1600px] mx-auto h-full flex items-center justify-between">
           
           {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigateHome}>
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md shadow-primary/20">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={onNavigateHome}>
+            <img 
+              src="/assets/logo.png" 
+              alt="Roteirando" 
+              className="h-10 w-10 object-contain"
+              onError={(e) => {
+                // Fallback para ícone se a logo não existir
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white shadow-md shadow-primary/20 hidden" style={{ display: 'none' }}>
               <Map size={18} />
             </div>
-            <h1 className="font-bold text-xl text-text-primary tracking-tight hidden xs:block">Travel<span className="text-primary">Manager</span></h1>
+            <h1 className="font-bold text-xl text-text-primary tracking-tight hidden sm:block">Roteirando</h1>
           </div>
 
           {/* Desktop Menu (Center) */}
@@ -206,7 +218,18 @@ const Layout: React.FC<LayoutProps> = ({
           {/* Drawer Content */}
           <div className="absolute top-0 right-0 bottom-0 w-[80%] max-w-xs bg-white shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
             <div className="p-4 flex items-center justify-between border-b border-border">
-              <span className="font-bold text-lg text-primary">Menu</span>
+              <div className="flex items-center gap-2">
+                <img 
+                  src="/assets/logo.png" 
+                  alt="Roteirando" 
+                  className="h-8 w-8 object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+                <span className="font-bold text-lg text-primary">Roteirando</span>
+              </div>
               <button 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="p-2 text-text-secondary hover:text-status-error rounded-full hover:bg-surface transition-colors"

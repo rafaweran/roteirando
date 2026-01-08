@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, Upload, Link as LinkIcon, MapPin, DollarSign, Image as ImageIcon, Plus, Trash2, Map, Sparkles, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Clock, Upload, Link as LinkIcon, MapPin, DollarSign, Image as ImageIcon, Plus, Trash2, Map, Sparkles, Loader2, X } from 'lucide-react';
 import { Trip, Tour, TourLink } from '../types';
 import { tripsApi } from '../lib/database';
 import { generateTourDescription } from '../lib/ai';
@@ -22,6 +22,8 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [timeError, setTimeError] = useState<string>('');
+  const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -161,7 +163,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     }
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation for Global Mode
@@ -169,18 +171,51 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       alert("Por favor, selecione uma viagem para este passeio.");
       return;
     }
+
+    // Validação de campos obrigatórios
+    if (!formData.name || !formData.date || !formData.price) {
+      alert("Por favor, preencha todos os campos obrigatórios (Nome, Data e Valor).");
+      return;
+    }
+
+    // Validação de horário se ambos estiverem preenchidos
+    if (formData.startTime && formData.endTime && timeError) {
+      alert("Por favor, corrija o horário antes de salvar.");
+      return;
+    }
     
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      onSave({ 
-        ...formData, 
+    
+    try {
+      // Converter imagens para base64 (ou você pode fazer upload para um storage)
+      // Por enquanto, vamos usar base64 diretamente do preview
+      // Em produção, você deve fazer upload para Supabase Storage ou similar
+      const imageUrls = images.map(img => img.preview);
+
+      // Preparar dados no formato esperado pela API
+      const tourData = {
         tripId: activeTrip.id,
+        name: formData.name,
+        date: formData.date,
+        time: formData.startTime || '00:00', // Usar startTime como time principal
+        price: parseFloat(formData.price) || 0,
+        description: formData.description || '',
+        imageUrl: imageUrls.length > 0 ? imageUrls[0] : undefined, // Primeira imagem como principal
         links: links.filter(l => l.title && l.url), // Filter out empty links
-        id: initialData?.id 
-      }); 
-    }, 1000);
+      };
+
+      console.log('📝 NewTourForm: Enviando dados do passeio:', tourData);
+
+      // Chamar onSave que vai salvar no banco (a mensagem de sucesso será exibida no App.tsx)
+      await onSave(tourData);
+      
+      console.log('✅ NewTourForm: Passeio criado com sucesso');
+    } catch (error: any) {
+      console.error('❌ Erro ao salvar passeio:', error);
+      alert(`Erro ao salvar passeio: ${error.message || 'Erro desconhecido'}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -191,6 +226,93 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     } else if (e.type === "dragleave") {
       setDragActive(false);
     }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(Array.from(e.dataTransfer.files));
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleFiles = (files: File[]) => {
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const maxImages = 10;
+
+    // Filtrar arquivos válidos
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    files.forEach((file) => {
+      // Validar quantidade
+      if (images.length + validFiles.length >= maxImages) {
+        errors.push(`Você pode adicionar no máximo ${maxImages} imagens.`);
+        return;
+      }
+
+      // Validar tipo
+      if (!allowedTypes.includes(file.type)) {
+        errors.push(`"${file.name}" não é um formato válido.`);
+        return;
+      }
+
+      // Validar tamanho
+      if (file.size > maxSize) {
+        errors.push(`"${file.name}" é muito grande (máx: 5MB).`);
+        return;
+      }
+
+      validFiles.push(file);
+    });
+
+    // Mostrar erros se houver
+    if (errors.length > 0) {
+      alert(errors.join('\n'));
+    }
+
+    // Processar arquivos válidos
+    if (validFiles.length === 0) return;
+
+    const newImages: Array<{ file: File; preview: string }> = [];
+    let processedCount = 0;
+
+    validFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          newImages.push({
+            file,
+            preview: e.target.result as string
+          });
+          
+          processedCount++;
+          
+          // Quando todos os arquivos forem processados
+          if (processedCount === validFiles.length) {
+            setImages(prev => [...prev, ...newImages]);
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleClickUpload = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -477,6 +599,18 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
               <ImageIcon size={16} />
               Fotos (opcional)
             </label>
+            
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+              multiple
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
+
+            {/* Upload area */}
             <div 
               className={`
                 border-2 border-dashed rounded-custom p-8 text-center transition-all duration-200 cursor-pointer
@@ -485,7 +619,8 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
-              onDrop={handleDrag}
+              onDrop={handleDrop}
+              onClick={handleClickUpload}
             >
               <div className="flex flex-col items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-text-secondary">
@@ -493,12 +628,41 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                 </div>
                 <div className="text-sm">
                   <span className="font-semibold text-primary">Selecionar imagens</span>
+                  <span className="text-text-secondary ml-1">ou arraste e solte</span>
                 </div>
                 <p className="text-xs text-text-disabled">
-                  0/10 imagens • Formatos: JPG, PNG, WebP, GIF • Máx: 5MB por imagem
+                  {images.length}/10 imagens • Formatos: JPG, PNG, WebP, GIF • Máx: 5MB por imagem
                 </p>
               </div>
             </div>
+
+            {/* Image previews */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                {images.map((image, index) => (
+                  <div key={index} className="relative group">
+                    <div className="aspect-square rounded-lg overflow-hidden border border-border bg-surface">
+                      <img
+                        src={image.preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveImage(index);
+                      }}
+                      className="absolute top-2 right-2 w-6 h-6 bg-status-error/90 hover:bg-status-error text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remover imagem"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Actions */}

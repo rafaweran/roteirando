@@ -10,6 +10,7 @@ import ToursList from './components/ToursList';
 import GroupsList from './components/GroupsList';
 import TourAttendanceView from './components/TourAttendanceView';
 import FinancialView from './components/FinancialView';
+import ChangePasswordModal from './components/ChangePasswordModal';
 import { Trip, Tour, UserRole, Group } from './types';
 import { tripsApi, toursApi, groupsApi } from './lib/database';
 import { Plus } from 'lucide-react';
@@ -34,6 +35,7 @@ const App: React.FC = () => {
   const [editingTour, setEditingTour] = useState<Tour | null>(null);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
   const [tripDetailsInitialTab, setTripDetailsInitialTab] = useState<'tours' | 'groups'>('tours');
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   // Load data functions
   const loadTrips = async () => {
@@ -92,6 +94,23 @@ const App: React.FC = () => {
     if (role === 'user' && group) {
       setCurrentUserGroup(group);
       setSelectedTripId(group.tripId);
+      
+      // Recarregar grupo do banco para ter dados atualizados
+      try {
+        const updatedGroup = await groupsApi.getById(group.id);
+        if (updatedGroup) {
+          setCurrentUserGroup(updatedGroup);
+          
+          // Verificar se precisa alterar senha (primeiro acesso)
+          if (!updatedGroup.passwordChanged) {
+            console.log('🔑 Primeiro acesso detectado - mostrando modal de alteração de senha');
+            setShowChangePasswordModal(true);
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao recarregar grupo:', err);
+      }
+      
       // Carregar dados da viagem do usuário
       await loadTrips();
       await loadTours();
@@ -103,6 +122,21 @@ const App: React.FC = () => {
       await loadTours();
       await loadGroups();
       setCurrentView('dashboard'); // Admin goes to dashboard
+    }
+  };
+
+  const handlePasswordChangeSuccess = async () => {
+    setShowChangePasswordModal(false);
+    // Recarregar grupo para atualizar o estado
+    if (currentUserGroup) {
+      try {
+        const updatedGroup = await groupsApi.getById(currentUserGroup.id);
+        if (updatedGroup) {
+          setCurrentUserGroup(updatedGroup);
+        }
+      } catch (err) {
+        console.error('Erro ao recarregar grupo após alteração de senha:', err);
+      }
     }
   };
 
@@ -193,8 +227,10 @@ const App: React.FC = () => {
       setLoading(true);
       if (editingTour) {
         await toursApi.update(editingTour.id, tourData);
+        alert('✅ Passeio atualizado com sucesso!');
       } else {
         await toursApi.create(tourData);
+        alert('✅ Seu passeio foi criado com sucesso!');
       }
       // Recarregar passeios após salvar
       await loadTours();
@@ -207,6 +243,7 @@ const App: React.FC = () => {
       setEditingTour(null);
     } catch (err: any) {
       console.error('Erro ao salvar passeio:', err);
+      alert(`❌ Erro ao salvar passeio: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -224,9 +261,21 @@ const App: React.FC = () => {
   const handleSaveGroup = async (groupData: any) => {
     try {
       setLoading(true);
-      await groupsApi.create(groupData);
+      
+      // Garantir que password_changed seja false para novos grupos
+      const groupToSave = {
+        ...groupData,
+        membersCount: parseInt(groupData.totalPeople) || groupData.membersCount || 0,
+        password_changed: false, // Primeiro acesso, precisa alterar senha
+      };
+      
+      await groupsApi.create(groupToSave);
+      
       // Recarregar grupos após salvar
       await loadGroups();
+      
+      alert('✅ Grupo criado com sucesso! O responsável receberá as credenciais de acesso.');
+      
       if (selectedTripId) {
         setTripDetailsInitialTab('groups');
         setCurrentView('trip-details');
@@ -235,6 +284,7 @@ const App: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Erro ao salvar grupo:', err);
+      alert(`❌ Erro ao salvar grupo: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -318,27 +368,49 @@ const App: React.FC = () => {
   };
 
   // User Selection Logic (Granular Attendance)
-  const handleSaveAttendance = (tourId: string, members: string[]) => {
+  const handleSaveAttendance = async (tourId: string, members: string[], cancelReason?: string) => {
     if (userRole !== 'user' || !currentUserGroup) return;
 
-    // Create a new attendance record
-    const updatedAttendance = {
-        ...currentUserGroup.tourAttendance,
-        [tourId]: members
-    };
+    try {
+      // Salvar no banco de dados
+      const { tourAttendanceApi } = await import('./lib/database');
+      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members);
 
-    // If member list is empty, we can clean up the key (optional)
-    if (members.length === 0) {
-        delete updatedAttendance[tourId];
+      // Log do motivo se for cancelamento
+      if (members.length === 0 && cancelReason) {
+        console.log(`🚫 Cancelamento do passeio ${tourId} pelo grupo ${currentUserGroup.name}`);
+        console.log(`📝 Motivo: ${cancelReason}`);
+        // TODO: Em produção, salvar o motivo em uma tabela separada ou adicionar coluna cancellation_reason na tabela tour_attendance
+      }
+
+      // Create a new attendance record
+      const updatedAttendance = {
+          ...currentUserGroup.tourAttendance,
+          [tourId]: members
+      };
+
+      // If member list is empty, we can clean up the key (optional)
+      if (members.length === 0) {
+          delete updatedAttendance[tourId];
+      }
+
+      // Update local state
+      setCurrentUserGroup({
+          ...currentUserGroup,
+          tourAttendance: updatedAttendance
+      });
+      
+      if (members.length > 0) {
+        console.log(`✅ User ${currentUserGroup.leaderName} updated attendance for tour ${tourId}. Members going:`, members);
+      }
+      
+      // Recarregar grupos para ter dados atualizados
+      await loadGroups();
+    } catch (error: any) {
+      console.error('❌ Erro ao salvar presença:', error);
+      alert(`Erro ao salvar presença: ${error.message || 'Erro desconhecido'}`);
+      throw error; // Re-throw para que o componente possa tratar
     }
-
-    // Update local state
-    setCurrentUserGroup({
-        ...currentUserGroup,
-        tourAttendance: updatedAttendance
-    });
-    
-    console.log(`User ${currentUserGroup.leaderName} updated attendance for tour ${tourId}. Members going:`, members);
   };
 
   // Rendering logic
@@ -482,6 +554,16 @@ const App: React.FC = () => {
 
       {currentView === 'financial' && userRole === 'admin' && (
         <FinancialView />
+      )}
+
+      {/* Modal de Alteração de Senha (Primeiro Acesso) */}
+      {userRole === 'user' && currentUserGroup && (
+        <ChangePasswordModal
+          isOpen={showChangePasswordModal}
+          group={currentUserGroup}
+          onSuccess={handlePasswordChangeSuccess}
+          onCancel={undefined} // Não permite cancelar no primeiro acesso
+        />
       )}
     </Layout>
   );

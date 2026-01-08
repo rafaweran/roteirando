@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CalendarDays, ExternalLink, Check, Plus, Users, Edit2, ListChecks } from 'lucide-react';
+import { Clock, CalendarDays, ExternalLink, Check, Plus, Users, Edit2, ListChecks, X } from 'lucide-react';
 import { Tour } from '../types';
 import Button from './Button';
 
@@ -11,6 +11,7 @@ interface TourCardProps {
   attendanceCount?: number; // Number of people going
   totalMembers?: number; // Total people in group
   onOpenAttendance?: (tour: Tour) => void;
+  onCancelTour?: (tour: Tour) => void;
   onViewAttendanceList?: (tour: Tour) => void;
 }
 
@@ -21,6 +22,7 @@ const TourCard: React.FC<TourCardProps> = ({
   attendanceCount = 0,
   totalMembers = 0,
   onOpenAttendance,
+  onCancelTour,
   onViewAttendanceList
 }) => {
   const isSelected = attendanceCount > 0;
@@ -118,28 +120,25 @@ const TourCard: React.FC<TourCardProps> = ({
         
         <div className={`flex gap-3 pt-4 border-t border-surface ${!isSelected ? 'mt-auto' : ''}`}>
           {isUserView ? (
-             <button
-                onClick={() => onOpenAttendance && onOpenAttendance(tour)}
-                className={`
-                   w-full h-11 rounded-custom font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200
-                   ${isSelected 
-                      ? 'bg-white text-text-primary border border-border hover:bg-surface hover:text-primary hover:border-primary/30' 
-                      : 'bg-primary text-white hover:bg-primary-hover shadow-sm active:transform active:scale-[0.98]'
-                   }
-                `}
-             >
-                {isSelected ? (
-                   <>
-                     <Edit2 size={16} />
-                     Editar Presença
-                   </>
-                ) : (
-                   <>
-                     <Plus size={18} />
-                     Confirmar Presença
-                   </>
-                )}
-             </button>
+             <>
+               {isSelected ? (
+                 <button
+                   onClick={() => onCancelTour && onCancelTour(tour)}
+                   className="w-full h-11 rounded-custom font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-white text-status-error border border-status-error/30 hover:bg-status-error/5 hover:border-status-error active:transform active:scale-[0.98]"
+                 >
+                   <X size={16} />
+                   Cancelar Passeio
+                 </button>
+               ) : (
+                 <button
+                   onClick={() => onOpenAttendance && onOpenAttendance(tour)}
+                   className="w-full h-11 rounded-custom font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-primary text-white hover:bg-primary-hover shadow-sm active:transform active:scale-[0.98]"
+                 >
+                   <Plus size={18} />
+                   Confirmar Presença
+                 </button>
+               )}
+             </>
           ) : (
              // Admin Actions
              <>

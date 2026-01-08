@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Users, User, Phone, Mail, Baby, Plus, X, Check, Map } from 'lucide-react';
+import { ArrowLeft, Users, User, Phone, Mail, Baby, Plus, X, Check, Map, Lock, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { Trip } from '../types';
 import { tripsApi } from '../lib/database';
+import { generatePassword, hashPassword } from '../lib/password';
 import Input from './Input';
 import Button from './Button';
 
@@ -26,9 +27,12 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
     leaderName: '',
     leaderPhone: '',
     leaderEmail: '',
+    initialPassword: '',
     hasChildren: false,
     childrenCount: '',
   });
+
+  const [showPassword, setShowPassword] = useState(false);
 
   // Members List State
   const [currentMember, setCurrentMember] = useState('');
@@ -71,8 +75,14 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
   const handleRemoveMember = (index: number) => {
     setMembers(members.filter((_, i) => i !== index));
   };
+
+  const handleGeneratePassword = () => {
+    const newPassword = generatePassword(12);
+    handleChange('initialPassword', newPassword);
+    setShowPassword(true); // Mostrar a senha gerada
+  };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation for Global Mode
@@ -81,19 +91,47 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
       return;
     }
 
+    // Validação de campos obrigatórios
+    if (!formData.leaderEmail) {
+      alert("Por favor, preencha o e-mail do responsável.");
+      return;
+    }
+
+    if (!formData.initialPassword || formData.initialPassword.length < 8) {
+      alert("Por favor, defina uma senha inicial com no mínimo 8 caracteres.");
+      return;
+    }
+
     setIsLoading(true);
     
-    const finalData = {
-      ...formData,
-      members,
-      tripId: activeTrip.id
-    };
+    try {
+      // Hash da senha antes de salvar
+      const hashedPassword = hashPassword(formData.initialPassword);
+      
+      const finalData = {
+        name: formData.name,
+        membersCount: parseInt(formData.totalPeople) || 0,
+        members: members,
+        leaderName: formData.leaderName,
+        leaderEmail: formData.leaderEmail,
+        leaderPhone: formData.leaderPhone,
+        leaderPassword: hashedPassword,
+        tripId: activeTrip.id,
+        passwordChanged: false, // Primeiro acesso, precisa alterar senha
+      };
 
-    // Simulate API call
-    setTimeout(() => {
+      console.log('📝 NewGroupForm: Salvando grupo com senha inicial');
+      
+      // Chamar onSave que vai salvar no banco
+      await onSave(finalData);
+      
+      alert('✅ Grupo criado com sucesso! O responsável receberá as credenciais de acesso.');
+    } catch (error: any) {
+      console.error('❌ Erro ao salvar grupo:', error);
+      alert(`Erro ao salvar grupo: ${error.message || 'Erro desconhecido'}`);
+    } finally {
       setIsLoading(false);
-      onSave(finalData);
-    }, 1000);
+    }
   };
 
   return (
@@ -221,13 +259,55 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
                 <Input 
                   id="leaderEmail"
                   type="email"
-                  label="E-mail *"
+                  label="E-mail (Usuário) *"
                   placeholder="email@exemplo.com"
                   icon={Mail}
                   value={formData.leaderEmail}
                   onChange={(e) => handleChange('leaderEmail', e.target.value)}
                   required
                 />
+              </div>
+
+              {/* Senha Inicial */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="initialPassword" className="text-sm font-medium text-text-primary flex items-center gap-2">
+                  <Lock size={16} />
+                  Senha Inicial *
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="initialPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Mínimo 8 caracteres"
+                      value={formData.initialPassword}
+                      onChange={(e) => handleChange('initialPassword', e.target.value)}
+                      icon={Lock}
+                      required
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-primary transition-colors"
+                      title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleGeneratePassword}
+                    className="px-4"
+                    title="Gerar senha aleatória"
+                  >
+                    <RefreshCw size={18} />
+                  </Button>
+                </div>
+                <p className="text-xs text-text-disabled">
+                  Esta será a senha temporária. O usuário precisará alterá-la no primeiro acesso.
+                </p>
               </div>
             </div>
           </div>

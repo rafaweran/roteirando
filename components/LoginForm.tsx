@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, LogIn, ArrowRight, Info } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Info } from 'lucide-react';
 import Input from './Input';
 import Button from './Button';
 import { groupsApi } from '../lib/database';
@@ -137,21 +137,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     }
   };
 
-  const fillCredentials = (type: 'admin' | 'user') => {
-    if (type === 'admin') {
-        setFormData({ email: 'admin@travel.com', password: 'password123' });
-    } else {
-        setFormData({ email: 'roberto@email.com', password: 'password123' });
-    }
-    setErrors({});
-  };
 
   return (
     <div className="bg-white p-8 rounded-[24px] shadow-lg border border-border w-full relative overflow-hidden">
       <div className="text-center mb-8">
-        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-          <LogIn className="text-primary w-6 h-6" />
-        </div>
+        <img 
+          src="/assets/logo.png" 
+          alt="Roteirando" 
+          className="h-24 w-24 mx-auto mb-4 object-contain"
+        />
         <h1 className="text-2xl font-bold text-text-primary mb-2">Bem-vindo!</h1>
         <p className="text-text-secondary">
           Acesse para gerenciar suas viagens
@@ -208,19 +202,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           {isLoading ? 'Entrando...' : 'Entrar'}
         </Button>
       </form>
-
-      {/* Demo Helpers */}
-      <div className="mt-8 pt-6 border-t border-border">
-         <p className="text-xs text-text-disabled text-center mb-3 uppercase tracking-wider font-semibold">Login Rápido (Demo)</p>
-         <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => fillCredentials('admin')} className="text-xs py-2 px-3 bg-surface hover:bg-primary/5 border border-border rounded-lg text-text-secondary transition-colors">
-                Admin
-            </button>
-            <button onClick={() => fillCredentials('user')} className="text-xs py-2 px-3 bg-surface hover:bg-primary/5 border border-border rounded-lg text-text-secondary transition-colors">
-                Usuário (Roberto)
-            </button>
-         </div>
-      </div>
     </div>
   );
 };

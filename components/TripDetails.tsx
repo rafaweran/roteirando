@@ -5,6 +5,7 @@ import TourCard from './TourCard';
 import GroupCard from './GroupCard';
 import Button from './Button';
 import TourAttendanceModal from './TourAttendanceModal';
+import CancelTourModal from './CancelTourModal';
 
 interface TripDetailsProps {
   trip: Trip;
@@ -16,7 +17,7 @@ interface TripDetailsProps {
   initialTab?: 'tours' | 'groups';
   userRole?: UserRole;
   userGroup?: Group;
-  onSaveAttendance?: (tourId: string, members: string[]) => void;
+  onSaveAttendance?: (tourId: string, members: string[], cancelReason?: string) => void;
   onViewTourAttendance?: (tour: Tour) => void;
 }
 
@@ -37,7 +38,9 @@ const TripDetails: React.FC<TripDetailsProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
+  const [selectedTourForCancel, setSelectedTourForCancel] = useState<Tour | null>(null);
 
   const isUser = userRole === 'user';
 
@@ -55,6 +58,26 @@ const TripDetails: React.FC<TripDetailsProps> = ({
      if (onSaveAttendance) {
        onSaveAttendance(tourId, members);
      }
+  };
+
+  const handleOpenCancel = (tour: Tour) => {
+    setSelectedTourForCancel(tour);
+    setCancelModalOpen(true);
+  };
+
+  const handleConfirmCancel = async (reason: string) => {
+    if (selectedTourForCancel && onSaveAttendance) {
+      try {
+        // Cancelar = passar array vazio + motivo
+        await onSaveAttendance(selectedTourForCancel.id, [], reason);
+        alert('✅ Passeio cancelado com sucesso!');
+        setCancelModalOpen(false);
+        setSelectedTourForCancel(null);
+      } catch (error: any) {
+        console.error('Erro ao cancelar passeio:', error);
+        alert(`Erro ao cancelar passeio: ${error.message || 'Erro desconhecido'}`);
+      }
+    }
   };
 
   return (
@@ -210,6 +233,10 @@ const TripDetails: React.FC<TripDetailsProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {tours.map(tour => {
                 const attendingMembers = userGroup?.tourAttendance?.[tour.id] || [];
+                // Total de membros incluindo o líder
+                const totalMembers = userGroup 
+                  ? (userGroup.leaderName ? userGroup.members.length + 1 : userGroup.members.length)
+                  : 0;
                 return (
                   <TourCard 
                     key={tour.id} 
@@ -217,8 +244,9 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                     onViewGroup={!isUser ? () => setActiveTab('groups') : undefined}
                     isUserView={isUser}
                     attendanceCount={attendingMembers.length}
-                    totalMembers={userGroup?.members.length}
+                    totalMembers={totalMembers}
                     onOpenAttendance={handleOpenAttendance}
+                    onCancelTour={handleOpenCancel}
                     onViewAttendanceList={onViewTourAttendance}
                   />
                 );
@@ -254,6 +282,19 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           tour={selectedTourForAttendance}
           group={userGroup}
           onConfirm={handleConfirmAttendance}
+        />
+      )}
+
+      {/* Cancel Tour Modal */}
+      {isUser && userGroup && selectedTourForCancel && (
+        <CancelTourModal
+          isOpen={cancelModalOpen}
+          onClose={() => {
+            setCancelModalOpen(false);
+            setSelectedTourForCancel(null);
+          }}
+          onConfirm={handleConfirmCancel}
+          tour={selectedTourForCancel}
         />
       )}
     </div>
