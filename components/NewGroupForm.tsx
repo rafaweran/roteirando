@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Users, User, Phone, Mail, Baby, Plus, X, Check, Map, Lock, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { ArrowLeft, Users, User, Phone, Mail, Baby, Plus, X, Check, Map } from 'lucide-react';
 import { Trip } from '../types';
+import { MOCK_TRIPS } from '../data';
 import Input from './Input';
 import Button from './Button';
-import { generatePassword } from '../lib/password';
 
 interface NewGroupFormProps {
   trip?: Trip; // Made optional
-  trips?: Trip[]; // List of trips for selection
   onSave: (data: any) => void;
   onCancel: () => void;
 }
 
-const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, trips = [], onSave, onCancel }) => {
+const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
   
   // Trip Selection State (if no trip prop provided)
@@ -25,19 +24,16 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, trips = [], onSave, o
     leaderName: '',
     leaderPhone: '',
     leaderEmail: '',
-    initialPassword: '',
     hasChildren: false,
     childrenCount: '',
   });
-
-  const [showInitialPassword, setShowInitialPassword] = useState(false);
 
   // Members List State
   const [currentMember, setCurrentMember] = useState('');
   const [members, setMembers] = useState<string[]>([]);
 
   // Derived state for the active trip context
-  const activeTrip = trip || trips.find(t => t.id === selectedTripId);
+  const activeTrip = trip || MOCK_TRIPS.find(t => t.id === selectedTripId);
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -126,7 +122,7 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, trips = [], onSave, o
                     required
                   >
                     <option value="" disabled>Selecione uma viagem...</option>
-                    {trips.map(t => (
+                    {MOCK_TRIPS.map(t => (
                       <option key={t.id} value={t.id}>
                         {t.name} ({t.destination})
                       </option>
@@ -209,52 +205,6 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, trips = [], onSave, o
                   onChange={(e) => handleChange('leaderEmail', e.target.value)}
                   required
                 />
-              </div>
-
-              {/* Senha Inicial */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="initialPassword" className="text-sm font-medium text-text-primary">
-                    Senha Inicial * <span className="text-text-secondary text-xs font-normal">(para primeiro acesso)</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newPassword = generatePassword(12);
-                      handleChange('initialPassword', newPassword);
-                    }}
-                    className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-all duration-200"
-                    title="Gerar senha automática"
-                  >
-                    <Sparkles size={12} />
-                    Gerar
-                  </button>
-                </div>
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none">
-                    <Lock size={20} />
-                  </div>
-                  <input
-                    id="initialPassword"
-                    type={showInitialPassword ? 'text' : 'password'}
-                    value={formData.initialPassword}
-                    onChange={(e) => handleChange('initialPassword', e.target.value)}
-                    className="w-full h-[48px] rounded-custom border border-border bg-white pl-10 pr-10 text-text-primary outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-disabled"
-                    placeholder="Mínimo 8 caracteres"
-                    required
-                    minLength={8}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowInitialPassword(!showInitialPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
-                  >
-                    {showInitialPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-                <p className="text-xs text-text-secondary">
-                  Esta senha será usada no primeiro acesso. O usuário será solicitado a alterá-la.
-                </p>
               </div>
             </div>
           </div>

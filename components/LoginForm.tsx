@@ -92,79 +92,23 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       });
       
       if (userGroup) {
-        // Verificar senha
-        if (!userGroup.leaderPassword) {
-          setErrors({ general: 'Este usuário não possui senha cadastrada. Entre em contato com o administrador.' });
-          return;
-        }
-        
-        const passwordValid = verifyPassword(formData.password, userGroup.leaderPassword);
-        
-        if (!passwordValid) {
-          setErrors({ general: 'Senha incorreta. Verifique suas credenciais.' });
-          return;
-        }
-        
-        console.log('✅ Login bem-sucedido para usuário:', userGroup.leaderName);
-        console.log('📊 Dados do grupo no login:', {
-          id: userGroup.id,
-          name: userGroup.name,
-          leaderEmail: userGroup.leaderEmail,
-          passwordChanged: userGroup.passwordChanged,
-          typeof: typeof userGroup.passwordChanged,
-          hasPasswordChanged: userGroup.passwordChanged !== undefined,
-          needsChange: userGroup.passwordChanged !== true,
-        });
-        
-        // Recarregar o grupo do banco para garantir dados atualizados
-        console.log('='.repeat(60));
-        console.log('🔄 Recarregando grupo do banco...');
-        console.log('='.repeat(60));
-        
-        try {
-          const { groupsApi } = await import('../lib/database');
-          const freshGroup = await groupsApi.getById(userGroup.id);
-          
-          if (freshGroup) {
-            console.log('✅ Grupo recarregado com sucesso!');
-            console.log('📦 Dados do grupo do banco:', JSON.stringify(freshGroup, null, 2));
-            console.log('🔍 Campo passwordChanged do banco:', {
-              valor: freshGroup.passwordChanged,
-              tipo: typeof freshGroup.passwordChanged,
-              isTrue: freshGroup.passwordChanged === true,
-              isFalse: freshGroup.passwordChanged === false,
-              isUndefined: freshGroup.passwordChanged === undefined,
-            });
-            console.log('='.repeat(60));
-            console.log('📞 Chamando onSuccess com grupo recarregado...');
-            console.log('='.repeat(60));
-            onSuccess('user', freshGroup);
-          } else {
-            console.log('⚠️ Grupo não encontrado no banco, usando dados do cache');
-            console.log('📞 Chamando onSuccess com grupo do cache...');
-            onSuccess('user', userGroup);
+        // Verificar senha se o grupo tiver senha
+        if (userGroup.leaderPassword) {
+          const passwordMatch = verifyPassword(formData.password, userGroup.leaderPassword);
+          if (!passwordMatch) {
+            setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
+            setIsLoading(false);
+            return;
           }
-        } catch (error) {
-          console.error('❌ ERRO ao recarregar grupo:', error);
-          console.log('📞 Usando dados do cache devido ao erro...');
-          // Usar dados do cache se falhar
-          onSuccess('user', userGroup);
         }
+        
+        onSuccess('user', userGroup);
       } else {
-        // More helpful error message
-        if (allGroups.length === 0) {
-          setErrors({ general: 'Nenhum grupo cadastrado no sistema. Entre em contato com o administrador.' });
-        } else {
-          const availableEmails = allGroups
-            .filter(g => g.leaderEmail)
-            .map(g => g.leaderEmail)
-            .join(', ');
-          setErrors({ general: `Usuário não encontrado. Verifique se o e-mail "${formData.email}" está cadastrado como líder de um grupo.${availableEmails ? ` Emails cadastrados: ${availableEmails}` : ''}` });
-        }
+        setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
       }
-    } catch (err: any) {
+    } catch (error: any) {
+      console.error('Erro no login:', error);
       setErrors({ general: 'Erro ao fazer login. Tente novamente.' });
-      console.error('Login error:', err);
     } finally {
       setIsLoading(false);
     }

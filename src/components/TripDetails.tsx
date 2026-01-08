@@ -36,6 +36,8 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   onViewTourAttendance
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+  
+  // User Modal State
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
 
@@ -246,7 +248,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
         </div>
       </div>
 
-      {/* Attendance Modal */}
+      {/* User Attendance Modal */}
       {selectedTourForAttendance && userGroup && (
         <TourAttendanceModal 
           isOpen={attendanceModalOpen}

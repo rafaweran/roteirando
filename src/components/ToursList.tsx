@@ -117,8 +117,8 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
     { value: 'completed', label: 'Finalizada', colorClass: 'bg-text-disabled text-white' },
   ];
 
-  // Reusable Action Menu Component
-  const ActionMenu = ({ tour }: { tour: any }) => (
+  // Reusable Action Menu Component (Mobile Only)
+  const ActionMenuMobile = ({ tour }: { tour: any }) => (
     <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-border z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
       <div className="p-1 flex flex-col gap-0.5">
         <button 
@@ -312,7 +312,7 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
                         >
                           <MoreVertical size={20} />
                         </button>
-                        {activeMenuId === tour.id && <ActionMenu tour={tour} />}
+                        {activeMenuId === tour.id && <ActionMenuMobile tour={tour} />}
                       </div>
                   </div>
 
@@ -373,7 +373,7 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
                   </thead>
                   <tbody className="divide-y divide-border">
                     {filteredTours.map((tour) => (
-                      <tr key={tour.id} className="hover:bg-surface/50 transition-colors group">
+                      <tr key={tour.id} className="hover:bg-primary/[0.03] transition-colors group border-b border-transparent hover:border-border last:border-0">
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
                             {tour.imageUrl ? (
@@ -417,14 +417,35 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete }) 
                             R$ {tour.price.toFixed(2)}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-right relative action-menu-container">
-                          <button 
-                            onClick={(e) => handleToggleMenu(e, tour.id)}
-                            className={`p-2 rounded-full transition-colors ${activeMenuId === tour.id ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:text-primary hover:bg-surface'}`}
-                          >
-                            <MoreVertical size={18} />
-                          </button>
-                          {activeMenuId === tour.id && <ActionMenu tour={tour} />}
+                        <td className="py-4 px-6 text-right">
+                          <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+                             <button
+                                onClick={() => handleAction('view-group', tour)}
+                                className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                title="Visualizar Lista de Presença"
+                             >
+                                <Users size={18} />
+                             </button>
+
+                             <button
+                                onClick={() => handleAction('edit', tour)}
+                                className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                title="Editar Passeio"
+                             >
+                                <Edit size={18} />
+                             </button>
+
+                             <button
+                                onClick={() => {
+                                  setTourToDelete(tour);
+                                  setDeleteModalOpen(true);
+                                }}
+                                className="p-2 text-text-secondary hover:text-status-error hover:bg-status-error/10 rounded-lg transition-colors"
+                                title="Excluir Passeio"
+                             >
+                                <Trash2 size={18} />
+                             </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

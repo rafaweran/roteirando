@@ -35,8 +35,7 @@ export interface Group {
   members: string[]; // List of member names
   leaderName: string;
   leaderEmail?: string;
-  leaderPassword?: string; // Senha hasheada (não expor em produção)
-  passwordChanged?: boolean; // Indica se o usuário já alterou a senha inicial
+  leaderPhone?: string;
   // Key: TourID, Value: Array of Member Names who are attending
   tourAttendance?: Record<string, string[]>; 
 }
