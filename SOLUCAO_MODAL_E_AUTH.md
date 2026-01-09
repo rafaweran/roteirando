@@ -130,3 +130,4 @@ No canto superior esquerdo, você deve ver:
 3. ✅ Testar alteração de senha → verificar se funciona
 4. ⚠️ Configurar Supabase Auth (desabilitar confirmação de email se necessário)
 
+

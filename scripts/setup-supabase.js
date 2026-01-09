@@ -46,3 +46,4 @@ testConnection().then(() => {
   console.log('\n✨ Próximo passo: Execute o SQL no painel do Supabase conforme instruções acima.');
 });
 
+

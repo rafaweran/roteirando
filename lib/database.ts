@@ -567,22 +567,48 @@ export const groupsApi = {
   },
 
   async create(group: Omit<Group, 'id' | 'tourAttendance'> & { leaderPassword?: string }): Promise<Group> {
+    console.log('📝 groupsApi.create - Dados recebidos:', {
+      name: group.name,
+      leaderEmail: group.leaderEmail,
+      leaderName: group.leaderName,
+      hasPassword: !!group.leaderPassword,
+      passwordLength: group.leaderPassword?.length || 0,
+      tripId: group.tripId
+    });
+
+    const insertData: any = {
+      trip_id: group.tripId,
+      name: group.name,
+      members_count: group.membersCount || 0,
+      members: group.members || [],
+      leader_name: group.leaderName,
+      leader_email: group.leaderEmail || null,
+      leader_password: group.leaderPassword || null,
+      password_changed: false, // Senha inicial, ainda não foi alterada
+    };
+
+    console.log('📝 groupsApi.create - Dados para inserir:', {
+      ...insertData,
+      leader_password: insertData.leader_password ? '[HASHED]' : null
+    });
+
     const { data, error } = await supabase
       .from('groups')
-      .insert({
-        trip_id: group.tripId,
-        name: group.name,
-        members_count: group.membersCount,
-        members: group.members,
-        leader_name: group.leaderName,
-        leader_email: group.leaderEmail,
-        leader_password: group.leaderPassword || null,
-        password_changed: false, // Senha inicial, ainda não foi alterada
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Erro ao criar grupo no banco:', error);
+      throw error;
+    }
+
+    console.log('✅ Grupo criado com sucesso no banco:', {
+      id: data.id,
+      name: data.name,
+      leader_email: data.leader_email,
+      has_password: !!data.leader_password
+    });
 
     return dbGroupToGroup(data);
   },

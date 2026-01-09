@@ -116,3 +116,4 @@ Escreva apenas a descrição, sem títulos ou formatação extra:`;
   return await generateTextWithAI({ prompt, context, maxTokens: 300 });
 }
 
+

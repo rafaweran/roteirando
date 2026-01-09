@@ -11,12 +11,13 @@ import GroupsList from './components/GroupsList';
 import TourAttendanceView from './components/TourAttendanceView';
 import FinancialView from './components/FinancialView';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import TourAgenda from './components/TourAgenda';
 import { Trip, Tour, UserRole, Group } from './types';
 import { tripsApi, toursApi, groupsApi } from './lib/database';
 import { Plus } from 'lucide-react';
 import Button from './components/Button';
 
-type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'financial';
+type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'financial' | 'agenda';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('login');
@@ -90,38 +91,54 @@ const App: React.FC = () => {
   }, [currentView, userRole]);
 
   const handleLoginSuccess = async (role: UserRole, group?: Group) => {
-    setUserRole(role);
-    if (role === 'user' && group) {
-      setCurrentUserGroup(group);
-      setSelectedTripId(group.tripId);
-      
-      // Recarregar grupo do banco para ter dados atualizados
-      try {
-        const updatedGroup = await groupsApi.getById(group.id);
-        if (updatedGroup) {
-          setCurrentUserGroup(updatedGroup);
-          
-          // Verificar se precisa alterar senha (primeiro acesso)
-          if (!updatedGroup.passwordChanged) {
-            console.log('🔑 Primeiro acesso detectado - mostrando modal de alteração de senha');
-            setShowChangePasswordModal(true);
+    try {
+      setUserRole(role);
+      if (role === 'user' && group) {
+        console.log('🔐 Login de usuário:', { groupId: group.id, tripId: group.tripId });
+        setCurrentUserGroup(group);
+        setSelectedTripId(group.tripId);
+        
+        // Recarregar grupo do banco para ter dados atualizados
+        try {
+          const updatedGroup = await groupsApi.getById(group.id);
+          if (updatedGroup) {
+            setCurrentUserGroup(updatedGroup);
+            
+            // Verificar se precisa alterar senha (primeiro acesso)
+            if (!updatedGroup.passwordChanged) {
+              console.log('🔑 Primeiro acesso detectado - mostrando modal de alteração de senha');
+              setShowChangePasswordModal(true);
+            }
           }
+        } catch (err) {
+          console.error('Erro ao recarregar grupo:', err);
         }
-      } catch (err) {
-        console.error('Erro ao recarregar grupo:', err);
+        
+        // Carregar dados da viagem do usuário
+        await loadTrips();
+        await loadTours();
+        await loadGroups();
+        
+        // Garantir que o selectedTripId está definido
+        if (group.tripId) {
+          setSelectedTripId(group.tripId);
+          console.log('✅ TripId definido:', group.tripId);
+        }
+        
+        // Aguardar um pouco para garantir que os dados foram carregados
+        setTimeout(() => {
+          setCurrentView('trip-details'); // User goes straight to their trip
+        }, 100);
+      } else {
+        // Admin: carregar todos os dados
+        await loadTrips();
+        await loadTours();
+        await loadGroups();
+        setCurrentView('dashboard'); // Admin goes to dashboard
       }
-      
-      // Carregar dados da viagem do usuário
-      await loadTrips();
-      await loadTours();
-      await loadGroups();
-      setCurrentView('trip-details'); // User goes straight to their trip
-    } else {
-      // Admin: carregar todos os dados
-      await loadTrips();
-      await loadTours();
-      await loadGroups();
-      setCurrentView('dashboard'); // Admin goes to dashboard
+    } catch (err) {
+      console.error('❌ Erro no handleLoginSuccess:', err);
+      alert('Erro ao fazer login. Tente novamente.');
     }
   };
 
@@ -155,13 +172,16 @@ const App: React.FC = () => {
 
   const handleNavigateHome = () => {
     if (userRole === 'user') {
-       // For user, "Home" is their Trip Details
-       if (currentUserGroup) setSelectedTripId(currentUserGroup.tripId);
-       setCurrentView('trip-details');
+      if (currentUserGroup) setSelectedTripId(currentUserGroup.tripId);
+      setCurrentView('trip-details');
     } else {
-       setCurrentView('dashboard');
-       setSelectedTripId(null);
+      setCurrentView('dashboard');
+      setSelectedTripId(null);
     }
+  };
+
+  const handleNavigateAgenda = () => {
+    setCurrentView('agenda');
   };
 
   const handleNavigateTours = () => {
@@ -263,11 +283,25 @@ const App: React.FC = () => {
       setLoading(true);
       
       // Garantir que password_changed seja false para novos grupos
+      // IMPORTANTE: Manter todos os campos do grupo, especialmente leaderEmail e leaderPassword
       const groupToSave = {
-        ...groupData,
+        name: groupData.name,
         membersCount: parseInt(groupData.totalPeople) || groupData.membersCount || 0,
-        password_changed: false, // Primeiro acesso, precisa alterar senha
+        members: groupData.members || [],
+        leaderName: groupData.leaderName,
+        leaderEmail: groupData.leaderEmail, // CRÍTICO: email do responsável
+        leaderPhone: groupData.leaderPhone || '',
+        leaderPassword: groupData.leaderPassword, // CRÍTICO: senha hasheada
+        tripId: groupData.tripId,
+        passwordChanged: false, // Primeiro acesso, precisa alterar senha
       };
+      
+      console.log('📝 App.tsx - Salvando grupo:', {
+        name: groupToSave.name,
+        leaderEmail: groupToSave.leaderEmail,
+        hasPassword: !!groupToSave.leaderPassword,
+        tripId: groupToSave.tripId
+      });
       
       await groupsApi.create(groupToSave);
       
@@ -283,7 +317,13 @@ const App: React.FC = () => {
         setCurrentView('all-groups');
       }
     } catch (err: any) {
-      console.error('Erro ao salvar grupo:', err);
+      console.error('❌ Erro ao salvar grupo:', err);
+      console.error('❌ Detalhes do erro:', {
+        message: err.message,
+        details: err.details,
+        hint: err.hint,
+        code: err.code
+      });
       alert(`❌ Erro ao salvar grupo: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
@@ -436,6 +476,7 @@ const App: React.FC = () => {
       onNavigateTours={handleNavigateTours}
       onNavigateGroups={handleNavigateGroups}
       onNavigateFinancial={handleNavigateFinancial}
+      onNavigateAgenda={handleNavigateAgenda}
       userRole={userRole}
       userName={userRole === 'user' ? currentUserGroup?.leaderName : 'Admin User'}
       userEmail={userRole === 'user' ? currentUserGroup?.leaderEmail : 'admin@travel.com'}
@@ -501,32 +542,56 @@ const App: React.FC = () => {
         />
       )}
 
-      {currentView === 'trip-details' && selectedTrip && (
-        <TripDetails 
-          trip={selectedTrip}
-          tours={tripTours}
-          groups={tripGroups}
-          onBack={handleNavigateHome}
-          onAddTour={handleNewTourClick}
-          onAddGroup={handleNewGroupClick}
-          initialTab={tripDetailsInitialTab}
-          userRole={userRole} // Pass Role
-          userGroup={currentUserGroup || undefined} // Pass Group data
-          onSaveAttendance={handleSaveAttendance} // Pass granular handler
-          onViewTourAttendance={handleViewTourAttendance} // New handler for page navigation
-        />
-      )}
+      {currentView === 'trip-details' && (() => {
+        // Se for usuário e não tiver selectedTrip ainda, mostrar loading ou mensagem
+        if (userRole === 'user' && !selectedTrip && selectedTripId) {
+          return (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <p className="text-text-secondary">Carregando informações da viagem...</p>
+              </div>
+            </div>
+          );
+        }
+        
+        // Se não tiver selectedTrip, não renderizar
+        if (!selectedTrip) {
+          return null;
+        }
+        
+        return (
+          <TripDetails 
+            trip={selectedTrip}
+            tours={tripTours}
+            groups={tripGroups}
+            onBack={handleNavigateHome}
+            onAddTour={handleNewTourClick}
+            onAddGroup={handleNewGroupClick}
+            initialTab={tripDetailsInitialTab}
+            userRole={userRole} // Pass Role
+            userGroup={currentUserGroup || undefined} // Pass Group data
+            onSaveAttendance={handleSaveAttendance} // Pass granular handler
+            onViewTourAttendance={handleViewTourAttendance} // New handler for page navigation
+          />
+        );
+      })()}
 
       {/* FIXED: Robust check for Tour Attendance View */}
-      {currentView === 'tour-attendance' && selectedTourForAttendance && (
-        <TourAttendanceView 
-          tour={selectedTourForAttendance}
-          // Fallback to finding trip if selectedTrip state isn't synced yet
-          trip={selectedTrip || trips.find(t => t.id === selectedTourForAttendance.tripId)!}
-          groups={selectedTripId ? tripGroups : groups.filter(g => g.tripId === selectedTourForAttendance.tripId)}
-          onBack={() => setCurrentView('trip-details')}
-        />
-      )}
+      {currentView === 'tour-attendance' && selectedTourForAttendance && (() => {
+        // Garantir que temos a viagem correta
+        const tourTrip = selectedTrip || trips.find(t => t.id === selectedTourForAttendance.tripId);
+        // Filtrar grupos pela viagem do tour
+        const tourGroups = groups.filter(g => g.tripId === selectedTourForAttendance.tripId);
+        
+        return (
+          <TourAttendanceView 
+            tour={selectedTourForAttendance}
+            trip={tourTrip!}
+            groups={tourGroups}
+            onBack={() => setCurrentView('trip-details')}
+          />
+        );
+      })()}
 
       {(currentView === 'new-tour' || currentView === 'edit-tour') && userRole === 'admin' && (
         <NewTourForm 
@@ -554,6 +619,14 @@ const App: React.FC = () => {
 
       {currentView === 'financial' && userRole === 'admin' && (
         <FinancialView />
+      )}
+
+      {currentView === 'agenda' && userRole === 'user' && currentUserGroup && (
+        <TourAgenda 
+          tours={tours}
+          trips={trips}
+          userGroup={currentUserGroup}
+        />
       )}
 
       {/* Modal de Alteração de Senha (Primeiro Acesso) */}

@@ -10,3 +10,4 @@ SET name = EXCLUDED.name, updated_at = NOW();
 -- Verificar se foi adicionado
 SELECT * FROM admins WHERE email = 'raffiweran@gmail.com';
 
+

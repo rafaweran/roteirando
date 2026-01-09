@@ -175,3 +175,4 @@ CREATE POLICY "Allow public read" ON tour_attendance
 
 O Supabase bloqueia a criação de tabelas via API REST quando usamos apenas a chave `anon`. Para criar tabelas programaticamente, seria necessária a chave `service_role` (que tem permissões administrativas completas), mas por segurança, recomenda-se criar manualmente no painel.
 
+

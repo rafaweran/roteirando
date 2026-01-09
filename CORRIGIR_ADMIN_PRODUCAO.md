@@ -129,3 +129,4 @@ Se o problema persistir após seguir todos os passos:
 2. Verifique os logs do Supabase (Dashboard → Logs)
 3. Verifique se há erros de rede no DevTools (Network tab)
 
+

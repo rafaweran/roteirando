@@ -19,16 +19,19 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Process data to find attending groups
-  const attendingGroups = groups.filter(g => 
-    g && // Check if group exists
-    g.tourAttendance && 
-    g.tourAttendance[tour.id] && 
-    g.tourAttendance[tour.id].length > 0
-  ).map(g => ({
-    ...g,
-    attendingCount: g.tourAttendance![tour.id].length,
-    attendingNames: g.tourAttendance![tour.id]
-  }));
+  const attendingGroups = groups
+    .filter(g => {
+      if (!g) return false;
+      if (!g.tourAttendance) return false;
+      if (!g.tourAttendance[tour.id]) return false;
+      if (g.tourAttendance[tour.id].length === 0) return false;
+      return true;
+    })
+    .map(g => ({
+      ...g,
+      attendingCount: g.tourAttendance![tour.id].length,
+      attendingNames: g.tourAttendance![tour.id]
+    }));
 
   // Statistics
   const totalPeople = attendingGroups.reduce((acc, curr) => acc + curr.attendingCount, 0);
@@ -181,7 +184,16 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
                        <td colSpan={4} className="py-12 text-center text-text-secondary">
                           <div className="flex flex-col items-center justify-center">
                              <FileText size={40} className="text-text-disabled mb-3" />
-                             <p>Nenhum passageiro encontrado com os filtros atuais.</p>
+                             {groups.length === 0 ? (
+                                <p>Nenhum grupo cadastrado nesta viagem.</p>
+                             ) : searchTerm ? (
+                                <p>Nenhum passageiro encontrado com os filtros atuais.</p>
+                             ) : (
+                                <div>
+                                   <p className="font-medium mb-2">Nenhum grupo confirmou presença neste passeio ainda.</p>
+                                   <p className="text-sm text-text-disabled">Os grupos precisam confirmar presença para aparecer aqui.</p>
+                                </div>
+                             )}
                           </div>
                        </td>
                     </tr>

@@ -167,3 +167,4 @@ CREATE POLICY "Allow public read" ON tour_attendance
 - **SQL Editor:** https://supabase.com/dashboard/project/dmsawbzaaftdtiggyfxd/sql/new
 - **Table Editor:** https://supabase.com/dashboard/project/dmsawbzaaftdtiggyfxd/editor
 
+

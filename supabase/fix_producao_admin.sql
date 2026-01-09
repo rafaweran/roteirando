@@ -95,3 +95,4 @@ WHERE tablename = 'admins';
 -- 2. Se a política RLS está ativa (PASSO 9)
 -- 3. Tente fazer login com raffiweran@gmail.com
 
+

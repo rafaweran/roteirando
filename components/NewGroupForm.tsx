@@ -120,12 +120,15 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
         passwordChanged: false, // Primeiro acesso, precisa alterar senha
       };
 
-      console.log('📝 NewGroupForm: Salvando grupo com senha inicial');
+      console.log('📝 NewGroupForm: Salvando grupo com senha inicial', {
+        name: finalData.name,
+        leaderEmail: finalData.leaderEmail,
+        hasPassword: !!finalData.leaderPassword,
+        tripId: finalData.tripId
+      });
       
       // Chamar onSave que vai salvar no banco
       await onSave(finalData);
-      
-      alert('✅ Grupo criado com sucesso! O responsável receberá as credenciais de acesso.');
     } catch (error: any) {
       console.error('❌ Erro ao salvar grupo:', error);
       alert(`Erro ao salvar grupo: ${error.message || 'Erro desconhecido'}`);

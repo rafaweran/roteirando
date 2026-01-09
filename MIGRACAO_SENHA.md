@@ -73,3 +73,4 @@ Deve retornar 2 linhas com as informações das colunas.
 - Grupos existentes terão `password_changed = FALSE` por padrão
 - Grupos existentes terão `leader_password = NULL` (podem precisar ser atualizados manualmente)
 
+

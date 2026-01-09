@@ -35,3 +35,4 @@ COMMENT ON TABLE admins IS 'Tabela de administradores do sistema';
 COMMENT ON COLUMN admins.email IS 'Email do administrador (deve ser único)';
 COMMENT ON COLUMN admins.name IS 'Nome do administrador';
 
+

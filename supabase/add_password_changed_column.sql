@@ -10,3 +10,4 @@ WHERE password_changed IS NULL;
 -- Comentário explicativo
 COMMENT ON COLUMN groups.password_changed IS 'Indica se o usuário já alterou a senha inicial (primeiro acesso)';
 
+

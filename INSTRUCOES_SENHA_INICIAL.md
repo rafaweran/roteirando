@@ -129,3 +129,4 @@ Modal fecha → Redireciona para viagem
 - Após primeiro acesso, modal não aparece mais
 - Para redefinir senha futuramente, seria necessário implementar função adicional
 
+

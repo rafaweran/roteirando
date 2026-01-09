@@ -49,3 +49,4 @@ DROP POLICY IF EXISTS "Allow public read for admin check" ON admins;
 CREATE POLICY "Allow public read for admin check" ON admins
     FOR SELECT USING (true);
 
+

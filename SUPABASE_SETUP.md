@@ -122,3 +122,4 @@ O projeto deve se conectar ao Supabase automaticamente. Se houver erros, verifiq
 2. Se as credenciais estão corretas
 3. Se as tabelas foram criadas no Supabase
 
+

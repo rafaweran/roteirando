@@ -62,3 +62,4 @@ SELECT id, email, name, created_at FROM admins ORDER BY created_at;
 - A tabela `admins` tem RLS habilitado, mas permite leitura pública para verificação
 - A senha ainda não é verificada (será implementada futuramente)
 
+

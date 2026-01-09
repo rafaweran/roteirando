@@ -36,3 +36,4 @@ SELECT
 
 -- Se todos os valores forem 0, tudo foi deletado com sucesso!
 
+

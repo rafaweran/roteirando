@@ -31,3 +31,4 @@ SELECT
 
 -- Se todos retornarem 0, tudo foi deletado com sucesso
 
+

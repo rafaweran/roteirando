@@ -126,3 +126,4 @@ O sistema tem um fallback que funciona mesmo sem a tabela `admins`:
 
 Se a tabela não existir, esses emails ainda funcionarão como administradores.
 
+

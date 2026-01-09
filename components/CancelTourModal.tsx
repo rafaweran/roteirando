@@ -100,22 +100,22 @@ const CancelTourModal: React.FC<CancelTourModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-border bg-surface/30 flex gap-3">
+        <div className="p-5 border-t border-border bg-surface/30 flex flex-col sm:flex-row gap-3">
           <Button 
             variant="outline"
             onClick={onClose}
-            className="flex-1"
+            className="flex-1 order-2 sm:order-1 h-11 text-sm"
             disabled={isLoading}
           >
             Voltar
           </Button>
           <Button 
             onClick={handleConfirm}
-            className="flex-1 bg-status-error hover:bg-status-error/90 text-white"
+            className="flex-1 bg-status-error hover:bg-status-error/90 text-white order-1 sm:order-2 h-11 text-sm font-semibold"
             disabled={isLoading || !reason.trim()}
             isLoading={isLoading}
           >
-            Confirmar Cancelamento
+            {isLoading ? 'Cancelando...' : 'Cancelar Passeio'}
           </Button>
         </div>
       </div>

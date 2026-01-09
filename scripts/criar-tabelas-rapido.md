@@ -24,3 +24,4 @@ DATABASE_URL="sua_connection_string_aqui" node scripts/create-all-tables.js
 
 **Isso levará menos de 2 minutos e criará todas as tabelas!**
 
+

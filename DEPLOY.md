@@ -175,3 +175,4 @@ npm run build
 - Configure redirects no servidor para apontar todas as rotas para `index.html`
 - Veja exemplos em `vercel.json` ou `netlify.toml`
 
+

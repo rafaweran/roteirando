@@ -10,7 +10,8 @@ import {
   UserCircle,
   ChevronDown,
   Users,
-  TentTree
+  TentTree,
+  Calendar
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -21,6 +22,7 @@ interface LayoutProps {
   onNavigateTours: () => void;
   onNavigateGroups: () => void;
   onNavigateFinancial?: () => void;
+  onNavigateAgenda?: () => void;
   title?: string;
   userRole?: UserRole;
   userName?: string;
@@ -34,6 +36,7 @@ const Layout: React.FC<LayoutProps> = ({
   onNavigateTours, 
   onNavigateGroups,
   onNavigateFinancial,
+  onNavigateAgenda,
   userRole = 'admin',
   userName = 'Admin User',
   userEmail = 'admin@travel.com'
@@ -141,28 +144,45 @@ const Layout: React.FC<LayoutProps> = ({
 
           {/* Desktop Menu (Center) */}
           <nav className="hidden md:flex items-center gap-2 h-full">
-            <NavItem 
-              icon={LayoutDashboard} 
-              label="Dashboard" 
-              onClick={onNavigateHome} 
-            />
-            
-            <NavItem 
-              icon={Map} 
-              label="Viagens" 
-              isActive={true} 
-              hasSubmenu={userRole === 'admin'} 
-              onClick={onNavigateHome}
-            >
-              {userRole === 'admin' && (
-                <>
-                  <DropdownItem icon={Map} label="Minhas Viagens" onClick={onNavigateHome} />
-                  <div className="h-px bg-border mx-2 my-1"></div>
-                  <DropdownItem icon={TentTree} label="Passeios" onClick={onNavigateTours} />
-                  <DropdownItem icon={Users} label="Grupos" onClick={onNavigateGroups} />
-                </>
-              )}
-            </NavItem>
+            {userRole === 'user' ? (
+              <>
+                <NavItem 
+                  icon={Map} 
+                  label="Lista de Passeios" 
+                  onClick={onNavigateHome} 
+                />
+                <NavItem 
+                  icon={Calendar} 
+                  label="Meus passeios" 
+                  onClick={onNavigateAgenda || onNavigateHome} 
+                />
+              </>
+            ) : (
+              <>
+                <NavItem 
+                  icon={LayoutDashboard} 
+                  label="Dashboard" 
+                  onClick={onNavigateHome} 
+                />
+                
+                <NavItem 
+                  icon={Map} 
+                  label="Viagens" 
+                  isActive={true} 
+                  hasSubmenu={userRole === 'admin'} 
+                  onClick={onNavigateHome}
+                >
+                  {userRole === 'admin' && (
+                    <>
+                      <DropdownItem icon={Map} label="Minhas Viagens" onClick={onNavigateHome} />
+                      <div className="h-px bg-border mx-2 my-1"></div>
+                      <DropdownItem icon={TentTree} label="Passeios" onClick={onNavigateTours} />
+                      <DropdownItem icon={Users} label="Grupos" onClick={onNavigateGroups} />
+                    </>
+                  )}
+                </NavItem>
+              </>
+            )}
 
             {userRole === 'admin' && (
               <>
@@ -239,14 +259,35 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              <MobileNavItem 
-                icon={LayoutDashboard} 
-                label="Dashboard" 
-                onClick={() => {
-                  onNavigateHome();
-                  setIsMobileMenuOpen(false);
-                }} 
-              />
+              {userRole === 'user' ? (
+                <>
+                  <MobileNavItem 
+                    icon={Map} 
+                    label="Lista de Passeios" 
+                    onClick={() => {
+                      onNavigateHome();
+                      setIsMobileMenuOpen(false);
+                    }} 
+                  />
+                  <MobileNavItem 
+                    icon={Calendar} 
+                    label="Meus passeios" 
+                    onClick={() => {
+                      onNavigateAgenda?.();
+                      setIsMobileMenuOpen(false);
+                    }} 
+                  />
+                </>
+              ) : (
+                <MobileNavItem 
+                  icon={LayoutDashboard} 
+                  label="Dashboard" 
+                  onClick={() => {
+                    onNavigateHome();
+                    setIsMobileMenuOpen(false);
+                  }} 
+                />
+              )}
               
               <MobileNavItem 
                 icon={Map} 

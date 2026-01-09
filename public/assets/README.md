@@ -11,3 +11,4 @@ A logo deve ser uma imagem PNG com fundo transparente ou com o design circular c
 - Mínimo: 200x200px
 - Ideal: 400x400px ou maior (será redimensionada automaticamente)
 
+

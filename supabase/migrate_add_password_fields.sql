@@ -24,3 +24,4 @@ FROM information_schema.columns
 WHERE table_name = 'groups' 
   AND column_name IN ('leader_password', 'password_changed');
 
+

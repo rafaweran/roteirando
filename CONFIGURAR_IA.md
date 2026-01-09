@@ -101,3 +101,4 @@ A IA usa as seguintes informações para gerar a descrição:
 - Não compartilhe sua API key publicamente
 - Monitore o uso da API no Google AI Studio
 
+

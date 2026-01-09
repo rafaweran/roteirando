@@ -88,3 +88,4 @@ export function verifyPassword(password: string, hashedPassword: string): boolea
 - Esses usuários verão uma mensagem pedindo para entrar em contato com o admin
 - O admin pode atualizar a senha manualmente no banco se necessário
 
+
