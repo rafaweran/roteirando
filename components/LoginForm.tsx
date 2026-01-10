@@ -209,7 +209,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       <div className="text-center mb-8">
         <div className="flex justify-center mb-4">
           <img 
-            src="/assets/logo.svg" 
+            src="/assets/logo.svg?v=2" 
             alt="Roteirando" 
             className="h-8 object-contain"
             onError={(e) => {

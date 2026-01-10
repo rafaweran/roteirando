@@ -125,7 +125,7 @@ const Layout: React.FC<LayoutProps> = ({
           {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={onNavigateHome}>
             <img 
-              src="/assets/logo.svg" 
+              src="/assets/logo.svg?v=2" 
               alt="Roteirando" 
               className="h-6 object-contain"
               onError={(e) => {
@@ -239,7 +239,7 @@ const Layout: React.FC<LayoutProps> = ({
             <div className="p-4 flex items-center justify-between border-b border-border">
               <div className="flex items-center gap-2">
                 <img 
-                  src="/assets/logo.svg" 
+                  src="/assets/logo.svg?v=2" 
                   alt="Roteirando" 
                   className="h-5 object-contain"
                   onError={(e) => {
