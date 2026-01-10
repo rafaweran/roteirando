@@ -53,13 +53,11 @@ const DatePicker: React.FC<DatePickerProps> = ({
     return { days, firstDay };
   };
 
-  const handlePrevMonth = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePrevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
   };
 
-  const handleNextMonth = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleNextMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
   };
 
@@ -94,7 +92,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
       
       <div 
         className="relative group cursor-pointer"
-        onClick={() => {
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
           setIsOpen(!isOpen);
           setIsFocused(!isOpen);
         }}
@@ -132,7 +132,12 @@ const DatePicker: React.FC<DatePickerProps> = ({
           {/* Calendar Header */}
           <div className="flex items-center justify-between mb-4">
             <button 
-              onClick={handlePrevMonth}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handlePrevMonth();
+              }}
               className="p-1 hover:bg-surface rounded-full text-text-secondary hover:text-primary transition-colors"
             >
               <ChevronLeft size={20} />
@@ -141,7 +146,12 @@ const DatePicker: React.FC<DatePickerProps> = ({
               {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </span>
             <button 
-              onClick={handleNextMonth}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleNextMonth();
+              }}
               className="p-1 hover:bg-surface rounded-full text-text-secondary hover:text-primary transition-colors"
             >
               <ChevronRight size={20} />
@@ -180,6 +190,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
                   key={day}
                   type="button"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     handleDateClick(day);
                   }}

@@ -43,6 +43,12 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
 
   const [links, setLinks] = useState<TourLink[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  
+  // Estados de erro para validação visual
+  const [errors, setErrors] = useState<{
+    name?: boolean;
+    trip?: boolean;
+  }>({});
 
   // Tags pré-definidas disponíveis
   const availableTags = [
@@ -282,28 +288,42 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Limpar erros anteriores
+    setErrors({});
+    
+    // Validação de campos obrigatórios com feedback visual
+    const newErrors: typeof errors = {};
+    let hasErrors = false;
+
     // Validation for Global Mode
     if (!activeTrip) {
-      alert("Por favor, selecione uma viagem para este passeio.");
-      return;
+      newErrors.trip = true;
+      hasErrors = true;
     }
 
     // Validação de campos obrigatórios
-    if (!formData.name) {
-      alert("Por favor, preencha o nome do passeio.");
-      return;
+    if (!formData.name || formData.name.trim() === '') {
+      newErrors.name = true;
+      hasErrors = true;
     }
 
-    // Verificar se pelo menos um preço foi preenchido
-    const hasAnyPrice = prices.inteira.value || prices.meia.value || prices.senior.value || formData.price;
-    if (!hasAnyPrice) {
-      alert("Por favor, preencha pelo menos um valor de ingresso.");
-      return;
-    }
+    // Preço é opcional - não validar se não houver valor fixo
+    // O sistema permite passeios sem preço definido
 
     // Validação de horário se ambos estiverem preenchidos
     if (formData.startTime && formData.endTime && timeError) {
-      alert("Por favor, corrija o horário antes de salvar.");
+      // timeError já está sendo exibido visualmente
+      hasErrors = true;
+    }
+
+    // Se houver erros, mostrar feedback visual e não continuar
+    if (hasErrors) {
+      setErrors(newErrors);
+      // Scroll para o primeiro erro
+      const firstErrorField = document.querySelector('.border-status-error');
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
     
@@ -341,6 +361,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       }
 
       // Preço padrão: usar inteira se disponível, senão o campo price antigo, senão 0
+      // Se não houver nenhum preço, usar 0 (passeio sem valor fixo)
       const defaultPrice = prices.inteira.value 
         ? parseFloat(prices.inteira.value) 
         : (formData.price ? parseFloat(formData.price) : 0);
@@ -513,9 +534,19 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                 <div className="relative">
                   <select
                     id="tripSelect"
-                    className="w-full h-[48px] appearance-none rounded-custom border border-border bg-white px-4 text-text-primary outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className={`w-full h-[48px] appearance-none rounded-custom border bg-white px-4 text-text-primary outline-none transition-all duration-200 focus:ring-2 ${
+                      errors.trip 
+                        ? 'border-status-error focus:border-status-error focus:ring-status-error' 
+                        : 'border-border focus:border-primary focus:ring-primary/20'
+                    }`}
                     value={selectedTripId}
-                    onChange={(e) => setSelectedTripId(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedTripId(e.target.value);
+                      // Limpar erro quando o usuário selecionar uma viagem
+                      if (errors.trip) {
+                        setErrors(prev => ({ ...prev, trip: false }));
+                      }
+                    }}
                     required
                   >
                     <option value="" disabled>
@@ -533,6 +564,12 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                     </svg>
                   </div>
                 </div>
+                {errors.trip && (
+                  <p className="text-xs text-status-error flex items-center gap-1 mt-1">
+                    <span>⚠️</span>
+                    Por favor, selecione uma viagem para este passeio
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -543,9 +580,22 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
             label="Nome do passeio *"
             placeholder="Ex: Tour Vinícolas"
             value={formData.name}
-            onChange={(e) => handleChange('name', e.target.value)}
+            onChange={(e) => {
+              handleChange('name', e.target.value);
+              // Limpar erro quando o usuário começar a digitar
+              if (errors.name) {
+                setErrors(prev => ({ ...prev, name: false }));
+              }
+            }}
+            className={errors.name ? 'border-status-error focus:border-status-error focus:ring-status-error' : ''}
             required
           />
+          {errors.name && (
+            <p className="text-xs text-status-error flex items-center gap-1 mt-1">
+              <span>⚠️</span>
+              Por favor, preencha o nome do passeio
+            </p>
+          )}
 
           {/* Tags/Categorias */}
           <div className="flex flex-col gap-1.5">
@@ -690,7 +740,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                 Valores dos Ingressos
               </label>
               <span className="text-xs text-text-disabled">
-                Preencha pelo menos um tipo de ingresso
+                Opcional - preencha se houver valor fixo
               </span>
             </div>
 
@@ -828,6 +878,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                 </div>
               </div>
             </div>
+            
 
             {/* Campo de preço único (legado - opcional) */}
             <div className="bg-surface/30 rounded-lg p-3 border border-border/50">
