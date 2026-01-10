@@ -141,6 +141,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   return (
     <div className="bg-white p-8 rounded-[24px] shadow-lg border border-border w-full relative overflow-hidden">
       <div className="text-center mb-8">
+        <div className="flex justify-center mb-4">
+          <img 
+            src="/assets/logo.svg" 
+            alt="Roteirando" 
+            className="h-12 object-contain"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
+          />
+        </div>
         <h1 className="text-2xl font-bold text-text-primary mb-2">Bem-vindo!</h1>
         <p className="text-text-secondary">
           Acesse para gerenciar suas viagens

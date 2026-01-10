@@ -125,9 +125,9 @@ const Layout: React.FC<LayoutProps> = ({
           {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={onNavigateHome}>
             <img 
-              src="/assets/logo.png" 
+              src="/assets/logo.svg" 
               alt="Roteirando" 
-              className="h-10 w-10 object-contain"
+              className="h-8 object-contain"
               onError={(e) => {
                 // Fallback para ícone se a logo não existir
                 const target = e.target as HTMLImageElement;
@@ -139,7 +139,6 @@ const Layout: React.FC<LayoutProps> = ({
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white shadow-md shadow-primary/20 hidden" style={{ display: 'none' }}>
               <Map size={18} />
             </div>
-            <h1 className="font-bold text-xl text-text-primary tracking-tight hidden sm:block">Roteirando</h1>
           </div>
 
           {/* Desktop Menu (Center) */}
@@ -240,15 +239,14 @@ const Layout: React.FC<LayoutProps> = ({
             <div className="p-4 flex items-center justify-between border-b border-border">
               <div className="flex items-center gap-2">
                 <img 
-                  src="/assets/logo.png" 
+                  src="/assets/logo.svg" 
                   alt="Roteirando" 
-                  className="h-8 w-8 object-contain"
+                  className="h-6 object-contain"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
                   }}
                 />
-                <span className="font-bold text-lg text-primary">Roteirando</span>
               </div>
               <button 
                 onClick={() => setIsMobileMenuOpen(false)}
