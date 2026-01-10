@@ -14,6 +14,7 @@ interface TripDetailsProps {
   onBack: () => void;
   onAddTour: () => void;
   onAddGroup: () => void;
+  onEditTour?: (tour: Tour) => void; // Admin: Edit tour
   initialTab?: 'tours' | 'groups';
   userRole?: UserRole;
   userGroup?: Group;
@@ -31,6 +32,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   onBack, 
   onAddTour, 
   onAddGroup,
+  onEditTour,
   initialTab = 'tours',
   userRole = 'admin',
   userGroup,
@@ -404,6 +406,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                                   onCancelTour={handleOpenCancel}
                                   onViewAttendanceList={onViewTourAttendance}
                                   onViewTourDetail={onViewTourDetail}
+                                  onEditTour={!isUser ? onEditTour : undefined}
                                 />
                               );
                             })}

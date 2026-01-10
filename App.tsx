@@ -634,6 +634,7 @@ const App: React.FC = () => {
             onBack={handleNavigateHome}
             onAddTour={handleNewTourClick}
             onAddGroup={handleNewGroupClick}
+            onEditTour={userRole === 'admin' ? handleEditTour : undefined}
             initialTab={tripDetailsInitialTab}
             userRole={userRole} // Pass Role
             userGroup={currentUserGroup || undefined} // Pass Group data

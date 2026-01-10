@@ -14,6 +14,7 @@ interface TourCardProps {
   onCancelTour?: (tour: Tour) => void;
   onViewAttendanceList?: (tour: Tour) => void;
   onViewTourDetail?: (tour: Tour) => void;
+  onEditTour?: (tour: Tour) => void; // Admin: Edit tour
 }
 
 const TourCard: React.FC<TourCardProps> = ({ 
@@ -25,7 +26,8 @@ const TourCard: React.FC<TourCardProps> = ({
   onOpenAttendance,
   onCancelTour,
   onViewAttendanceList,
-  onViewTourDetail
+  onViewTourDetail,
+  onEditTour
 }) => {
   const isSelected = attendanceCount > 0;
   const isPartial = attendanceCount > 0 && attendanceCount < totalMembers;
@@ -234,12 +236,23 @@ const TourCard: React.FC<TourCardProps> = ({
           ) : (
              // Admin Actions
              <>
-               <Button variant="outline" className="h-9 text-xs flex-1">
+               <Button 
+                 variant="outline" 
+                 className="h-9 text-xs flex-1"
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   onEditTour?.(tour);
+                 }}
+               >
+                 <Edit2 size={14} className="mr-2" />
                  Editar
                </Button>
                <Button 
                  className="h-9 text-xs flex-1"
-                 onClick={() => onViewAttendanceList?.(tour)}
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   onViewAttendanceList?.(tour);
+                 }}
                >
                  <ListChecks size={16} className="mr-2" />
                  Ver Lista

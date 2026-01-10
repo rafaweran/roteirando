@@ -17,7 +17,7 @@ interface NewTourFormProps {
 const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, onCancel }) => {
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
-  const [selectedTripId, setSelectedTripId] = useState<string>(trip?.id || '');
+  const [selectedTripId, setSelectedTripId] = useState<string>(trip?.id || initialData?.tripId || '');
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -65,6 +65,70 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
   const isEditMode = !!initialData;
   const activeTrip = trip || availableTrips.find(t => t.id === selectedTripId);
 
+  // Funções para formatação de moeda brasileira
+  const formatCurrency = (value: string | number): string => {
+    if (!value && value !== 0) return '';
+    const numValue = typeof value === 'string' 
+      ? parseFloat(value.replace(/[^\d,.-]/g, '').replace(',', '.')) 
+      : value;
+    if (isNaN(numValue) || numValue < 0) return '';
+    return numValue.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  const parseCurrency = (value: string): string => {
+    if (!value) return '';
+    // Remove tudo exceto números, vírgula e ponto
+    const cleaned = value.replace(/[^\d,.]/g, '');
+    if (!cleaned) return '';
+    
+    // Se tiver vírgula, assume formato brasileiro (vírgula como separador decimal)
+    if (cleaned.includes(',')) {
+      // Remove todos os pontos (são separadores de milhares)
+      const withoutThousands = cleaned.replace(/\./g, '');
+      // Substitui vírgula por ponto para formato numérico
+      return withoutThousands.replace(',', '.');
+    }
+    
+    // Se só tiver pontos, pode ser formato internacional (decimal) ou brasileiro (milhares)
+    const parts = cleaned.split('.');
+    if (parts.length > 2) {
+      // Múltiplos pontos = formato brasileiro (milhares), remove todos os pontos
+      return parts.join('');
+    }
+    
+    if (parts.length === 2) {
+      // Um ponto: verifica se é decimal ou milhar
+      // Se a parte após o ponto tem 3 dígitos e há mais de 3 dígitos antes, é milhar
+      if (parts[1].length === 3 && parts[0].length > 3) {
+        // Formato brasileiro: 1.234 = 1234 (sem decimal)
+        return parts.join('');
+      }
+      // Caso contrário, assume que é decimal (formato internacional)
+      return cleaned;
+    }
+    
+    // Apenas números
+    return cleaned;
+  };
+
+  const handlePriceChange = (type: 'inteira' | 'meia' | 'senior', value: string) => {
+    const parsed = parseCurrency(value);
+    setPrices(prev => ({
+      ...prev,
+      [type]: { ...prev[type], value: parsed }
+    }));
+  };
+
+  const getDisplayValue = (value: string): string => {
+    if (!value) return '';
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return '';
+    return formatCurrency(numValue);
+  };
+
   // Load trips if no trip prop provided
   useEffect(() => {
     if (!trip) {
@@ -85,6 +149,13 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       loadTrips();
     }
   }, [trip]);
+
+  // Se estiver editando e não tiver trip, garantir que o tripId está definido
+  useEffect(() => {
+    if (!trip && initialData && !selectedTripId && initialData.tripId) {
+      setSelectedTripId(initialData.tripId);
+    }
+  }, [trip, initialData]);
 
   useEffect(() => {
     if (initialData) {
@@ -108,15 +179,15 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       if (initialData.prices) {
         setPrices({
           inteira: {
-            value: initialData.prices.inteira?.value.toString() || '',
+            value: initialData.prices.inteira?.value ? initialData.prices.inteira.value.toString() : '',
             description: initialData.prices.inteira?.description || 'Ingresso padrão para adultos'
           },
           meia: {
-            value: initialData.prices.meia?.value.toString() || '',
+            value: initialData.prices.meia?.value ? initialData.prices.meia.value.toString() : '',
             description: initialData.prices.meia?.description || 'Estudantes, pessoas com deficiência e acompanhantes'
           },
           senior: {
-            value: initialData.prices.senior?.value.toString() || '',
+            value: initialData.prices.senior?.value ? initialData.prices.senior.value.toString() : '',
             description: initialData.prices.senior?.description || 'Idosos a partir de 60 anos'
           }
         });
@@ -635,18 +706,22 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative">
-                  <DollarSign size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">R$</span>
                   <input
-                    type="number"
+                    type="text"
                     placeholder="0,00"
-                    min="0"
-                    step="0.01"
-                    value={prices.inteira.value}
-                    onChange={(e) => setPrices(prev => ({
-                      ...prev,
-                      inteira: { ...prev.inteira, value: e.target.value }
-                    }))}
-                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    value={getDisplayValue(prices.inteira.value)}
+                    onChange={(e) => handlePriceChange('inteira', e.target.value)}
+                    onBlur={(e) => {
+                      const parsed = parseCurrency(e.target.value);
+                      if (parsed) {
+                        setPrices(prev => ({
+                          ...prev,
+                          inteira: { ...prev.inteira, value: parsed }
+                        }));
+                      }
+                    }}
+                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -658,7 +733,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                       ...prev,
                       inteira: { ...prev.inteira, description: e.target.value }
                     }))}
-                    className="w-full h-12 px-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -676,18 +751,22 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative">
-                  <DollarSign size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">R$</span>
                   <input
-                    type="number"
+                    type="text"
                     placeholder="0,00"
-                    min="0"
-                    step="0.01"
-                    value={prices.meia.value}
-                    onChange={(e) => setPrices(prev => ({
-                      ...prev,
-                      meia: { ...prev.meia, value: e.target.value }
-                    }))}
-                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    value={getDisplayValue(prices.meia.value)}
+                    onChange={(e) => handlePriceChange('meia', e.target.value)}
+                    onBlur={(e) => {
+                      const parsed = parseCurrency(e.target.value);
+                      if (parsed) {
+                        setPrices(prev => ({
+                          ...prev,
+                          meia: { ...prev.meia, value: parsed }
+                        }));
+                      }
+                    }}
+                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -699,7 +778,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                       ...prev,
                       meia: { ...prev.meia, description: e.target.value }
                     }))}
-                    className="w-full h-12 px-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -717,18 +796,22 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative">
-                  <DollarSign size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">R$</span>
                   <input
-                    type="number"
+                    type="text"
                     placeholder="0,00"
-                    min="0"
-                    step="0.01"
-                    value={prices.senior.value}
-                    onChange={(e) => setPrices(prev => ({
-                      ...prev,
-                      senior: { ...prev.senior, value: e.target.value }
-                    }))}
-                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    value={getDisplayValue(prices.senior.value)}
+                    onChange={(e) => handlePriceChange('senior', e.target.value)}
+                    onBlur={(e) => {
+                      const parsed = parseCurrency(e.target.value);
+                      if (parsed) {
+                        setPrices(prev => ({
+                          ...prev,
+                          senior: { ...prev.senior, value: parsed }
+                        }));
+                      }
+                    }}
+                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -740,7 +823,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                       ...prev,
                       senior: { ...prev.senior, description: e.target.value }
                     }))}
-                    className="w-full h-12 px-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -754,15 +837,22 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                 </label>
               </div>
               <div className="relative">
-                <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium text-sm">R$</span>
                 <input
-                  type="number"
+                  type="text"
                   placeholder="0,00"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => handleChange('price', e.target.value)}
-                  className="w-full h-10 pl-10 pr-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-white"
+                  value={getDisplayValue(formData.price)}
+                  onChange={(e) => {
+                    const parsed = parseCurrency(e.target.value);
+                    handleChange('price', parsed);
+                  }}
+                  onBlur={(e) => {
+                    const parsed = parseCurrency(e.target.value);
+                    if (parsed) {
+                      handleChange('price', parsed);
+                    }
+                  }}
+                  className="w-full h-10 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                 />
               </div>
               <p className="text-[10px] text-text-disabled mt-1">
