@@ -109,6 +109,10 @@ const DatePicker: React.FC<DatePickerProps> = ({
           readOnly
           value={formatDateDisplay(value)}
           placeholder="Selecione uma data"
+          onInvalid={(e) => {
+            e.preventDefault();
+            // Previne a mensagem padrão do HTML5 - validação será feita no submit do formulário
+          }}
           className={`
             w-full h-[48px] rounded-custom border bg-white px-4 pl-10 transition-all duration-200
             placeholder:text-text-disabled text-text-primary outline-none cursor-pointer

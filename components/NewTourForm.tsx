@@ -366,7 +366,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
 
       {/* Form Card */}
       <div className="bg-white rounded-[24px] border border-border p-6 md:p-8 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           
           {/* Trip Selector (Only visible if no trip prop passed) */}
           {!trip && (
