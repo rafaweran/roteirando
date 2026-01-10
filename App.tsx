@@ -17,7 +17,7 @@ import { tripsApi, toursApi, groupsApi } from './lib/database';
 import { Plus } from 'lucide-react';
 import Button from './components/Button';
 
-type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'financial' | 'agenda';
+type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'financial' | 'agenda';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('login');
@@ -34,6 +34,7 @@ const App: React.FC = () => {
 
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [editingTour, setEditingTour] = useState<Tour | null>(null);
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
   const [tripDetailsInitialTab, setTripDetailsInitialTab] = useState<'tours' | 'groups'>('tours');
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -228,6 +229,12 @@ const App: React.FC = () => {
     console.log(`Deleted group with ID: ${groupId}`);
   };
 
+  const handleEditGroup = (group: Group) => {
+    setEditingGroup(group);
+    setSelectedTripId(group.tripId);
+    setCurrentView('edit-group');
+  };
+
   const handleViewGroup = (tripId: string) => {
     setSelectedTripId(tripId);
     setTripDetailsInitialTab('groups');
@@ -235,6 +242,7 @@ const App: React.FC = () => {
   };
 
   const handleNewGroupClick = () => {
+    setEditingGroup(null);
     setCurrentView('new-group');
   };
 
@@ -282,34 +290,69 @@ const App: React.FC = () => {
     try {
       setLoading(true);
       
-      // Garantir que password_changed seja false para novos grupos
-      // IMPORTANTE: Manter todos os campos do grupo, especialmente leaderEmail e leaderPassword
-      const groupToSave = {
-        name: groupData.name,
-        membersCount: parseInt(groupData.totalPeople) || groupData.membersCount || 0,
-        members: groupData.members || [],
-        leaderName: groupData.leaderName,
-        leaderEmail: groupData.leaderEmail, // CRÍTICO: email do responsável
-        leaderPhone: groupData.leaderPhone || '',
-        leaderPassword: groupData.leaderPassword, // CRÍTICO: senha hasheada
-        tripId: groupData.tripId,
-        passwordChanged: false, // Primeiro acesso, precisa alterar senha
-      };
+      if (editingGroup) {
+        // EDITAR GRUPO EXISTENTE
+        const groupToUpdate = {
+          name: groupData.name,
+          membersCount: parseInt(groupData.totalPeople) || groupData.membersCount || 0,
+          members: groupData.members || [],
+          leaderName: groupData.leaderName,
+          leaderEmail: groupData.leaderEmail,
+          leaderPhone: groupData.leaderPhone || '',
+          tripId: groupData.tripId,
+          // Se senha foi alterada, usar a nova, senão manter a existente
+          leaderPassword: groupData.leaderPassword || editingGroup.leaderPassword,
+          // Manter passwordChanged do grupo original
+          passwordChanged: editingGroup.passwordChanged !== undefined ? editingGroup.passwordChanged : false,
+        };
+        
+        console.log('📝 App.tsx - Atualizando grupo:', {
+          id: editingGroup.id,
+          name: groupToUpdate.name,
+          leaderEmail: groupToUpdate.leaderEmail,
+        });
+        
+        await groupsApi.update(editingGroup.id, groupToUpdate);
+        
+        // Recarregar grupos após atualizar
+        await loadGroups();
+        
+        alert('✅ Grupo atualizado com sucesso!');
+      } else {
+        // CRIAR NOVO GRUPO
+        // Garantir que password_changed seja false para novos grupos
+        // IMPORTANTE: Manter todos os campos do grupo, especialmente leaderEmail e leaderPassword
+        const groupToSave = {
+          name: groupData.name,
+          membersCount: parseInt(groupData.totalPeople) || groupData.membersCount || 0,
+          members: groupData.members || [],
+          leaderName: groupData.leaderName,
+          leaderEmail: groupData.leaderEmail, // CRÍTICO: email do responsável
+          leaderPhone: groupData.leaderPhone || '',
+          leaderPassword: groupData.leaderPassword, // CRÍTICO: senha hasheada
+          tripId: groupData.tripId,
+          passwordChanged: false, // Primeiro acesso, precisa alterar senha
+        };
+        
+        console.log('📝 App.tsx - Salvando grupo:', {
+          name: groupToSave.name,
+          leaderEmail: groupToSave.leaderEmail,
+          hasPassword: !!groupToSave.leaderPassword,
+          tripId: groupToSave.tripId
+        });
+        
+        await groupsApi.create(groupToSave);
+        
+        // Recarregar grupos após salvar
+        await loadGroups();
+        
+        alert('✅ Grupo criado com sucesso! O responsável receberá as credenciais de acesso.');
+      }
       
-      console.log('📝 App.tsx - Salvando grupo:', {
-        name: groupToSave.name,
-        leaderEmail: groupToSave.leaderEmail,
-        hasPassword: !!groupToSave.leaderPassword,
-        tripId: groupToSave.tripId
-      });
+      // Limpar estado de edição
+      setEditingGroup(null);
       
-      await groupsApi.create(groupToSave);
-      
-      // Recarregar grupos após salvar
-      await loadGroups();
-      
-      alert('✅ Grupo criado com sucesso! O responsável receberá as credenciais de acesso.');
-      
+      // Navegar de volta
       if (selectedTripId) {
         setTripDetailsInitialTab('groups');
         setCurrentView('trip-details');
@@ -331,6 +374,7 @@ const App: React.FC = () => {
   };
 
   const handleCancelNewGroup = () => {
+    setEditingGroup(null);
     if (selectedTripId) {
         setCurrentView('trip-details');
     } else {
@@ -537,6 +581,7 @@ const App: React.FC = () => {
 
       {currentView === 'all-groups' && userRole === 'admin' && (
         <GroupsList 
+          onEdit={handleEditGroup}
           onDelete={handleDeleteGroup}
           onAddGroup={handleNewGroupClick}
         />
@@ -602,9 +647,10 @@ const App: React.FC = () => {
         />
       )}
 
-      {currentView === 'new-group' && userRole === 'admin' && (
+      {(currentView === 'new-group' || currentView === 'edit-group') && userRole === 'admin' && (
         <NewGroupForm 
           trip={selectedTrip}
+          initialData={editingGroup}
           onSave={handleSaveGroup}
           onCancel={handleCancelNewGroup}
         />

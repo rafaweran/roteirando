@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, Info } from 'lucide-react';
 import Input from './Input';
 import Button from './Button';
+import ForgotPasswordModal from './ForgotPasswordModal';
 import { groupsApi } from '../lib/database';
 import { verifyPassword } from '../lib/password';
 import { UserRole, Group } from '../types';
@@ -17,6 +18,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   });
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
 
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -75,7 +77,55 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       console.log('✅ É administrador?', isAdmin, `(banco: ${isAdminInDB}, fallback: ${isFallbackAdmin})`);
       
       if (isAdmin) {
-        // In a real app, you would verify the password here
+        // Verificar senha do admin
+        const { adminsApi } = await import('../lib/database');
+        let adminData = null;
+        
+        try {
+          adminData = await adminsApi.getAdminByEmail(normalizedEmail);
+        } catch (error) {
+          console.warn('⚠️ Erro ao buscar dados do admin:', error);
+        }
+        
+        if (adminData && adminData.password) {
+          // Admin no banco com senha configurada - validar senha
+          const inputPassword = formData.password.trim();
+          const storedHash = adminData.password.trim();
+          
+          // Debug: log para verificar o que está sendo comparado
+          console.log('🔐 Validação de senha admin:', {
+            email: normalizedEmail,
+            inputPasswordLength: inputPassword.length,
+            storedHashLength: storedHash.length,
+            inputHash: btoa(inputPassword),
+            storedHash: storedHash
+          });
+          
+          const passwordMatch = verifyPassword(inputPassword, storedHash);
+          console.log('✅ Resultado da validação:', passwordMatch);
+          
+          if (!passwordMatch) {
+            setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
+            setIsLoading(false);
+            return;
+          }
+        } else if (adminData && !adminData.password) {
+          // Admin no banco mas sem senha configurada - permitir login SEM senha (temporário)
+          console.log('⚠️ Admin encontrado no banco mas sem senha configurada - permitindo login sem senha');
+          console.log('✅ Login como administrador (sem senha):', normalizedEmail);
+          onSuccess('admin');
+          setIsLoading(false);
+          return;
+        } else {
+          // Admin não encontrado no banco mas está na lista de fallback
+          // Permitir login sem senha para admins de fallback (temporário até configurar senha)
+          console.log('⚠️ Admin de fallback - permitindo login sem senha:', normalizedEmail);
+          console.log('✅ Login como administrador (fallback, sem senha):', normalizedEmail);
+          onSuccess('admin');
+          setIsLoading(false);
+          return;
+        }
+        
         console.log('✅ Login como administrador:', normalizedEmail);
         onSuccess('admin');
         setIsLoading(false);
@@ -109,7 +159,22 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       if (userGroup) {
         // Verificar senha se o grupo tiver senha
         if (userGroup.leaderPassword) {
-          const passwordMatch = verifyPassword(formData.password, userGroup.leaderPassword);
+          const inputPassword = formData.password.trim();
+          const storedHash = userGroup.leaderPassword.trim();
+          
+          // Debug: log para verificar o que está sendo comparado
+          console.log('🔐 Validação de senha grupo:', {
+            email: normalizedEmail,
+            groupName: userGroup.name,
+            inputPasswordLength: inputPassword.length,
+            storedHashLength: storedHash.length,
+            inputHash: btoa(inputPassword),
+            storedHash: storedHash
+          });
+          
+          const passwordMatch = verifyPassword(inputPassword, storedHash);
+          console.log('✅ Resultado da validação:', passwordMatch);
+          
           if (!passwordMatch) {
             setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
             setIsLoading(false);
@@ -117,6 +182,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           }
         }
         
+        // Se chegou aqui, senha está correta ou grupo não tem senha
         onSuccess('user', userGroup);
       } else {
         setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
@@ -191,12 +257,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             error={errors.password}
           />
           <div className="flex justify-end mt-2">
-            <a 
-              href="#" 
+            <button
+              type="button"
+              onClick={() => setShowForgotPasswordModal(true)}
               className="text-sm font-medium text-primary hover:text-primary-hover transition-colors duration-200"
             >
               Esqueceu a senha?
-            </a>
+            </button>
           </div>
         </div>
 
@@ -208,6 +275,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           {isLoading ? 'Entrando...' : 'Entrar'}
         </Button>
       </form>
+
+      <ForgotPasswordModal
+        isOpen={showForgotPasswordModal}
+        onClose={() => setShowForgotPasswordModal(false)}
+        onSuccess={() => {
+          setShowForgotPasswordModal(false);
+          alert('Senha redefinida com sucesso! Você pode fazer login agora.');
+        }}
+      />
     </div>
   );
 };

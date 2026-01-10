@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Users, User, Phone, Mail, Baby, Plus, X, Check, Map, Lock, RefreshCw, Eye, EyeOff } from 'lucide-react';
-import { Trip } from '../types';
+import { Trip, Group } from '../types';
 import { tripsApi } from '../lib/database';
 import { generatePassword, hashPassword } from '../lib/password';
 import Input from './Input';
@@ -8,26 +8,28 @@ import Button from './Button';
 
 interface NewGroupFormProps {
   trip?: Trip; // Made optional
+  initialData?: Group | null; // Dados do grupo para edição
   onSave: (data: any) => void;
   onCancel: () => void;
 }
 
-const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) => {
+const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, initialData, onSave, onCancel }) => {
+  const isEditing = !!initialData;
   const [isLoading, setIsLoading] = useState(false);
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
   
   // Trip Selection State (if no trip prop provided)
-  const [selectedTripId, setSelectedTripId] = useState<string>(trip?.id || '');
+  const [selectedTripId, setSelectedTripId] = useState<string>(trip?.id || initialData?.tripId || '');
   
-  // Form State
+  // Form State - Preencher com dados iniciais se estiver editando
   const [formData, setFormData] = useState({
-    name: '',
-    totalPeople: '',
-    leaderName: '',
-    leaderPhone: '',
-    leaderEmail: '',
-    initialPassword: '',
+    name: initialData?.name || '',
+    totalPeople: initialData?.membersCount?.toString() || '',
+    leaderName: initialData?.leaderName || '',
+    leaderPhone: initialData?.leaderPhone || '',
+    leaderEmail: initialData?.leaderEmail || '',
+    initialPassword: '', // Sempre vazio - não mostrar senha atual
     hasChildren: false,
     childrenCount: '',
   });
@@ -36,7 +38,7 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
 
   // Members List State
   const [currentMember, setCurrentMember] = useState('');
-  const [members, setMembers] = useState<string[]>([]);
+  const [members, setMembers] = useState<string[]>(initialData?.members || []);
 
   // Load trips if no trip prop provided
   useEffect(() => {
@@ -97,16 +99,26 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
       return;
     }
 
-    if (!formData.initialPassword || formData.initialPassword.length < 8) {
+    // Senha só é obrigatória ao criar novo grupo
+    // Ao editar, só precisa se for alterada
+    if (!isEditing && (!formData.initialPassword || formData.initialPassword.length < 8)) {
       alert("Por favor, defina uma senha inicial com no mínimo 8 caracteres.");
+      return;
+    }
+
+    // Se estiver editando e senha foi preenchida, validar
+    if (isEditing && formData.initialPassword && formData.initialPassword.length < 8) {
+      alert("A senha deve ter no mínimo 8 caracteres.");
       return;
     }
 
     setIsLoading(true);
     
     try {
-      // Hash da senha antes de salvar
-      const hashedPassword = hashPassword(formData.initialPassword);
+      // Hash da senha apenas se foi fornecida (nova ou alterada)
+      const hashedPassword = formData.initialPassword 
+        ? hashPassword(formData.initialPassword) 
+        : undefined;
       
       const finalData = {
         name: formData.name,
@@ -115,9 +127,9 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
         leaderName: formData.leaderName,
         leaderEmail: formData.leaderEmail,
         leaderPhone: formData.leaderPhone,
-        leaderPassword: hashedPassword,
+        ...(hashedPassword && { leaderPassword: hashedPassword }),
         tripId: activeTrip.id,
-        passwordChanged: false, // Primeiro acesso, precisa alterar senha
+        ...(isEditing ? {} : { passwordChanged: false }), // Só definir passwordChanged ao criar
       };
 
       console.log('📝 NewGroupForm: Salvando grupo com senha inicial', {
@@ -148,7 +160,7 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Novo Grupo</h1>
+          <h1 className="text-2xl font-bold text-text-primary">{isEditing ? 'Editar Grupo' : 'Novo Grupo'}</h1>
           {activeTrip ? (
             <p className="text-text-secondary text-sm">
               Viagem: {activeTrip.name}
@@ -275,18 +287,18 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, onSave, onCancel }) =
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="initialPassword" className="text-sm font-medium text-text-primary flex items-center gap-2">
                   <Lock size={16} />
-                  Senha Inicial *
+                  {isEditing ? 'Nova Senha (opcional)' : 'Senha Inicial *'}
                 </label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Input
                       id="initialPassword"
                       type={showPassword ? 'text' : 'password'}
-                      placeholder="Mínimo 8 caracteres"
+                      placeholder={isEditing ? 'Deixe em branco para manter a senha atual' : 'Mínimo 8 caracteres'}
                       value={formData.initialPassword}
                       onChange={(e) => handleChange('initialPassword', e.target.value)}
                       icon={Lock}
-                      required
+                      required={!isEditing}
                       minLength={8}
                     />
                     <button

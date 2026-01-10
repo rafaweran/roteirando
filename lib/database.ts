@@ -99,6 +99,8 @@ function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, string[]> =
     console.log('dbGroupToGroup - Dados do banco:', {
       id: dbGroup.id,
       name: dbGroup.name,
+      leader_email_raw: dbGroup.leader_email,
+      leader_email_type: typeof dbGroup.leader_email,
       password_changed_raw: dbGroup.password_changed,
       password_changed_type: typeof dbGroup.password_changed,
       passwordChanged_mapped: passwordChanged,
@@ -711,7 +713,7 @@ export const adminsApi = {
       
       const { data, error } = await supabase
         .from('admins')
-        .select('email')
+        .select('email, password')
         .eq('email', normalizedEmail)
         .single();
 
@@ -738,6 +740,59 @@ export const adminsApi = {
       console.error('   Mensagem:', error?.message);
       console.error('   Stack:', error?.stack);
       return false;
+    }
+  },
+
+  async getAdminByEmail(email: string): Promise<{ email: string; password: string | null } | null> {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      const { data, error } = await supabase
+        .from('admins')
+        .select('email, password')
+        .eq('email', normalizedEmail)
+        .single();
+
+      if (error) {
+        // Se a coluna password não existir, ainda retornar os dados do email
+        if (error.code === '42703' || error.message?.includes('column "password" does not exist')) {
+          console.log('⚠️ Coluna password não existe na tabela admins ainda');
+          // Tentar buscar sem password
+          const { data: dataWithoutPassword, error: errorWithoutPassword } = await supabase
+            .from('admins')
+            .select('email')
+            .eq('email', normalizedEmail)
+            .single();
+          
+          if (errorWithoutPassword || !dataWithoutPassword) {
+            return null;
+          }
+          
+          return {
+            email: dataWithoutPassword.email,
+            password: null
+          };
+        }
+        
+        if (error.code === 'PGRST116') {
+          // Não encontrado
+          return null;
+        }
+        
+        console.error('❌ Erro ao buscar admin:', error);
+        return null;
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      return {
+        email: data.email,
+        password: (data as any).password || null
+      };
+    } catch (error) {
+      console.error('❌ Erro ao buscar admin:', error);
+      return null;
     }
   },
 

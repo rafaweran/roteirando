@@ -114,4 +114,80 @@ export async function sendEmailViaSupabase(credentials: EmailCredentials): Promi
   }
 }
 
+interface PasswordResetEmail {
+  email: string;
+  leaderName: string;
+  resetCode: string;
+  groupName: string;
+}
+
+/**
+ * Envia email com código de recuperação de senha
+ */
+export async function sendPasswordResetEmail(resetData: PasswordResetEmail): Promise<boolean> {
+  try {
+    const emailContent = `
+Olá ${resetData.leaderName},
+
+Você solicitou a recuperação de senha para sua conta no Roteirando.
+
+Seu código de recuperação é:
+
+🔐 ${resetData.resetCode}
+
+Este código é válido por 10 minutos.
+
+Grupo: ${resetData.groupName}
+
+IMPORTANTE: Se você não solicitou esta recuperação de senha, ignore este e-mail.
+
+Atenciosamente,
+Equipe Roteirando
+    `.trim();
+
+    console.log('='.repeat(60));
+    console.log('📧 EMAIL DE RECUPERAÇÃO DE SENHA ENVIADO (SIMULADO)');
+    console.log('='.repeat(60));
+    console.log(`Para: ${resetData.email}`);
+    console.log(`Assunto: Recuperação de Senha - Roteirando`);
+    console.log('-'.repeat(60));
+    console.log(emailContent);
+    console.log('='.repeat(60));
+    
+    // Simular delay de envio
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Em produção, descomente e configure o envio real:
+    /*
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{
+          to: [{ email: resetData.email }],
+          subject: 'Recuperação de Senha - Roteirando'
+        }],
+        from: { email: 'noreply@roteirando.com' },
+        content: [{
+          type: 'text/plain',
+          value: emailContent
+        }]
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Erro ao enviar email');
+    }
+    */
+    
+    return true;
+  } catch (error) {
+    console.error('Erro ao enviar email de recuperação:', error);
+    return false;
+  }
+}
+
 
