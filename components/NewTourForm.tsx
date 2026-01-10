@@ -36,6 +36,25 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
   });
 
   const [links, setLinks] = useState<TourLink[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Tags pré-definidas disponíveis
+  const availableTags = [
+    'Restaurante',
+    'Passeios',
+    'Shows',
+    'Compras',
+    'Eventos',
+    'Cultura',
+    'Natureza',
+    'Aventura',
+    'Relaxamento',
+    'Gastronomia',
+    'História',
+    'Esportes',
+    'Noturno',
+    'Família'
+  ];
 
   const isEditMode = !!initialData;
   const activeTrip = trip || availableTrips.find(t => t.id === selectedTripId);
@@ -75,6 +94,9 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       });
       if (initialData.links) {
         setLinks(initialData.links);
+      }
+      if (initialData.tags) {
+        setSelectedTags(initialData.tags);
       }
     }
   }, [initialData]);
@@ -202,6 +224,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
         description: formData.description || '',
         imageUrl: imageUrls.length > 0 ? imageUrls[0] : undefined, // Primeira imagem como principal
         links: links.filter(l => l.title && l.url), // Filter out empty links
+        tags: selectedTags.length > 0 ? selectedTags : undefined, // Tags selecionadas
       };
 
       console.log('📝 NewTourForm: Enviando dados do passeio:', tourData);
@@ -392,6 +415,43 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
             onChange={(e) => handleChange('name', e.target.value)}
             required
           />
+
+          {/* Tags/Categorias */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-text-primary">
+              Categorias / Tags
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map((tag) => {
+                const isSelected = selectedTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedTags(prev => prev.filter(t => t !== tag));
+                      } else {
+                        setSelectedTags(prev => [...prev, tag]);
+                      }
+                    }}
+                    className={`
+                      px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                      ${isSelected
+                        ? 'bg-primary text-white border-2 border-primary shadow-md'
+                        : 'bg-surface text-text-secondary border-2 border-border hover:border-primary/50 hover:text-primary'
+                      }
+                    `}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-text-disabled mt-1">
+              Selecione uma ou mais categorias para facilitar a organização dos passeios
+            </p>
+          </div>
 
           {/* Description */}
           <div className="flex flex-col gap-1.5">

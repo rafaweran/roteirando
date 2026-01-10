@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Users, User } from 'lucide-react';
+import { X, Check, Users, User, Calendar } from 'lucide-react';
 import Button from './Button';
-import { Tour, Group } from '../types';
+import DatePicker from './DatePicker';
+import { Tour, Group, TourAttendanceInfo } from '../types';
 
 interface TourAttendanceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (tourId: string, selectedMembers: string[]) => void;
+  onConfirm: (tourId: string, selectedMembers: string[], customDate?: string | null) => void;
   tour: Tour;
   group: Group;
 }
@@ -19,6 +20,8 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   group
 }) => {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [dateOption, setDateOption] = useState<'group' | 'custom'>('group'); // 'group' = data original, 'custom' = data personalizada
+  const [customDate, setCustomDate] = useState<string>('');
 
   // Criar lista completa incluindo líder + membros
   const allGroupMembers = React.useMemo(() => {
@@ -29,15 +32,46 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   
   const totalGroupMembers = allGroupMembers.length;
 
+  // Formatar data original do tour para exibição
+  const formatTourDate = (dateStr: string) => {
+    const date = new Date(dateStr + 'T12:00:00');
+    return date.toLocaleDateString('pt-BR', { 
+      weekday: 'long',
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric' 
+    });
+  };
+
   // Initialize selection based on existing data or select all by default if empty (optional logic)
   useEffect(() => {
     if (isOpen) {
       const existingAttendance = group.tourAttendance?.[tour.id];
-      if (existingAttendance) {
-        setSelectedMembers(existingAttendance);
+      
+      // Compatibilidade: pode ser TourAttendanceInfo ou string[] (versão antiga)
+      let attendanceInfo: TourAttendanceInfo | string[] | undefined;
+      if (Array.isArray(existingAttendance)) {
+        // Versão antiga (apenas array de membros)
+        attendanceInfo = { members: existingAttendance, customDate: null };
+      } else if (existingAttendance && typeof existingAttendance === 'object' && 'members' in existingAttendance) {
+        // Nova versão (TourAttendanceInfo)
+        attendanceInfo = existingAttendance as TourAttendanceInfo;
+      }
+      
+      if (attendanceInfo && attendanceInfo.members && attendanceInfo.members.length > 0) {
+        setSelectedMembers(attendanceInfo.members);
+        if (attendanceInfo.customDate) {
+          setDateOption('custom');
+          setCustomDate(attendanceInfo.customDate);
+        } else {
+          setDateOption('group');
+          setCustomDate('');
+        }
       } else {
         // Default: Select all members (including leader) initially for easier UX
         setSelectedMembers([...allGroupMembers]);
+        setDateOption('group');
+        setCustomDate('');
       }
     }
   }, [isOpen, group, tour, allGroupMembers]);
@@ -61,7 +95,9 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   };
 
   const handleSave = () => {
-    onConfirm(tour.id, selectedMembers);
+    // Se escolheu data personalizada, usar customDate, senão null (data original)
+    const finalCustomDate = dateOption === 'custom' && customDate ? customDate : null;
+    onConfirm(tour.id, selectedMembers, finalCustomDate);
     onClose();
   };
 
@@ -100,55 +136,132 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
         </div>
 
         {/* Body - Scrollable List */}
-        <div className="p-6 overflow-y-auto flex-1">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-semibold text-text-primary">Quem vai participar?</span>
-            <button 
-              onClick={handleToggleAll}
-              className="text-xs font-medium text-primary hover:text-primary-hover transition-colors"
-            >
-              {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
-            </button>
+        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+          {/* Seção: Data do Passeio */}
+          <div className="bg-surface/50 rounded-xl p-4 border border-border">
+            <h4 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
+              <Calendar size={16} />
+              Quando vai participar?
+            </h4>
+            
+            <div className="space-y-3">
+              {/* Opção 1: Ir junto com o grupo (data original) */}
+              <label 
+                className={`
+                  flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all
+                  ${dateOption === 'group' 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-border hover:border-primary/30 hover:bg-white'
+                  }
+                `}
+              >
+                <input
+                  type="radio"
+                  name="dateOption"
+                  value="group"
+                  checked={dateOption === 'group'}
+                  onChange={() => {
+                    setDateOption('group');
+                    setCustomDate('');
+                  }}
+                  className="w-4 h-4 text-primary border-border focus:ring-primary focus:ring-2"
+                />
+                <div className="flex-1">
+                  <div className="font-medium text-sm text-text-primary">
+                    Ir junto com o grupo
+                  </div>
+                  <div className="text-xs text-text-secondary mt-0.5">
+                    {formatTourDate(tour.date)}
+                  </div>
+                </div>
+              </label>
+
+              {/* Opção 2: Ir em outra data */}
+              <label 
+                className={`
+                  flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all
+                  ${dateOption === 'custom' 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-border hover:border-primary/30 hover:bg-white'
+                  }
+                `}
+              >
+                <input
+                  type="radio"
+                  name="dateOption"
+                  value="custom"
+                  checked={dateOption === 'custom'}
+                  onChange={() => setDateOption('custom')}
+                  className="w-4 h-4 text-primary border-border focus:ring-primary focus:ring-2"
+                />
+                <div className="flex-1">
+                  <div className="font-medium text-sm text-text-primary mb-2">
+                    Ir em outra data
+                  </div>
+                  {dateOption === 'custom' && (
+                    <DatePicker
+                      label=""
+                      value={customDate}
+                      onChange={(date) => setCustomDate(date)}
+                      required={dateOption === 'custom'}
+                    />
+                  )}
+                </div>
+              </label>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            {allGroupMembers.map((member, idx) => {
-              const isSelected = selectedMembers.includes(member);
-              const isLeader = idx === 0 && group.leaderName && member === group.leaderName;
-              return (
-                <div 
-                  key={idx}
-                  onClick={() => handleToggleMember(member)}
-                  className={`
-                    flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all duration-200 group
-                    ${isSelected 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-border hover:border-primary/30 hover:bg-surface'
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`
-                      w-5 h-5 rounded-md border flex items-center justify-center transition-colors
-                      ${isSelected ? 'bg-primary border-primary text-white' : 'bg-white border-text-disabled group-hover:border-primary'}
-                    `}>
-                      {isSelected && <Check size={14} strokeWidth={3} />}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm ${isSelected ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
-                        {member}
-                      </span>
-                      {isLeader && (
-                        <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-medium">
-                          Líder
+          {/* Seção: Quem vai participar */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-semibold text-text-primary">Quem vai participar?</span>
+              <button 
+                onClick={handleToggleAll}
+                className="text-xs font-medium text-primary hover:text-primary-hover transition-colors"
+              >
+                {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {allGroupMembers.map((member, idx) => {
+                const isSelected = selectedMembers.includes(member);
+                const isLeader = idx === 0 && group.leaderName && member === group.leaderName;
+                return (
+                  <div 
+                    key={idx}
+                    onClick={() => handleToggleMember(member)}
+                    className={`
+                      flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all duration-200 group
+                      ${isSelected 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-primary/30 hover:bg-surface'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`
+                        w-5 h-5 rounded-md border flex items-center justify-center transition-colors
+                        ${isSelected ? 'bg-primary border-primary text-white' : 'bg-white border-text-disabled group-hover:border-primary'}
+                      `}>
+                        {isSelected && <Check size={14} strokeWidth={3} />}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm ${isSelected ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
+                          {member}
                         </span>
-                      )}
+                        {isLeader && (
+                          <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-medium">
+                            Líder
+                          </span>
+                        )}
+                      </div>
                     </div>
+                    <User size={16} className={`${isSelected ? 'text-primary' : 'text-text-disabled'}`} />
                   </div>
-                  <User size={16} className={`${isSelected ? 'text-primary' : 'text-text-disabled'}`} />
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 

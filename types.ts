@@ -25,6 +25,12 @@ export interface Tour {
   description: string;
   imageUrl?: string;
   links?: TourLink[];
+  tags?: string[]; // Tags/categorias do passeio (ex: Restaurante, Passeios, Shows, etc.)
+}
+
+export interface TourAttendanceInfo {
+  members: string[]; // Array of Member Names who are attending
+  customDate?: string | null; // Data personalizada (null = data original do tour)
 }
 
 export interface Group {
@@ -36,8 +42,8 @@ export interface Group {
   leaderName: string;
   leaderEmail?: string;
   leaderPhone?: string;
-  // Key: TourID, Value: Array of Member Names who are attending
-  tourAttendance?: Record<string, string[]>; 
+  // Key: TourID, Value: AttendanceInfo (members + customDate)
+  tourAttendance?: Record<string, TourAttendanceInfo | string[]>; // Compatível com versão antiga (apenas string[])
 }
 
 export type UserRole = 'admin' | 'user';

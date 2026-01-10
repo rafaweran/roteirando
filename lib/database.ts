@@ -24,6 +24,7 @@ interface DBTour {
   price: number;
   description: string;
   image_url: string | null;
+  tags: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +57,7 @@ interface DBTourAttendance {
   group_id: string;
   tour_id: string;
   members: string[];
+  custom_date: string | null; // Data personalizada escolhida pelo grupo (NULL = data original do tour)
   created_at: string;
   updated_at: string;
 }
@@ -86,10 +88,11 @@ function dbTourToTour(dbTour: DBTour, links: TourLink[] = []): Tour {
     description: dbTour.description,
     imageUrl: dbTour.image_url || undefined,
     links: links.length > 0 ? links : undefined,
+    tags: dbTour.tags && dbTour.tags.length > 0 ? dbTour.tags : undefined,
   };
 }
 
-function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, string[]> = {}): Group {
+function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, { members: string[]; customDate?: string | null }> = {}): Group {
   // Se password_changed for null, undefined ou false, considerar como primeiro acesso
   // Apenas se for explicitamente true, considerar que já alterou
   const passwordChanged = dbGroup.password_changed === true;
@@ -117,7 +120,7 @@ function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, string[]> =
     leaderEmail: dbGroup.leader_email || undefined,
     leaderPassword: dbGroup.leader_password || undefined, // Não expor senha em produção
     passwordChanged: passwordChanged,
-    tourAttendance: Object.keys(attendance).length > 0 ? attendance : undefined,
+    tourAttendance: Object.keys(attendance).length > 0 ? attendance : undefined, // Record<string, TourAttendanceInfo>
   };
 }
 
@@ -382,6 +385,7 @@ export const toursApi = {
       price: tour.price,
       description: tour.description,
       image_url: tour.imageUrl,
+      tags: tour.tags && tour.tags.length > 0 ? tour.tags : null,
     };
     console.log('📋 Dados para insert:', {
       ...insertData,
@@ -433,7 +437,19 @@ export const toursApi = {
     }
 
     console.log('🔄 Convertendo para formato Tour...');
-    const result = dbTourToTour(data);
+    
+    // Buscar links do tour criado
+    const { data: tourLinks } = await supabase
+      .from('tour_links')
+      .select('*')
+      .eq('tour_id', data.id);
+
+    const tourLinksArray: TourLink[] = tourLinks?.map(link => ({
+      title: link.title,
+      url: link.url,
+    })) || [];
+
+    const result = dbTourToTour(data, tourLinksArray);
     console.log('✅ Conversão concluída:', { id: result.id, name: result.name });
     console.log('🏁 ========== FIM toursApi.create ==========');
     return result;
@@ -448,6 +464,7 @@ export const toursApi = {
     if (tour.price !== undefined) updateData.price = tour.price;
     if (tour.description !== undefined) updateData.description = tour.description;
     if (tour.imageUrl !== undefined) updateData.image_url = tour.imageUrl;
+    if (tour.tags !== undefined) updateData.tags = tour.tags && tour.tags.length > 0 ? tour.tags : null;
 
     const { data, error } = await supabase
       .from('tours')
@@ -501,12 +518,15 @@ export const groupsApi = {
       .from('tour_attendance')
       .select('*');
 
-    const attendanceByGroupId: Record<string, Record<string, string[]>> = {};
-    attendance?.forEach(att => {
+    const attendanceByGroupId: Record<string, Record<string, { members: string[]; customDate?: string | null }>> = {};
+    attendance?.forEach((att: DBTourAttendance) => {
       if (!attendanceByGroupId[att.group_id]) {
         attendanceByGroupId[att.group_id] = {};
       }
-      attendanceByGroupId[att.group_id][att.tour_id] = att.members;
+      attendanceByGroupId[att.group_id][att.tour_id] = {
+        members: att.members,
+        customDate: att.custom_date || null
+      };
     });
 
     return groups.map((group: DBGroup) => 
@@ -531,12 +551,15 @@ export const groupsApi = {
       .select('*')
       .in('group_id', groupIds);
 
-    const attendanceByGroupId: Record<string, Record<string, string[]>> = {};
-    attendance?.forEach(att => {
+    const attendanceByGroupId: Record<string, Record<string, { members: string[]; customDate?: string | null }>> = {};
+    attendance?.forEach((att: DBTourAttendance) => {
       if (!attendanceByGroupId[att.group_id]) {
         attendanceByGroupId[att.group_id] = {};
       }
-      attendanceByGroupId[att.group_id][att.tour_id] = att.members;
+      attendanceByGroupId[att.group_id][att.tour_id] = {
+        members: att.members,
+        customDate: att.custom_date || null
+      };
     });
 
     return groups.map((group: DBGroup) => 
@@ -560,9 +583,12 @@ export const groupsApi = {
       .select('*')
       .eq('group_id', id);
 
-    const attendanceMap: Record<string, string[]> = {};
-    attendance?.forEach(att => {
-      attendanceMap[att.tour_id] = att.members;
+    const attendanceMap: Record<string, { members: string[]; customDate?: string | null }> = {};
+    attendance?.forEach((att: DBTourAttendance) => {
+      attendanceMap[att.tour_id] = {
+        members: att.members,
+        customDate: att.custom_date || null
+      };
     });
 
     return dbGroupToGroup(group, attendanceMap);
@@ -662,7 +688,12 @@ export const groupsApi = {
 
 // Tour Attendance API
 export const tourAttendanceApi = {
-  async saveAttendance(groupId: string, tourId: string, members: string[]): Promise<void> {
+  async saveAttendance(
+    groupId: string, 
+    tourId: string, 
+    members: string[], 
+    customDate?: string | null
+  ): Promise<void> {
     if (members.length === 0) {
       // Delete attendance if no members
       const { error } = await supabase
@@ -679,6 +710,7 @@ export const tourAttendanceApi = {
           group_id: groupId,
           tour_id: tourId,
           members: members,
+          custom_date: customDate || null, // NULL = data original do tour
         }, {
           onConflict: 'group_id,tour_id',
         });
@@ -686,7 +718,7 @@ export const tourAttendanceApi = {
     }
   },
 
-  async getAttendanceByGroup(groupId: string): Promise<Record<string, string[]>> {
+  async getAttendanceByGroup(groupId: string): Promise<Record<string, { members: string[]; customDate?: string | null }>> {
     const { data, error } = await supabase
       .from('tour_attendance')
       .select('*')
@@ -695,9 +727,12 @@ export const tourAttendanceApi = {
     if (error) throw error;
     if (!data) return {};
 
-    const attendance: Record<string, string[]> = {};
-    data.forEach(att => {
-      attendance[att.tour_id] = att.members;
+    const attendance: Record<string, { members: string[]; customDate?: string | null }> = {};
+    data.forEach((att: DBTourAttendance) => {
+      attendance[att.tour_id] = {
+        members: att.members,
+        customDate: att.custom_date || null
+      };
     });
 
     return attendance;

@@ -127,7 +127,7 @@ const Layout: React.FC<LayoutProps> = ({
             <img 
               src="/assets/logo.svg" 
               alt="Roteirando" 
-              className="h-8 object-contain"
+              className="h-6 object-contain"
               onError={(e) => {
                 // Fallback para ícone se a logo não existir
                 const target = e.target as HTMLImageElement;
@@ -241,7 +241,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <img 
                   src="/assets/logo.svg" 
                   alt="Roteirando" 
-                  className="h-6 object-contain"
+                  className="h-5 object-contain"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';

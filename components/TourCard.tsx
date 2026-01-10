@@ -13,6 +13,7 @@ interface TourCardProps {
   onOpenAttendance?: (tour: Tour) => void;
   onCancelTour?: (tour: Tour) => void;
   onViewAttendanceList?: (tour: Tour) => void;
+  onViewTourDetail?: (tour: Tour) => void;
 }
 
 const TourCard: React.FC<TourCardProps> = ({ 
@@ -23,19 +24,29 @@ const TourCard: React.FC<TourCardProps> = ({
   totalMembers = 0,
   onOpenAttendance,
   onCancelTour,
-  onViewAttendanceList
+  onViewAttendanceList,
+  onViewTourDetail
 }) => {
   const isSelected = attendanceCount > 0;
   const isPartial = attendanceCount > 0 && attendanceCount < totalMembers;
   const totalValue = tour.price * attendanceCount;
 
+  const handleCardClick = () => {
+    if (onViewTourDetail) {
+      onViewTourDetail(tour);
+    }
+  };
+
   return (
-    <div className={`bg-white rounded-custom border overflow-hidden transition-all duration-300 flex flex-col h-full group
-      ${isSelected 
-        ? 'border-primary ring-1 ring-primary shadow-md' 
-        : 'border-border hover:shadow-lg hover:border-primary-light'
-      }
-    `}>
+    <div 
+      className={`bg-white rounded-custom border overflow-hidden transition-all duration-300 flex flex-col h-full group cursor-pointer
+        ${isSelected 
+          ? 'border-primary ring-1 ring-primary shadow-md' 
+          : 'border-border hover:shadow-lg hover:border-primary-light'
+        }
+      `}
+      onClick={onViewTourDetail ? handleCardClick : undefined}
+    >
       {/* Image Area */}
       {tour.imageUrl ? (
         <div className="w-full h-48 overflow-hidden relative">
@@ -82,19 +93,35 @@ const TourCard: React.FC<TourCardProps> = ({
           </div>
         </div>
 
+        {/* Tags */}
+        {tour.tags && tour.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {tour.tags.map((tag, idx) => (
+              <span
+                key={idx}
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* External Links Chips */}
         {tour.links && tour.links.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {tour.links.map((link, idx) => (
-              <a 
-                key={idx}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 px-2.5 py-1.5 rounded-full border border-primary/20 transition-colors"
-                title={link.url}
-              >
+                <a 
+                  key={idx}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 px-2.5 py-1.5 rounded-full border border-primary/20 transition-colors"
+                  title={link.url}
+                >
                 {link.title}
                 <ExternalLink size={12} />
               </a>
@@ -118,7 +145,10 @@ const TourCard: React.FC<TourCardProps> = ({
           </div>
         )}
         
-        <div className={`flex gap-3 pt-4 border-t border-surface ${!isSelected ? 'mt-auto' : ''}`}>
+        <div 
+          className={`flex gap-3 pt-4 border-t border-surface ${!isSelected ? 'mt-auto' : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           {isUserView ? (
              <>
                {isSelected ? (

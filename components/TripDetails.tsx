@@ -19,6 +19,7 @@ interface TripDetailsProps {
   userGroup?: Group;
   onSaveAttendance?: (tourId: string, members: string[], cancelReason?: string) => void;
   onViewTourAttendance?: (tour: Tour) => void;
+  onViewTourDetail?: (tour: Tour) => void;
 }
 
 type Tab = 'tours' | 'groups';
@@ -34,7 +35,8 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   userRole = 'admin',
   userGroup,
   onSaveAttendance,
-  onViewTourAttendance
+  onViewTourAttendance,
+  onViewTourDetail
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
@@ -54,9 +56,9 @@ const TripDetails: React.FC<TripDetailsProps> = ({
     setAttendanceModalOpen(true);
   };
 
-  const handleConfirmAttendance = (tourId: string, members: string[]) => {
+  const handleConfirmAttendance = (tourId: string, members: string[], customDate?: string | null) => {
      if (onSaveAttendance) {
-       onSaveAttendance(tourId, members);
+       onSaveAttendance(tourId, members, customDate);
      }
   };
 
@@ -232,7 +234,13 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           {activeTab === 'tours' || isUser ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {tours.map(tour => {
-                const attendingMembers = userGroup?.tourAttendance?.[tour.id] || [];
+                // Compatibilidade: pode ser TourAttendanceInfo ou string[] (versão antiga)
+                const attendance = userGroup?.tourAttendance?.[tour.id];
+                const attendingMembers = Array.isArray(attendance) 
+                  ? attendance 
+                  : (attendance && typeof attendance === 'object' && 'members' in attendance) 
+                    ? attendance.members 
+                    : [];
                 // Total de membros incluindo o líder
                 const totalMembers = userGroup 
                   ? (userGroup.leaderName ? userGroup.members.length + 1 : userGroup.members.length)
@@ -248,6 +256,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                     onOpenAttendance={handleOpenAttendance}
                     onCancelTour={handleOpenCancel}
                     onViewAttendanceList={onViewTourAttendance}
+                    onViewTourDetail={onViewTourDetail}
                   />
                 );
               })}

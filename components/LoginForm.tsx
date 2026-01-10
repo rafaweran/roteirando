@@ -211,7 +211,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           <img 
             src="/assets/logo.svg" 
             alt="Roteirando" 
-            className="h-12 object-contain"
+            className="h-8 object-contain"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';

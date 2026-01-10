@@ -9,6 +9,7 @@ import NewGroupForm from './components/NewGroupForm';
 import ToursList from './components/ToursList';
 import GroupsList from './components/GroupsList';
 import TourAttendanceView from './components/TourAttendanceView';
+import TourDetailPage from './components/TourDetailPage';
 import FinancialView from './components/FinancialView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import TourAgenda from './components/TourAgenda';
@@ -17,7 +18,7 @@ import { tripsApi, toursApi, groupsApi } from './lib/database';
 import { Plus } from 'lucide-react';
 import Button from './components/Button';
 
-type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'financial' | 'agenda';
+type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'tour-detail' | 'financial' | 'agenda';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('login');
@@ -36,6 +37,7 @@ const App: React.FC = () => {
   const [editingTour, setEditingTour] = useState<Tour | null>(null);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
+  const [selectedTourForDetail, setSelectedTourForDetail] = useState<Tour | null>(null);
   const [tripDetailsInitialTab, setTripDetailsInitialTab] = useState<'tours' | 'groups'>('tours');
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
@@ -219,6 +221,23 @@ const App: React.FC = () => {
     // Ensure trip ID is set correctly for context
     setSelectedTripId(tour.tripId);
     setCurrentView('tour-attendance');
+  };
+
+  const handleViewTourDetail = (tour: Tour) => {
+    setSelectedTourForDetail(tour);
+    setSelectedTripId(tour.tripId);
+    setCurrentView('tour-detail');
+  };
+
+  const handleBackFromTourDetail = () => {
+    // Voltar para a view anterior (pode ser trip-details, all-tours, ou agenda)
+    if (selectedTripId) {
+      setCurrentView('trip-details');
+    } else if (userRole === 'user') {
+      setCurrentView('agenda');
+    } else {
+      setCurrentView('all-tours');
+    }
   };
 
   const handleDeleteTour = (tourId: string) => {
@@ -452,13 +471,13 @@ const App: React.FC = () => {
   };
 
   // User Selection Logic (Granular Attendance)
-  const handleSaveAttendance = async (tourId: string, members: string[], cancelReason?: string) => {
+  const handleSaveAttendance = async (tourId: string, members: string[], customDate?: string | null, cancelReason?: string) => {
     if (userRole !== 'user' || !currentUserGroup) return;
 
     try {
       // Salvar no banco de dados
       const { tourAttendanceApi } = await import('./lib/database');
-      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members);
+      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate);
 
       // Log do motivo se for cancelamento
       if (members.length === 0 && cancelReason) {
@@ -470,7 +489,10 @@ const App: React.FC = () => {
       // Create a new attendance record
       const updatedAttendance = {
           ...currentUserGroup.tourAttendance,
-          [tourId]: members
+          [tourId]: {
+            members: members,
+            customDate: customDate || null
+          }
       };
 
       // If member list is empty, we can clean up the key (optional)
@@ -616,12 +638,27 @@ const App: React.FC = () => {
             userRole={userRole} // Pass Role
             userGroup={currentUserGroup || undefined} // Pass Group data
             onSaveAttendance={handleSaveAttendance} // Pass granular handler
-            onViewTourAttendance={handleViewTourAttendance} // New handler for page navigation
+            onViewTourAttendance={handleViewTourAttendance}
+            onViewTourDetail={handleViewTourDetail}
           />
         );
       })()}
 
       {/* FIXED: Robust check for Tour Attendance View */}
+      {currentView === 'tour-detail' && selectedTourForDetail && (() => {
+        const trip = trips.find(t => t.id === selectedTourForDetail.tripId);
+        return (
+          <TourDetailPage
+            tour={selectedTourForDetail}
+            trip={trip}
+            userRole={userRole}
+            userGroup={userRole === 'user' ? currentUserGroup : undefined}
+            onBack={handleBackFromTourDetail}
+            onConfirmAttendance={userRole === 'user' ? handleSaveAttendance : undefined}
+          />
+        );
+      })()}
+
       {currentView === 'tour-attendance' && selectedTourForAttendance && (() => {
         // Garantir que temos a viagem correta
         const tourTrip = selectedTrip || trips.find(t => t.id === selectedTourForAttendance.tripId);
@@ -672,6 +709,7 @@ const App: React.FC = () => {
           tours={tours}
           trips={trips}
           userGroup={currentUserGroup}
+          onViewTourDetail={handleViewTourDetail}
         />
       )}
 
