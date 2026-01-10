@@ -15,13 +15,25 @@ export interface TourLink {
   url: string;
 }
 
+export interface TourPrice {
+  value: number;
+  description?: string; // Descrição sobre idade, condições, etc.
+}
+
+export interface TourPrices {
+  inteira?: TourPrice; // Ingresso Inteira
+  meia?: TourPrice; // Meia Entrada
+  senior?: TourPrice; // Ingresso Sênior
+}
+
 export interface Tour {
   id: string;
   tripId: string;
   name: string;
   date: string;
   time: string;
-  price: number;
+  price: number; // Preço padrão (mantido para compatibilidade)
+  prices?: TourPrices; // Preços por tipo de ingresso
   description: string;
   imageUrl?: string;
   links?: TourLink[];

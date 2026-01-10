@@ -35,6 +35,12 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     location: '',
   });
 
+  const [prices, setPrices] = useState({
+    inteira: { value: '', description: 'Ingresso padrão para adultos' },
+    meia: { value: '', description: 'Estudantes, pessoas com deficiência e acompanhantes' },
+    senior: { value: '', description: 'Idosos a partir de 60 anos' },
+  });
+
   const [links, setLinks] = useState<TourLink[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
@@ -97,6 +103,23 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       }
       if (initialData.tags) {
         setSelectedTags(initialData.tags);
+      }
+      // Carregar preços múltiplos se existirem
+      if (initialData.prices) {
+        setPrices({
+          inteira: {
+            value: initialData.prices.inteira?.value.toString() || '',
+            description: initialData.prices.inteira?.description || 'Ingresso padrão para adultos'
+          },
+          meia: {
+            value: initialData.prices.meia?.value.toString() || '',
+            description: initialData.prices.meia?.description || 'Estudantes, pessoas com deficiência e acompanhantes'
+          },
+          senior: {
+            value: initialData.prices.senior?.value.toString() || '',
+            description: initialData.prices.senior?.description || 'Idosos a partir de 60 anos'
+          }
+        });
       }
     }
   }, [initialData]);
@@ -195,8 +218,15 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     }
 
     // Validação de campos obrigatórios
-    if (!formData.name || !formData.price) {
-      alert("Por favor, preencha todos os campos obrigatórios (Nome e Valor).");
+    if (!formData.name) {
+      alert("Por favor, preencha o nome do passeio.");
+      return;
+    }
+
+    // Verificar se pelo menos um preço foi preenchido
+    const hasAnyPrice = prices.inteira.value || prices.meia.value || prices.senior.value || formData.price;
+    if (!hasAnyPrice) {
+      alert("Por favor, preencha pelo menos um valor de ingresso.");
       return;
     }
 
@@ -218,12 +248,39 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       // Se não houver data informada, usar a data de início da viagem como padrão
       const defaultDate = formData.date || (activeTrip?.startDate ? activeTrip.startDate.split('T')[0] : new Date().toISOString().split('T')[0]);
       
+      // Preparar preços múltiplos
+      const tourPrices: any = {};
+      if (prices.inteira.value) {
+        tourPrices.inteira = {
+          value: parseFloat(prices.inteira.value),
+          description: prices.inteira.description
+        };
+      }
+      if (prices.meia.value) {
+        tourPrices.meia = {
+          value: parseFloat(prices.meia.value),
+          description: prices.meia.description
+        };
+      }
+      if (prices.senior.value) {
+        tourPrices.senior = {
+          value: parseFloat(prices.senior.value),
+          description: prices.senior.description
+        };
+      }
+
+      // Preço padrão: usar inteira se disponível, senão o campo price antigo, senão 0
+      const defaultPrice = prices.inteira.value 
+        ? parseFloat(prices.inteira.value) 
+        : (formData.price ? parseFloat(formData.price) : 0);
+      
       const tourData = {
         tripId: activeTrip.id,
         name: formData.name,
         date: defaultDate,
         time: formData.startTime || '00:00', // Usar startTime como time principal
-        price: parseFloat(formData.price) || 0,
+        price: defaultPrice, // Preço padrão para compatibilidade
+        prices: Object.keys(tourPrices).length > 0 ? tourPrices : undefined, // Preços múltiplos
         description: formData.description || '',
         imageUrl: imageUrls.length > 0 ? imageUrls[0] : undefined, // Primeira imagem como principal
         links: links.filter(l => l.title && l.url), // Filter out empty links
@@ -555,41 +612,162 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
             )}
           </div>
 
-          {/* Price & Currency */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input 
-              id="price"
-              type="number"
-              label="Valor *"
-              placeholder="0,00"
-              min="0"
-              step="0.01"
-              value={formData.price}
-              onChange={(e) => handleChange('price', e.target.value)}
-              required
-            />
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="currency" className="text-sm font-medium text-text-primary">
-                Moeda *
+          {/* Prices by Ticket Type */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-text-primary">
+                Valores dos Ingressos
               </label>
-              <div className="relative">
-                <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
-                <select
-                  id="currency"
-                  className="w-full h-[48px] appearance-none rounded-custom border border-border bg-white pl-10 pr-4 text-text-primary outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  value={formData.currency}
-                  onChange={(e) => handleChange('currency', e.target.value)}
-                >
-                  <option value="BRL">BRL (R$)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 border-l border-border pl-2 pointer-events-none">
-                  <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B6B6B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+              <span className="text-xs text-text-disabled">
+                Preencha pelo menos um tipo de ingresso
+              </span>
+            </div>
+
+            {/* Ingresso Inteira */}
+            <div className="bg-surface/50 rounded-lg p-4 border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-semibold text-text-primary">
+                  Ingresso Inteira
+                </label>
+                <span className="text-xs text-text-secondary bg-white px-2 py-1 rounded border border-border">
+                  Padrão
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <DollarSign size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                  <input
+                    type="number"
+                    placeholder="0,00"
+                    min="0"
+                    step="0.01"
+                    value={prices.inteira.value}
+                    onChange={(e) => setPrices(prev => ({
+                      ...prev,
+                      inteira: { ...prev.inteira, value: e.target.value }
+                    }))}
+                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Descrição (ex: Adultos, idade mínima, etc.)"
+                    value={prices.inteira.description}
+                    onChange={(e) => setPrices(prev => ({
+                      ...prev,
+                      inteira: { ...prev.inteira, description: e.target.value }
+                    }))}
+                    className="w-full h-12 px-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  />
                 </div>
               </div>
+            </div>
+
+            {/* Meia Entrada */}
+            <div className="bg-surface/50 rounded-lg p-4 border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-semibold text-text-primary">
+                  Meia Entrada
+                </label>
+                <span className="text-xs text-text-secondary bg-primary/10 text-primary px-2 py-1 rounded border border-primary/20">
+                  50% desconto
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <DollarSign size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                  <input
+                    type="number"
+                    placeholder="0,00"
+                    min="0"
+                    step="0.01"
+                    value={prices.meia.value}
+                    onChange={(e) => setPrices(prev => ({
+                      ...prev,
+                      meia: { ...prev.meia, value: e.target.value }
+                    }))}
+                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Descrição (ex: Estudantes, PCD, etc.)"
+                    value={prices.meia.description}
+                    onChange={(e) => setPrices(prev => ({
+                      ...prev,
+                      meia: { ...prev.meia, description: e.target.value }
+                    }))}
+                    className="w-full h-12 px-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Ingresso Sênior */}
+            <div className="bg-surface/50 rounded-lg p-4 border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-semibold text-text-primary">
+                  Ingresso Sênior
+                </label>
+                <span className="text-xs text-text-secondary bg-status-success/10 text-status-success px-2 py-1 rounded border border-status-success/20">
+                  60+ anos
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <DollarSign size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                  <input
+                    type="number"
+                    placeholder="0,00"
+                    min="0"
+                    step="0.01"
+                    value={prices.senior.value}
+                    onChange={(e) => setPrices(prev => ({
+                      ...prev,
+                      senior: { ...prev.senior, value: e.target.value }
+                    }))}
+                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Descrição (ex: Idosos a partir de 60 anos)"
+                    value={prices.senior.description}
+                    onChange={(e) => setPrices(prev => ({
+                      ...prev,
+                      senior: { ...prev.senior, description: e.target.value }
+                    }))}
+                    className="w-full h-12 px-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Campo de preço único (legado - opcional) */}
+            <div className="bg-surface/30 rounded-lg p-3 border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <label className="text-xs font-medium text-text-secondary">
+                  Valor Único (opcional - para compatibilidade)
+                </label>
+              </div>
+              <div className="relative">
+                <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                <input
+                  type="number"
+                  placeholder="0,00"
+                  min="0"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => handleChange('price', e.target.value)}
+                  className="w-full h-10 pl-10 pr-4 rounded-lg border border-border text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-white"
+                />
+              </div>
+              <p className="text-[10px] text-text-disabled mt-1">
+                Use apenas se não houver tipos específicos de ingresso
+              </p>
             </div>
           </div>
 

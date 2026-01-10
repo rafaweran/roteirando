@@ -29,6 +29,26 @@ const TourCard: React.FC<TourCardProps> = ({
 }) => {
   const isSelected = attendanceCount > 0;
   const isPartial = attendanceCount > 0 && attendanceCount < totalMembers;
+  
+  // Calcular valor total baseado nos preços múltiplos ou preço padrão
+  const getDisplayPrice = () => {
+    if (tour.prices) {
+      // Se houver preços múltiplos, mostrar o menor e maior
+      const prices = [
+        tour.prices.inteira?.value,
+        tour.prices.meia?.value,
+        tour.prices.senior?.value
+      ].filter(p => p !== undefined && p !== null) as number[];
+      
+      if (prices.length > 0) {
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        return min === max ? `R$ ${min.toFixed(2)}` : `R$ ${min.toFixed(2)} - R$ ${max.toFixed(2)}`;
+      }
+    }
+    return `R$ ${tour.price.toFixed(2)}`;
+  };
+
   const totalValue = tour.price * attendanceCount;
 
   const handleCardClick = () => {
@@ -56,7 +76,7 @@ const TourCard: React.FC<TourCardProps> = ({
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-lg text-sm font-bold text-primary shadow-sm border border-border/50">
-            R$ {tour.price.toFixed(2)}
+            {getDisplayPrice()}
           </div>
           {isSelected && (
             <div className={`absolute top-3 left-3 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1 ${isPartial ? 'bg-status-warning text-white' : 'bg-status-success text-white'}`}>
@@ -69,7 +89,7 @@ const TourCard: React.FC<TourCardProps> = ({
         <div className="w-full h-48 bg-surface flex items-center justify-center border-b border-border relative">
           <span className="text-text-disabled">Sem imagem</span>
            <div className="absolute top-3 right-3 bg-white px-3 py-1.5 rounded-lg text-sm font-bold text-primary shadow-sm border border-border">
-            R$ {tour.price.toFixed(2)}
+            {getDisplayPrice()}
           </div>
         </div>
       )}
@@ -129,9 +149,51 @@ const TourCard: React.FC<TourCardProps> = ({
           </div>
         )}
         
-        <p className="text-sm text-text-secondary mb-6 line-clamp-2">
+        <p className="text-sm text-text-secondary mb-4 line-clamp-2">
           {tour.description}
         </p>
+
+        {/* Preços Detalhados */}
+        {tour.prices && (
+          <div className="mb-4 p-3 bg-surface/50 rounded-lg border border-border">
+            <p className="text-xs font-semibold text-text-secondary mb-2 uppercase tracking-wide">Valores dos Ingressos</p>
+            <div className="space-y-2">
+              {tour.prices.inteira && (
+                <div className="flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-medium text-text-primary">Inteira</span>
+                    {tour.prices.inteira.description && (
+                      <p className="text-text-disabled text-[10px] mt-0.5">{tour.prices.inteira.description}</p>
+                    )}
+                  </div>
+                  <span className="font-bold text-primary">R$ {tour.prices.inteira.value.toFixed(2)}</span>
+                </div>
+              )}
+              {tour.prices.meia && (
+                <div className="flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-medium text-text-primary">Meia Entrada</span>
+                    {tour.prices.meia.description && (
+                      <p className="text-text-disabled text-[10px] mt-0.5">{tour.prices.meia.description}</p>
+                    )}
+                  </div>
+                  <span className="font-bold text-primary">R$ {tour.prices.meia.value.toFixed(2)}</span>
+                </div>
+              )}
+              {tour.prices.senior && (
+                <div className="flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-medium text-text-primary">Sênior</span>
+                    {tour.prices.senior.description && (
+                      <p className="text-text-disabled text-[10px] mt-0.5">{tour.prices.senior.description}</p>
+                    )}
+                  </div>
+                  <span className="font-bold text-primary">R$ {tour.prices.senior.value.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         
         {isSelected && isUserView && (
           <div className="mt-auto mb-4 p-3 bg-surface rounded-xl border border-border flex items-center justify-between animate-in fade-in slide-in-from-bottom-2">

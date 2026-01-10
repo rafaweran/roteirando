@@ -442,7 +442,23 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
                         Preço
                       </span>
                       <span className="text-lg font-bold text-text-primary">
-                        R$ {tour.price.toFixed(2)}
+                        {tour.prices ? (
+                          (() => {
+                            const prices = [
+                              tour.prices.inteira?.value,
+                              tour.prices.meia?.value,
+                              tour.prices.senior?.value
+                            ].filter(p => p !== undefined && p !== null) as number[];
+                            if (prices.length > 0) {
+                              const min = Math.min(...prices);
+                              const max = Math.max(...prices);
+                              return min === max ? `R$ ${min.toFixed(2)}` : `R$ ${min.toFixed(2)} - R$ ${max.toFixed(2)}`;
+                            }
+                            return `R$ ${tour.price.toFixed(2)}`;
+                          })()
+                        ) : (
+                          `R$ ${tour.price.toFixed(2)}`
+                        )}
                       </span>
                     </div>
 
@@ -533,7 +549,23 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
                         </td>
                         <td className="py-4 px-6">
                           <span className="text-sm font-bold text-text-primary bg-surface px-2 py-1 rounded-md border border-border/50">
-                            R$ {tour.price.toFixed(2)}
+                            {tour.prices ? (
+                              (() => {
+                                const prices = [
+                                  tour.prices.inteira?.value,
+                                  tour.prices.meia?.value,
+                                  tour.prices.senior?.value
+                                ].filter(p => p !== undefined && p !== null) as number[];
+                                if (prices.length > 0) {
+                                  const min = Math.min(...prices);
+                                  const max = Math.max(...prices);
+                                  return min === max ? `R$ ${min.toFixed(2)}` : `R$ ${min.toFixed(2)} - R$ ${max.toFixed(2)}`;
+                                }
+                                return `R$ ${tour.price.toFixed(2)}`;
+                              })()
+                            ) : (
+                              `R$ ${tour.price.toFixed(2)}`
+                            )}
                           </span>
                         </td>
                         <td className="py-4 px-6 text-right relative action-menu-container">

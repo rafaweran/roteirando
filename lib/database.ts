@@ -78,6 +78,18 @@ function dbTripToTrip(dbTrip: DBTrip, links: TourLink[] = []): Trip {
 }
 
 function dbTourToTour(dbTour: DBTour, links: TourLink[] = []): Tour {
+  // Tentar carregar preços múltiplos do campo JSON (se existir)
+  let prices: any = undefined;
+  if ((dbTour as any).prices) {
+    try {
+      prices = typeof (dbTour as any).prices === 'string' 
+        ? JSON.parse((dbTour as any).prices) 
+        : (dbTour as any).prices;
+    } catch (e) {
+      console.warn('Erro ao parsear preços:', e);
+    }
+  }
+
   return {
     id: dbTour.id,
     tripId: dbTour.trip_id,
@@ -85,6 +97,7 @@ function dbTourToTour(dbTour: DBTour, links: TourLink[] = []): Tour {
     date: dbTour.date,
     time: dbTour.time,
     price: parseFloat(dbTour.price.toString()),
+    prices: prices,
     description: dbTour.description,
     imageUrl: dbTour.image_url || undefined,
     links: links.length > 0 ? links : undefined,
@@ -391,6 +404,11 @@ export const toursApi = {
     if (tour.tags && tour.tags.length > 0) {
       insertData.tags = tour.tags;
     }
+
+    // Adiciona preços múltiplos se existirem
+    if (tour.prices) {
+      insertData.prices = JSON.stringify(tour.prices);
+    }
     
     console.log('📋 Dados para insert:', {
       ...insertData,
@@ -496,6 +514,11 @@ export const toursApi = {
     // Adiciona tags apenas se houver tags definidas
     if (tour.tags !== undefined) {
       updateData.tags = tour.tags && tour.tags.length > 0 ? tour.tags : null;
+    }
+
+    // Adiciona preços múltiplos se existirem
+    if (tour.prices !== undefined) {
+      updateData.prices = tour.prices ? JSON.stringify(tour.prices) : null;
     }
 
     let { data, error } = await supabase
