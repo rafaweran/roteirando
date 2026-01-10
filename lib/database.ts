@@ -377,7 +377,7 @@ export const toursApi = {
     });
     
     console.log('📤 Preparando insert no Supabase...');
-    const insertData = {
+    const insertData: any = {
       trip_id: tour.tripId,
       name: tour.name,
       date: tour.date,
@@ -385,14 +385,19 @@ export const toursApi = {
       price: tour.price,
       description: tour.description,
       image_url: tour.imageUrl,
-      tags: tour.tags && tour.tags.length > 0 ? tour.tags : null,
     };
+    
+    // Adiciona tags apenas se houver tags selecionadas
+    if (tour.tags && tour.tags.length > 0) {
+      insertData.tags = tour.tags;
+    }
+    
     console.log('📋 Dados para insert:', {
       ...insertData,
       image_url: insertData.image_url ? `[base64: ${insertData.image_url.length} chars]` : 'null',
     });
     
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('tours')
       .insert(insertData)
       .select()
@@ -402,7 +407,30 @@ export const toursApi = {
     console.log('  - Data:', data ? { id: data.id, name: data.name } : 'null');
     console.log('  - Error:', error);
 
-    if (error) {
+    // Se o erro for relacionado à coluna 'tags' não existir, tenta novamente sem tags
+    if (error && (error.message?.includes("'tags' column") || error.message?.includes("Could not find the 'tags' column"))) {
+      console.warn('⚠️ Coluna tags não encontrada. Tentando inserir sem tags...');
+      const { tags, ...insertDataWithoutTags } = insertData;
+      const retryResult = await supabase
+        .from('tours')
+        .insert(insertDataWithoutTags)
+        .select()
+        .single();
+      
+      if (retryResult.error) {
+        console.error('❌ Erro do Supabase (sem tags):', {
+          message: retryResult.error.message,
+          code: retryResult.error.code,
+          details: retryResult.error.details,
+          hint: retryResult.error.hint,
+        });
+        throw retryResult.error;
+      }
+      
+      data = retryResult.data;
+      error = null;
+      console.log('✅ Tour criado sem tags (coluna tags não existe no banco)');
+    } else if (error) {
       console.error('❌ Erro do Supabase:', {
         message: error.message,
         code: error.code,
@@ -464,16 +492,40 @@ export const toursApi = {
     if (tour.price !== undefined) updateData.price = tour.price;
     if (tour.description !== undefined) updateData.description = tour.description;
     if (tour.imageUrl !== undefined) updateData.image_url = tour.imageUrl;
-    if (tour.tags !== undefined) updateData.tags = tour.tags && tour.tags.length > 0 ? tour.tags : null;
+    
+    // Adiciona tags apenas se houver tags definidas
+    if (tour.tags !== undefined) {
+      updateData.tags = tour.tags && tour.tags.length > 0 ? tour.tags : null;
+    }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('tours')
       .update(updateData)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    // Se o erro for relacionado à coluna 'tags' não existir, tenta novamente sem tags
+    if (error && (error.message?.includes("'tags' column") || error.message?.includes("Could not find the 'tags' column"))) {
+      console.warn('⚠️ Coluna tags não encontrada. Tentando atualizar sem tags...');
+      const { tags, ...updateDataWithoutTags } = updateData;
+      const retryResult = await supabase
+        .from('tours')
+        .update(updateDataWithoutTags)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (retryResult.error) {
+        throw retryResult.error;
+      }
+      
+      data = retryResult.data;
+      error = null;
+      console.log('✅ Tour atualizado sem tags (coluna tags não existe no banco)');
+    } else if (error) {
+      throw error;
+    }
 
     // Update links if provided
     if (tour.links !== undefined) {
