@@ -27,8 +27,16 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
     date: '',
     status: 'all',
     minPrice: '',
-    maxPrice: ''
+    maxPrice: '',
+    selectedTags: [] as string[]
   });
+  
+  // Available tags from all tours
+  const availableTags = Array.from(
+    new Set(
+      tours.flatMap(tour => tour.tags || [])
+    )
+  ).sort();
 
   // Load data from database
   useEffect(() => {
@@ -94,9 +102,19 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
       date: '',
       status: 'all',
       minPrice: '',
-      maxPrice: ''
+      maxPrice: '',
+      selectedTags: []
     });
     setSearchTerm('');
+  };
+
+  const handleToggleTag = (tag: string) => {
+    setFilters(prev => ({
+      ...prev,
+      selectedTags: prev.selectedTags.includes(tag)
+        ? prev.selectedTags.filter(t => t !== tag)
+        : [...prev.selectedTags, tag]
+    }));
   };
 
   // Join Tours with Trip data to access Trip Status and Name
@@ -115,7 +133,8 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
     // Text Search
     const matchesSearch = 
       tour.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tour.tripName.toLowerCase().includes(searchTerm.toLowerCase());
+      tour.tripName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tour.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Date Filter
     const matchesDate = !filters.date || tour.date === filters.date;
@@ -127,14 +146,19 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
     const matchesMinPrice = !filters.minPrice || tour.price >= Number(filters.minPrice);
     const matchesMaxPrice = !filters.maxPrice || tour.price <= Number(filters.maxPrice);
 
-    return matchesSearch && matchesDate && matchesStatus && matchesMinPrice && matchesMaxPrice;
+    // Tags Filter - tour must have at least one of the selected tags
+    const matchesTags = filters.selectedTags.length === 0 || 
+      (tour.tags && tour.tags.some(tag => filters.selectedTags.includes(tag)));
+
+    return matchesSearch && matchesDate && matchesStatus && matchesMinPrice && matchesMaxPrice && matchesTags;
   });
 
   const activeFiltersCount = [
     filters.date, 
     filters.status !== 'all', 
     filters.minPrice, 
-    filters.maxPrice
+    filters.maxPrice,
+    filters.selectedTags.length > 0
   ].filter(Boolean).length;
 
   const STATUS_OPTIONS = [
@@ -246,7 +270,39 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
                 </div>
               </div>
 
-              {/* Row 2: Date and Price */}
+              {/* Row 2: Tags/Categories Filter */}
+              {availableTags.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-text-secondary ml-1">Categorias / Tipos</label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableTags.map((tag) => {
+                      const isSelected = filters.selectedTags.includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => handleToggleTag(tag)}
+                          className={`
+                            px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border
+                            ${isSelected
+                              ? 'bg-primary text-white border-primary shadow-md'
+                              : 'bg-surface text-text-secondary border-border hover:border-primary/50 hover:text-primary'
+                            }
+                          `}
+                        >
+                          {isSelected ? <CheckCircle2 size={14} /> : <Circle size={14} />}
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-text-disabled ml-1">
+                    Selecione uma ou mais categorias para filtrar os passeios
+                  </p>
+                </div>
+              )}
+
+              {/* Row 3: Date and Price */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date Filter */}
                 <div className="space-y-1.5">
@@ -389,6 +445,20 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
                         R$ {tour.price.toFixed(2)}
                       </span>
                     </div>
+
+                    {/* Tags */}
+                    {tour.tags && tour.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/40">
+                        {tour.tags.map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -422,6 +492,19 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
                             <div>
                               <p className="font-semibold text-text-primary">{tour.name}</p>
                               <p className="text-xs text-text-secondary truncate max-w-[200px] mt-0.5">{tour.description}</p>
+                              {/* Tags */}
+                              {tour.tags && tour.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                  {tour.tags.map((tag, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>

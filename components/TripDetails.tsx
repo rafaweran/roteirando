@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Trip, Tour, Group, UserRole } from '../types';
-import { Calendar, MapPin, Map as MapIcon, Users, ArrowLeft, Plus, Camera, ExternalLink, Info } from 'lucide-react';
+import { Calendar, MapPin, Map as MapIcon, Users, ArrowLeft, Plus, Camera, ExternalLink, Info, ChevronDown, ChevronUp, Filter, X } from 'lucide-react';
 import TourCard from './TourCard';
 import GroupCard from './GroupCard';
 import Button from './Button';
@@ -43,6 +43,8 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
   const [selectedTourForCancel, setSelectedTourForCancel] = useState<Tour | null>(null);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   const isUser = userRole === 'user';
 
@@ -80,6 +82,66 @@ const TripDetails: React.FC<TripDetailsProps> = ({
         alert(`Erro ao cancelar passeio: ${error.message || 'Erro desconhecido'}`);
       }
     }
+  };
+
+  // Agrupar tours por categoria/tag
+  const toursByCategory = useMemo(() => {
+    const grouped: Record<string, Tour[]> = {};
+    const withoutCategory: Tour[] = [];
+
+    tours.forEach(tour => {
+      if (tour.tags && tour.tags.length > 0) {
+        tour.tags.forEach(tag => {
+          if (!grouped[tag]) {
+            grouped[tag] = [];
+          }
+          if (!grouped[tag].includes(tour)) {
+            grouped[tag].push(tour);
+          }
+        });
+      } else {
+        withoutCategory.push(tour);
+      }
+    });
+
+    // Ordenar por data dentro de cada categoria
+    Object.keys(grouped).forEach(key => {
+      grouped[key].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    });
+    withoutCategory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    if (withoutCategory.length > 0) {
+      grouped['Sem categoria'] = withoutCategory;
+    }
+
+    return grouped;
+  }, [tours]);
+
+  // Filtrar tours por categoria selecionada
+  const filteredToursByCategory = useMemo(() => {
+    if (!selectedCategoryFilter) return toursByCategory;
+    
+    return {
+      [selectedCategoryFilter]: toursByCategory[selectedCategoryFilter] || []
+    };
+  }, [toursByCategory, selectedCategoryFilter]);
+
+  // Todas as categorias disponíveis
+  const availableCategories = useMemo(() => {
+    return Object.keys(toursByCategory).sort();
+  }, [toursByCategory]);
+
+  // Toggle collapse de categoria
+  const toggleCategoryCollapse = (category: string) => {
+    setCollapsedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -232,41 +294,147 @@ const TripDetails: React.FC<TripDetailsProps> = ({
         {/* Content Lists */}
         <div className="space-y-4">
           {activeTab === 'tours' || isUser ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {tours.map(tour => {
-                // Compatibilidade: pode ser TourAttendanceInfo ou string[] (versão antiga)
-                const attendance = userGroup?.tourAttendance?.[tour.id];
-                const attendingMembers = Array.isArray(attendance) 
-                  ? attendance 
-                  : (attendance && typeof attendance === 'object' && 'members' in attendance) 
-                    ? attendance.members 
-                    : [];
-                // Total de membros incluindo o líder
-                const totalMembers = userGroup 
-                  ? (userGroup.leaderName ? userGroup.members.length + 1 : userGroup.members.length)
-                  : 0;
-                return (
-                  <TourCard 
-                    key={tour.id} 
-                    tour={tour} 
-                    onViewGroup={!isUser ? () => setActiveTab('groups') : undefined}
-                    isUserView={isUser}
-                    attendanceCount={attendingMembers.length}
-                    totalMembers={totalMembers}
-                    onOpenAttendance={handleOpenAttendance}
-                    onCancelTour={handleOpenCancel}
-                    onViewAttendanceList={onViewTourAttendance}
-                    onViewTourDetail={onViewTourDetail}
-                  />
-                );
-              })}
+            <>
+              {/* Filtro Rápido por Categoria */}
+              {availableCategories.length > 0 && (
+                <div className="bg-white rounded-custom border border-border p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-text-primary flex items-center gap-2">
+                      <Filter size={16} className="text-primary" />
+                      Filtrar por Tipo
+                    </label>
+                    {selectedCategoryFilter && (
+                      <button
+                        onClick={() => setSelectedCategoryFilter(null)}
+                        className="flex items-center gap-1 text-xs text-text-secondary hover:text-status-error transition-colors"
+                      >
+                        <X size={14} />
+                        Limpar
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setSelectedCategoryFilter(null)}
+                      className={`
+                        px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border
+                        ${!selectedCategoryFilter
+                          ? 'bg-primary text-white border-primary shadow-md'
+                          : 'bg-surface text-text-secondary border-border hover:border-primary/50 hover:text-primary'
+                        }
+                      `}
+                    >
+                      Todos ({tours.length})
+                    </button>
+                    {availableCategories.map(category => {
+                      const isSelected = selectedCategoryFilter === category;
+                      const count = toursByCategory[category]?.length || 0;
+                      return (
+                        <button
+                          key={category}
+                          onClick={() => setSelectedCategoryFilter(isSelected ? null : category)}
+                          className={`
+                            px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border
+                            ${isSelected
+                              ? 'bg-primary text-white border-primary shadow-md'
+                              : 'bg-surface text-text-secondary border-border hover:border-primary/50 hover:text-primary'
+                            }
+                          `}
+                        >
+                          {category} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Tours Agrupados por Categoria */}
+              {Object.keys(filteredToursByCategory).length > 0 ? (
+                <div className="space-y-6">
+                  {Object.entries(filteredToursByCategory).map(([category, categoryTours]) => {
+                    const isCollapsed = collapsedCategories.has(category);
+                    return (
+                      <div key={category} className="bg-white rounded-custom border border-border shadow-sm overflow-hidden">
+                        {/* Cabeçalho da Categoria */}
+                        <button
+                          onClick={() => toggleCategoryCollapse(category)}
+                          className="w-full flex items-center justify-between p-4 hover:bg-surface/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-1 h-8 bg-primary rounded-full"></div>
+                            <div className="text-left">
+                              <h3 className="text-lg font-bold text-text-primary">{category}</h3>
+                              <p className="text-xs text-text-secondary">
+                                {categoryTours.length} passeio{categoryTours.length !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                          </div>
+                          {isCollapsed ? (
+                            <ChevronDown size={20} className="text-text-secondary" />
+                          ) : (
+                            <ChevronUp size={20} className="text-text-secondary" />
+                          )}
+                        </button>
+
+                        {/* Tours da Categoria */}
+                        {!isCollapsed && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 pt-0 border-t border-border">
+                            {categoryTours.map(tour => {
+                              // Compatibilidade: pode ser TourAttendanceInfo ou string[] (versão antiga)
+                              const attendance = userGroup?.tourAttendance?.[tour.id];
+                              const attendingMembers = Array.isArray(attendance) 
+                                ? attendance 
+                                : (attendance && typeof attendance === 'object' && 'members' in attendance) 
+                                  ? attendance.members 
+                                  : [];
+                              // Total de membros incluindo o líder
+                              const totalMembers = userGroup 
+                                ? (userGroup.leaderName ? userGroup.members.length + 1 : userGroup.members.length)
+                                : 0;
+                              return (
+                                <TourCard 
+                                  key={tour.id} 
+                                  tour={tour} 
+                                  onViewGroup={!isUser ? () => setActiveTab('groups') : undefined}
+                                  isUserView={isUser}
+                                  attendanceCount={attendingMembers.length}
+                                  totalMembers={totalMembers}
+                                  onOpenAttendance={handleOpenAttendance}
+                                  onCancelTour={handleOpenCancel}
+                                  onViewAttendanceList={onViewTourAttendance}
+                                  onViewTourDetail={onViewTourDetail}
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-text-secondary bg-white rounded-custom border border-border border-dashed">
+                  <MapIcon size={48} className="mx-auto mb-3 text-text-disabled" />
+                  <p>Nenhum passeio encontrado {selectedCategoryFilter ? `na categoria "${selectedCategoryFilter}"` : ''}.</p>
+                  {selectedCategoryFilter && (
+                    <button
+                      onClick={() => setSelectedCategoryFilter(null)}
+                      className="mt-4 text-sm text-primary hover:underline"
+                    >
+                      Ver todos os passeios
+                    </button>
+                  )}
+                </div>
+              )}
+
               {tours.length === 0 && (
-                <div className="col-span-full text-center py-12 text-text-secondary bg-white rounded-custom border border-border border-dashed">
+                <div className="text-center py-12 text-text-secondary bg-white rounded-custom border border-border border-dashed">
                   <MapIcon size={48} className="mx-auto mb-3 text-text-disabled" />
                   <p>Nenhum passeio cadastrado nesta viagem.</p>
                 </div>
               )}
-            </div>
+            </>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {groups.map(group => (

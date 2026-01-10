@@ -195,8 +195,8 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     }
 
     // Validação de campos obrigatórios
-    if (!formData.name || !formData.date || !formData.price) {
-      alert("Por favor, preencha todos os campos obrigatórios (Nome, Data e Valor).");
+    if (!formData.name || !formData.price) {
+      alert("Por favor, preencha todos os campos obrigatórios (Nome e Valor).");
       return;
     }
 
@@ -215,10 +215,13 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       const imageUrls = images.map(img => img.preview);
 
       // Preparar dados no formato esperado pela API
+      // Se não houver data informada, usar a data de início da viagem como padrão
+      const defaultDate = formData.date || (activeTrip?.startDate ? activeTrip.startDate.split('T')[0] : new Date().toISOString().split('T')[0]);
+      
       const tourData = {
         tripId: activeTrip.id,
         name: formData.name,
-        date: formData.date,
+        date: defaultDate,
         time: formData.startTime || '00:00', // Usar startTime como time principal
         price: parseFloat(formData.price) || 0,
         description: formData.description || '',
@@ -492,10 +495,9 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
           {/* Date */}
           <DatePicker 
             id="date"
-            label="Data do passeio *"
+            label="Data do passeio"
             value={formData.date}
             onChange={(date) => handleChange('date', date)}
-            required
           />
 
           {/* Times */}
