@@ -38,6 +38,7 @@ const App: React.FC = () => {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
   const [selectedTourForDetail, setSelectedTourForDetail] = useState<Tour | null>(null);
+  const [selectedTourForGroups, setSelectedTourForGroups] = useState<string | null>(null);
   const [tripDetailsInitialTab, setTripDetailsInitialTab] = useState<'tours' | 'groups'>('tours');
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
@@ -217,10 +218,11 @@ const App: React.FC = () => {
   };
 
   const handleViewTourAttendance = (tour: Tour) => {
-    setSelectedTourForAttendance(tour);
-    // Ensure trip ID is set correctly for context
+    // Quando clica em "Ver Lista", ir para a aba de grupos do TripDetails com o passeio selecionado
     setSelectedTripId(tour.tripId);
-    setCurrentView('tour-attendance');
+    setSelectedTourForGroups(tour.id);
+    setTripDetailsInitialTab('groups');
+    setCurrentView('trip-details');
   };
 
   const handleViewTourDetail = (tour: Tour) => {
@@ -256,6 +258,15 @@ const App: React.FC = () => {
 
   const handleViewGroup = (tripId: string) => {
     setSelectedTripId(tripId);
+    setTripDetailsInitialTab('groups');
+    setSelectedTourForGroups(null); // Limpar filtro de passeio
+    setCurrentView('trip-details');
+  };
+
+  const handleViewTourGroups = (tour: Tour) => {
+    // Visualizar grupos que confirmaram presença neste passeio específico
+    setSelectedTripId(tour.tripId);
+    setSelectedTourForGroups(tour.id);
     setTripDetailsInitialTab('groups');
     setCurrentView('trip-details');
   };
@@ -596,6 +607,7 @@ const App: React.FC = () => {
         <ToursList 
           onEdit={handleEditTour}
           onViewGroup={handleViewGroup}
+          onViewTourGroups={handleViewTourGroups}
           onDelete={handleDeleteTour}
           onAddTour={handleNewTourClick}
         />
@@ -641,6 +653,7 @@ const App: React.FC = () => {
             onSaveAttendance={handleSaveAttendance} // Pass granular handler
             onViewTourAttendance={handleViewTourAttendance}
             onViewTourDetail={handleViewTourDetail}
+            selectedTourId={selectedTourForGroups} // Pass selected tour ID for filtering groups
           />
         );
       })()}

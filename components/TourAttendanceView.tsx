@@ -19,19 +19,45 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Process data to find attending groups
+  // Only show groups that have confirmed attendance for this specific tour
   const attendingGroups = groups
     .filter(g => {
       if (!g) return false;
       if (!g.tourAttendance) return false;
       if (!g.tourAttendance[tour.id]) return false;
-      if (g.tourAttendance[tour.id].length === 0) return false;
-      return true;
+      
+      // Handle both formats: array of strings or TourAttendanceInfo object
+      const attendance = g.tourAttendance[tour.id];
+      let members: string[] = [];
+      
+      if (Array.isArray(attendance)) {
+        // Old format: array of strings
+        members = attendance;
+      } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+        // New format: TourAttendanceInfo object
+        members = attendance.members || [];
+      }
+      
+      // Only include groups with at least one member attending
+      return members.length > 0;
     })
-    .map(g => ({
-      ...g,
-      attendingCount: g.tourAttendance![tour.id].length,
-      attendingNames: g.tourAttendance![tour.id]
-    }));
+    .map(g => {
+      // Extract members correctly based on format
+      const attendance = g.tourAttendance![tour.id];
+      let members: string[] = [];
+      
+      if (Array.isArray(attendance)) {
+        members = attendance;
+      } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+        members = attendance.members || [];
+      }
+      
+      return {
+        ...g,
+        attendingCount: members.length,
+        attendingNames: members
+      };
+    });
 
   // Statistics
   const totalPeople = attendingGroups.reduce((acc, curr) => acc + curr.attendingCount, 0);

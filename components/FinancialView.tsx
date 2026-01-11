@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, CreditCard, Calendar, Users, Map } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { DollarSign, TrendingUp, CreditCard, Calendar, Users, Map, Trophy, Clock } from 'lucide-react';
 import { tripsApi, toursApi, groupsApi } from '../lib/database';
 import { Trip, Tour, Group } from '../types';
 
@@ -30,16 +30,40 @@ const FinancialView: React.FC = () => {
     loadData();
   }, []);
 
-  // Calcular estatísticas financeiras
-  const calculateFinancials = () => {
+  // Calcular estatísticas financeiras baseadas em confirmações reais
+  const financials = useMemo(() => {
     let totalRevenue = 0;
     let totalTours = 0;
     let totalGroups = 0;
     let totalPeople = 0;
+    let confirmedPeople = 0;
 
+    // Calcular receita real baseada em confirmações
     tours.forEach(tour => {
-      totalRevenue += tour.price;
       totalTours++;
+      
+      // Contar grupos e pessoas que confirmaram presença neste passeio
+      let tourConfirmedGroups = 0;
+      let tourConfirmedPeople = 0;
+      
+      groups.forEach(group => {
+        if (group.tourAttendance && group.tourAttendance[tour.id]) {
+          const attendance = group.tourAttendance[tour.id];
+          let members: string[] = [];
+          
+          if (Array.isArray(attendance)) {
+            members = attendance;
+          } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+            members = attendance.members || [];
+          }
+          
+          if (members.length > 0) {
+            tourConfirmedGroups++;
+            tourConfirmedPeople += members.length;
+            totalRevenue += tour.price * members.length;
+          }
+        }
+      });
     });
 
     groups.forEach(group => {
@@ -47,20 +71,75 @@ const FinancialView: React.FC = () => {
       totalPeople += group.membersCount + 1; // +1 para o líder
     });
 
+    // Contar pessoas confirmadas em todos os passeios
+    groups.forEach(group => {
+      if (group.tourAttendance) {
+        Object.values(group.tourAttendance).forEach(attendance => {
+          let members: string[] = [];
+          if (Array.isArray(attendance)) {
+            members = attendance;
+          } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+            members = attendance.members || [];
+          }
+          confirmedPeople += members.length;
+        });
+      }
+    });
+
     const averageTourPrice = totalTours > 0 ? totalRevenue / totalTours : 0;
-    const revenuePerPerson = totalPeople > 0 ? totalRevenue / totalPeople : 0;
+    const revenuePerPerson = confirmedPeople > 0 ? totalRevenue / confirmedPeople : 0;
 
     return {
       totalRevenue,
       totalTours,
       totalGroups,
       totalPeople,
+      confirmedPeople,
       averageTourPrice,
       revenuePerPerson
     };
-  };
+  }, [tours, groups]);
 
-  const financials = calculateFinancials();
+  // Calcular top passeios mais escolhidos
+  const topTours = useMemo(() => {
+    const tourStats = tours.map(tour => {
+      let confirmedGroups = 0;
+      let confirmedPeople = 0;
+      let revenue = 0;
+
+      groups.forEach(group => {
+        if (group.tourAttendance && group.tourAttendance[tour.id]) {
+          const attendance = group.tourAttendance[tour.id];
+          let members: string[] = [];
+          
+          if (Array.isArray(attendance)) {
+            members = attendance;
+          } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+            members = attendance.members || [];
+          }
+          
+          if (members.length > 0) {
+            confirmedGroups++;
+            confirmedPeople += members.length;
+            revenue += tour.price * members.length;
+          }
+        }
+      });
+
+      return {
+        tour,
+        confirmedGroups,
+        confirmedPeople,
+        revenue
+      };
+    });
+
+    // Ordenar por número de pessoas confirmadas (mais escolhidos)
+    return tourStats
+      .filter(stat => stat.confirmedPeople > 0)
+      .sort((a, b) => b.confirmedPeople - a.confirmedPeople)
+      .slice(0, 10); // Top 10
+  }, [tours, groups]);
 
   if (loading) {
     return (
@@ -122,10 +201,110 @@ const FinancialView: React.FC = () => {
             </div>
             <TrendingUp size={20} className="text-status-success" />
           </div>
-          <h3 className="text-sm font-medium text-text-secondary mb-1">Total de Pessoas</h3>
-          <p className="text-2xl font-bold text-text-primary">{financials.totalPeople}</p>
+          <h3 className="text-sm font-medium text-text-secondary mb-1">Pessoas Confirmadas</h3>
+          <p className="text-2xl font-bold text-text-primary">{financials.confirmedPeople}</p>
+          <p className="text-xs text-text-disabled mt-1">de {financials.totalPeople} total</p>
         </div>
       </div>
+
+      {/* Top Passeios Mais Escolhidos */}
+      {topTours.length > 0 && (
+        <div className="bg-white rounded-custom border border-border p-6 shadow-sm mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center">
+              <Trophy size={24} className="text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text-primary">Top Passeios Mais Escolhidos</h3>
+              <p className="text-sm text-text-secondary">Os passeios com mais confirmações de presença</p>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {topTours.map((stat, index) => {
+              const trip = trips.find(t => t.id === stat.tour.tripId);
+              const medalColors = [
+                'from-yellow-400 to-yellow-600', // Ouro
+                'from-gray-300 to-gray-500',      // Prata
+                'from-orange-400 to-orange-600'   // Bronze
+              ];
+              const medalColor = index < 3 ? medalColors[index] : 'from-primary/20 to-primary/10';
+              
+              return (
+                <div 
+                  key={stat.tour.id} 
+                  className="p-4 bg-surface rounded-xl border border-border hover:border-primary/30 transition-all hover:shadow-md"
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Ranking Badge */}
+                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${medalColor} flex items-center justify-center font-bold text-white text-lg shadow-sm`}>
+                      {index < 3 ? (
+                        <Trophy size={20} />
+                      ) : (
+                        <span>#{index + 1}</span>
+                      )}
+                    </div>
+                    
+                    {/* Tour Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-text-primary text-base mb-1 line-clamp-1">
+                            {stat.tour.name}
+                          </h4>
+                          {trip && (
+                            <p className="text-xs text-text-secondary flex items-center gap-1">
+                              <Map size={12} />
+                              {trip.name}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 mt-2 text-xs text-text-secondary">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={12} />
+                              {new Date(stat.tour.date).toLocaleDateString('pt-BR')}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock size={12} />
+                              {stat.tour.time}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Stats */}
+                      <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-border/50">
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-text-secondary mb-1">
+                            <Users size={12} />
+                            <span>Grupos</span>
+                          </div>
+                          <p className="font-bold text-text-primary text-sm">{stat.confirmedGroups}</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-text-secondary mb-1">
+                            <Users size={12} />
+                            <span>Pessoas</span>
+                          </div>
+                          <p className="font-bold text-text-primary text-sm">{stat.confirmedPeople}</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-text-secondary mb-1">
+                            <DollarSign size={12} />
+                            <span>Receita</span>
+                          </div>
+                          <p className="font-bold text-primary text-sm">
+                            R$ {stat.revenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -136,14 +315,14 @@ const FinancialView: React.FC = () => {
           </h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-text-secondary">Preço médio por passeio</span>
+              <span className="text-text-secondary">Receita média por passeio</span>
               <span className="font-bold text-text-primary">
                 R$ {financials.averageTourPrice.toFixed(2).replace('.', ',')}
               </span>
             </div>
             <div className="h-px bg-border"></div>
             <div className="flex items-center justify-between">
-              <span className="text-text-secondary">Receita por pessoa</span>
+              <span className="text-text-secondary">Receita por pessoa confirmada</span>
               <span className="font-bold text-text-primary">
                 R$ {financials.revenuePerPerson.toFixed(2).replace('.', ',')}
               </span>
@@ -163,7 +342,31 @@ const FinancialView: React.FC = () => {
               trips.map(trip => {
                 const tripTours = tours.filter(t => t.tripId === trip.id);
                 const tripGroups = groups.filter(g => g.tripId === trip.id);
-                const tripRevenue = tripTours.reduce((sum, tour) => sum + tour.price, 0);
+                
+                // Calcular receita real baseada em confirmações
+                let tripRevenue = 0;
+                let tripConfirmedPeople = 0;
+                
+                tripTours.forEach(tour => {
+                  tripGroups.forEach(group => {
+                    if (group.tourAttendance && group.tourAttendance[tour.id]) {
+                      const attendance = group.tourAttendance[tour.id];
+                      let members: string[] = [];
+                      
+                      if (Array.isArray(attendance)) {
+                        members = attendance;
+                      } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+                        members = attendance.members || [];
+                      }
+                      
+                      if (members.length > 0) {
+                        tripConfirmedPeople += members.length;
+                        tripRevenue += tour.price * members.length;
+                      }
+                    }
+                  });
+                });
+                
                 const tripPeople = tripGroups.reduce((sum, group) => sum + group.membersCount + 1, 0);
 
                 return (
@@ -177,7 +380,7 @@ const FinancialView: React.FC = () => {
                     <div className="flex items-center gap-4 text-xs text-text-secondary">
                       <span>{tripTours.length} passeios</span>
                       <span>{tripGroups.length} grupos</span>
-                      <span>{tripPeople} pessoas</span>
+                      <span>{tripConfirmedPeople} confirmados</span>
                     </div>
                   </div>
                 );

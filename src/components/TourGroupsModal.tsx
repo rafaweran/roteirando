@@ -18,15 +18,44 @@ const TourGroupsModal: React.FC<TourGroupsModalProps> = ({
   if (!isOpen) return null;
 
   // Filter groups that have attendance for this tour
-  const attendingGroups = allGroups.filter(g => 
-    g.tourAttendance && 
-    g.tourAttendance[tour.id] && 
-    g.tourAttendance[tour.id].length > 0
-  ).map(g => ({
-    ...g,
-    attendingCount: g.tourAttendance![tour.id].length,
-    attendingNames: g.tourAttendance![tour.id]
-  }));
+  // Only show groups that have confirmed attendance for this specific tour
+  const attendingGroups = allGroups
+    .filter(g => {
+      if (!g.tourAttendance) return false;
+      if (!g.tourAttendance[tour.id]) return false;
+      
+      // Handle both formats: array of strings or TourAttendanceInfo object
+      const attendance = g.tourAttendance[tour.id];
+      let members: string[] = [];
+      
+      if (Array.isArray(attendance)) {
+        // Old format: array of strings
+        members = attendance;
+      } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+        // New format: TourAttendanceInfo object
+        members = attendance.members || [];
+      }
+      
+      // Only include groups with at least one member attending
+      return members.length > 0;
+    })
+    .map(g => {
+      // Extract members correctly based on format
+      const attendance = g.tourAttendance![tour.id];
+      let members: string[] = [];
+      
+      if (Array.isArray(attendance)) {
+        members = attendance;
+      } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+        members = attendance.members || [];
+      }
+      
+      return {
+        ...g,
+        attendingCount: members.length,
+        attendingNames: members
+      };
+    });
 
   const totalPeople = attendingGroups.reduce((acc, curr) => acc + curr.attendingCount, 0);
   const totalRevenue = totalPeople * tour.price;

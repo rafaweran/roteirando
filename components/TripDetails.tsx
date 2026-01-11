@@ -21,6 +21,7 @@ interface TripDetailsProps {
   onSaveAttendance?: (tourId: string, members: string[], cancelReason?: string) => void;
   onViewTourAttendance?: (tour: Tour) => void;
   onViewTourDetail?: (tour: Tour) => void;
+  selectedTourId?: string | null; // Tour ID para filtrar grupos quando na aba de grupos
 }
 
 type Tab = 'tours' | 'groups';
@@ -38,7 +39,8 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   userGroup,
   onSaveAttendance,
   onViewTourAttendance,
-  onViewTourDetail
+  onViewTourDetail,
+  selectedTourId = null
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
@@ -47,6 +49,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   const [selectedTourForCancel, setSelectedTourForCancel] = useState<Tour | null>(null);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [clearTourFilter, setClearTourFilter] = useState(false);
 
   const isUser = userRole === 'user';
 
@@ -146,6 +149,38 @@ const TripDetails: React.FC<TripDetailsProps> = ({
     });
   };
 
+  // Filtrar grupos: se houver um passeio selecionado, mostrar apenas grupos que confirmaram presença
+  const filteredGroups = useMemo(() => {
+    // Se o usuário clicou em "Ver Todos os Grupos", não filtrar
+    const effectiveTourId = clearTourFilter ? null : selectedTourId;
+    
+    if (!effectiveTourId || activeTab !== 'groups') {
+      // Se não há passeio selecionado ou não está na aba de grupos, mostrar todos
+      return groups;
+    }
+
+    // Filtrar apenas grupos que confirmaram presença neste passeio específico
+    return groups.filter(g => {
+      if (!g.tourAttendance) return false;
+      if (!g.tourAttendance[effectiveTourId]) return false;
+      
+      // Handle both formats: array of strings or TourAttendanceInfo object
+      const attendance = g.tourAttendance[effectiveTourId];
+      let members: string[] = [];
+      
+      if (Array.isArray(attendance)) {
+        // Old format: array of strings
+        members = attendance;
+      } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+        // New format: TourAttendanceInfo object
+        members = attendance.members || [];
+      }
+      
+      // Only include groups with at least one member attending
+      return members.length > 0;
+    });
+  }, [groups, selectedTourId, activeTab, clearTourFilter]);
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Navigation Back */}
@@ -243,7 +278,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 }`}
             >
                 <Users size={18} />
-                Famílias / Grupos ({groups.length})
+                Famílias / Grupos ({clearTourFilter || !selectedTourId ? groups.length : filteredGroups.length})
             </button>
             </div>
         )}
@@ -254,6 +289,11 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               <h2 className="text-xl font-bold text-text-primary">
                 {isUser ? 'Passeios Disponíveis' : (activeTab === 'tours' ? 'Passeios Disponíveis' : 'Grupos Participantes')}
               </h2>
+              {!isUser && activeTab === 'groups' && selectedTourId && (
+                  <p className="text-text-secondary text-sm mt-1">
+                      Mostrando apenas grupos que confirmaram presença no passeio selecionado.
+                  </p>
+              )}
               {isUser && (
                   <p className="text-text-secondary text-sm mt-1">
                       Selecione abaixo os passeios que o grupo <strong>{userGroup?.name}</strong> irá participar.
@@ -270,6 +310,19 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               >
                 <Users size={16} className="mr-2" />
                 Ver Grupos
+              </Button>
+            )}
+            {!isUser && activeTab === 'groups' && selectedTourId && !clearTourFilter && (
+              <Button 
+                variant="outline"
+                className="h-10 text-sm px-4"
+                onClick={() => {
+                  // Limpar o filtro de passeio selecionado
+                  setClearTourFilter(true);
+                }}
+              >
+                <X size={16} className="mr-2" />
+                Ver Todos os Grupos
               </Button>
             )}
             {!isUser && (
@@ -439,17 +492,34 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               )}
             </>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {groups.map(group => (
-                <GroupCard key={group.id} group={group} />
-              ))}
-              {groups.length === 0 && (
-                <div className="col-span-full text-center py-12 text-text-secondary bg-white rounded-custom border border-border border-dashed">
-                  <Users size={48} className="mx-auto mb-3 text-text-disabled" />
-                  <p>Nenhum grupo cadastrado nesta viagem.</p>
+            <>
+              {selectedTourId && !clearTourFilter && (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex gap-3 text-sm text-primary/80">
+                  <Info size={20} className="flex-shrink-0" />
+                  <p>
+                    Mostrando apenas grupos que confirmaram presença no passeio selecionado.
+                  </p>
                 </div>
               )}
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredGroups.map(group => (
+                  <GroupCard key={group.id} group={group} />
+                ))}
+                {filteredGroups.length === 0 && (
+                  <div className="col-span-full text-center py-12 text-text-secondary bg-white rounded-custom border border-border border-dashed">
+                    <Users size={48} className="mx-auto mb-3 text-text-disabled" />
+                    {selectedTourId && !clearTourFilter ? (
+                      <div>
+                        <p className="font-medium mb-2">Nenhum grupo confirmou presença neste passeio ainda.</p>
+                        <p className="text-sm text-text-disabled">Os grupos precisam confirmar presença para aparecer aqui.</p>
+                      </div>
+                    ) : (
+                      <p>Nenhum grupo cadastrado nesta viagem.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

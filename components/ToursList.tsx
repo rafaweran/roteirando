@@ -8,11 +8,12 @@ import { Tour, Trip } from '../types';
 interface ToursListProps {
   onEdit: (tour: Tour) => void;
   onViewGroup: (tripId: string) => void;
+  onViewTourGroups?: (tour: Tour) => void; // Nova prop para visualizar grupos de um passeio específico
   onDelete: (tourId: string) => void;
   onAddTour?: () => void;
 }
 
-const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, onAddTour }) => {
+const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onViewTourGroups, onDelete, onAddTour }) => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -80,7 +81,13 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
   const handleAction = (action: string, tour: Tour) => {
     setActiveMenuId(null);
     if (action === 'view-group') {
-      onViewGroup(tour.tripId);
+      // Se houver onViewTourGroups, usar para visualizar grupos do passeio específico
+      if (onViewTourGroups) {
+        onViewTourGroups(tour);
+      } else {
+        // Fallback para o comportamento antigo (visualizar grupos da viagem)
+        onViewGroup(tour.tripId);
+      }
     } else if (action === 'edit') {
       onEdit(tour);
     } else if (action === 'delete') {
@@ -177,7 +184,7 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onDelete, on
           className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-text-secondary hover:text-primary hover:bg-surface rounded-lg transition-colors text-left"
         >
           <Users size={16} />
-          Visualizar Grupo
+          Visualizar Grupos
         </button>
         <button 
           onClick={() => handleAction('edit', tour)}
