@@ -15,13 +15,14 @@ import ChangePasswordModal from './components/ChangePasswordModal';
 import TourAgenda from './components/TourAgenda';
 import CityGuide from './components/CityGuide';
 import DestinosGuide from './components/DestinosGuide';
+import MyTripPage from './components/MyTripPage';
 import { ToastProvider, useToast } from './hooks/useToast';
 import { Trip, Tour, UserRole, Group } from './types';
 import { tripsApi, toursApi, groupsApi } from './lib/database';
 import { Plus } from 'lucide-react';
 import Button from './components/Button';
 
-type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'tour-detail' | 'financial' | 'agenda' | 'city-guide' | 'destinos-guide';
+type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'tour-detail' | 'financial' | 'agenda' | 'city-guide' | 'destinos-guide' | 'my-trip';
 
 const AppContent: React.FC = () => {
   const { showSuccess, showError, showWarning } = useToast();
@@ -230,6 +231,11 @@ const AppContent: React.FC = () => {
     setCurrentView('destinos-guide');
     setSelectedTripId(null);
     console.log('✅ currentView definido como: destinos-guide');
+  };
+
+  const handleNavigateMyTrip = () => {
+    setCurrentView('my-trip');
+    setSelectedTripId(null);
   };
 
   const handleNewTourClick = () => {
@@ -585,6 +591,7 @@ const AppContent: React.FC = () => {
       onNavigateAgenda={handleNavigateAgenda}
       onNavigateCityGuide={handleNavigateCityGuide}
       onNavigateDestinosGuide={handleNavigateDestinosGuide}
+      onNavigateMyTrip={handleNavigateMyTrip}
       userRole={userRole}
       userName={userRole === 'user' ? currentUserGroup?.leaderName : 'Admin User'}
       userEmail={userRole === 'user' ? currentUserGroup?.leaderEmail : 'admin@travel.com'}
@@ -764,6 +771,13 @@ const AppContent: React.FC = () => {
 
       {currentView === 'destinos-guide' && (
         <DestinosGuide />
+      )}
+
+      {currentView === 'my-trip' && userRole === 'user' && currentUserGroup && (
+        <MyTripPage 
+          userGroup={currentUserGroup}
+          onBack={() => setCurrentView('dashboard')}
+        />
       )}
 
       {/* Modal de Alteração de Senha (Primeiro Acesso) */}

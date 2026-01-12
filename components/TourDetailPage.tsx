@@ -172,6 +172,22 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                 </div>
               </div>
 
+              {tour.address && (
+                <div className="flex items-start gap-3 sm:col-span-2">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <MapPin size={20} className="text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
+                      Endereço
+                    </p>
+                    <p className="text-sm font-medium text-text-primary break-words">
+                      {tour.address}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {userRole === 'user' && isSelected && (
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">

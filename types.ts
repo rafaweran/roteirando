@@ -38,6 +38,7 @@ export interface Tour {
   imageUrl?: string;
   links?: TourLink[];
   tags?: string[]; // Tags/categorias do passeio (ex: Restaurante, Passeios, Shows, etc.)
+  address?: string; // Endereço completo do passeio
 }
 
 export interface TourAttendanceInfo {
@@ -59,3 +60,49 @@ export interface Group {
 }
 
 export type UserRole = 'admin' | 'user';
+
+export interface UserTravelInfo {
+  id?: string;
+  groupId: string;
+  
+  // Dados do Hotel
+  hotelName?: string;
+  hotelAddress?: string;
+  hotelCheckin?: string;
+  hotelCheckout?: string;
+  hotelPhone?: string;
+  hotelConfirmationCode?: string;
+  hotelNotes?: string;
+  
+  // Dados do Voo
+  flightCompany?: string;
+  flightNumber?: string;
+  flightDepartureDate?: string;
+  flightDepartureTime?: string;
+  flightDepartureAirport?: string;
+  flightArrivalDate?: string;
+  flightArrivalTime?: string;
+  flightArrivalAirport?: string;
+  flightConfirmationCode?: string;
+  flightNotes?: string;
+  
+  // Dados do Aluguel de Carro
+  carRentalCompany?: string;
+  carRentalPickupDate?: string;
+  carRentalPickupTime?: string;
+  carRentalPickupLocation?: string;
+  carRentalReturnDate?: string;
+  carRentalReturnTime?: string;
+  carRentalReturnLocation?: string;
+  carRentalConfirmationCode?: string;
+  carRentalNotes?: string;
+  
+  // Dados Pessoais
+  personalName?: string;
+  personalEmail?: string;
+  personalPhone?: string;
+  personalDocument?: string;
+  personalEmergencyContact?: string;
+  personalEmergencyPhone?: string;
+  personalNotes?: string;
+}

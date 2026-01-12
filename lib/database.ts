@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Trip, Tour, Group, TourLink } from '../types';
+import { Trip, Tour, Group, TourLink, UserTravelInfo } from '../types';
 
 // Database types (matching the schema)
 interface DBTrip {
@@ -25,6 +25,7 @@ interface DBTour {
   description: string;
   image_url: string | null;
   tags: string[] | null;
+  address: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +103,7 @@ function dbTourToTour(dbTour: DBTour, links: TourLink[] = []): Tour {
     imageUrl: dbTour.image_url || undefined,
     links: links.length > 0 ? links : undefined,
     tags: dbTour.tags && dbTour.tags.length > 0 ? dbTour.tags : undefined,
+    address: dbTour.address || undefined,
   };
 }
 
@@ -409,6 +411,11 @@ export const toursApi = {
     if (tour.prices) {
       insertData.prices = JSON.stringify(tour.prices);
     }
+
+    // Adiciona endereço se existir
+    if (tour.address) {
+      insertData.address = tour.address;
+    }
     
     console.log('📋 Dados para insert:', {
       ...insertData,
@@ -510,6 +517,7 @@ export const toursApi = {
     if (tour.price !== undefined) updateData.price = tour.price;
     if (tour.description !== undefined) updateData.description = tour.description;
     if (tour.imageUrl !== undefined) updateData.image_url = tour.imageUrl;
+    if (tour.address !== undefined) updateData.address = tour.address || null;
     
     // Adiciona tags apenas se houver tags definidas
     if (tour.tags !== undefined) {
@@ -954,3 +962,161 @@ export const adminsApi = {
   },
 };
 
+// User Travel Info API
+interface DBUserTravelInfo {
+  id: string;
+  group_id: string;
+  hotel_name: string | null;
+  hotel_address: string | null;
+  hotel_checkin: string | null;
+  hotel_checkout: string | null;
+  hotel_phone: string | null;
+  hotel_confirmation_code: string | null;
+  hotel_notes: string | null;
+  flight_company: string | null;
+  flight_number: string | null;
+  flight_departure_date: string | null;
+  flight_departure_time: string | null;
+  flight_departure_airport: string | null;
+  flight_arrival_date: string | null;
+  flight_arrival_time: string | null;
+  flight_arrival_airport: string | null;
+  flight_confirmation_code: string | null;
+  flight_notes: string | null;
+  car_rental_company: string | null;
+  car_rental_pickup_date: string | null;
+  car_rental_pickup_time: string | null;
+  car_rental_pickup_location: string | null;
+  car_rental_return_date: string | null;
+  car_rental_return_time: string | null;
+  car_rental_return_location: string | null;
+  car_rental_confirmation_code: string | null;
+  car_rental_notes: string | null;
+  personal_name: string | null;
+  personal_email: string | null;
+  personal_phone: string | null;
+  personal_document: string | null;
+  personal_emergency_contact: string | null;
+  personal_emergency_phone: string | null;
+  personal_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function dbUserTravelInfoToUserTravelInfo(db: DBUserTravelInfo): UserTravelInfo {
+  return {
+    id: db.id,
+    groupId: db.group_id,
+    hotelName: db.hotel_name || undefined,
+    hotelAddress: db.hotel_address || undefined,
+    hotelCheckin: db.hotel_checkin || undefined,
+    hotelCheckout: db.hotel_checkout || undefined,
+    hotelPhone: db.hotel_phone || undefined,
+    hotelConfirmationCode: db.hotel_confirmation_code || undefined,
+    hotelNotes: db.hotel_notes || undefined,
+    flightCompany: db.flight_company || undefined,
+    flightNumber: db.flight_number || undefined,
+    flightDepartureDate: db.flight_departure_date || undefined,
+    flightDepartureTime: db.flight_departure_time || undefined,
+    flightDepartureAirport: db.flight_departure_airport || undefined,
+    flightArrivalDate: db.flight_arrival_date || undefined,
+    flightArrivalTime: db.flight_arrival_time || undefined,
+    flightArrivalAirport: db.flight_arrival_airport || undefined,
+    flightConfirmationCode: db.flight_confirmation_code || undefined,
+    flightNotes: db.flight_notes || undefined,
+    carRentalCompany: db.car_rental_company || undefined,
+    carRentalPickupDate: db.car_rental_pickup_date || undefined,
+    carRentalPickupTime: db.car_rental_pickup_time || undefined,
+    carRentalPickupLocation: db.car_rental_pickup_location || undefined,
+    carRentalReturnDate: db.car_rental_return_date || undefined,
+    carRentalReturnTime: db.car_rental_return_time || undefined,
+    carRentalReturnLocation: db.car_rental_return_location || undefined,
+    carRentalConfirmationCode: db.car_rental_confirmation_code || undefined,
+    carRentalNotes: db.car_rental_notes || undefined,
+    personalName: db.personal_name || undefined,
+    personalEmail: db.personal_email || undefined,
+    personalPhone: db.personal_phone || undefined,
+    personalDocument: db.personal_document || undefined,
+    personalEmergencyContact: db.personal_emergency_contact || undefined,
+    personalEmergencyPhone: db.personal_emergency_phone || undefined,
+    personalNotes: db.personal_notes || undefined,
+  };
+}
+
+export const userTravelInfoApi = {
+  async getByGroupId(groupId: string): Promise<UserTravelInfo | null> {
+    try {
+      const { data, error } = await supabase
+        .from('user_travel_info')
+        .select('*')
+        .eq('group_id', groupId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Não encontrado
+          return null;
+        }
+        throw error;
+      }
+
+      if (!data) return null;
+
+      return dbUserTravelInfoToUserTravelInfo(data);
+    } catch (error) {
+      console.error('Erro ao buscar informações de viagem:', error);
+      return null;
+    }
+  },
+
+  async upsert(info: UserTravelInfo): Promise<UserTravelInfo> {
+    const insertData: any = {
+      group_id: info.groupId,
+      hotel_name: info.hotelName || null,
+      hotel_address: info.hotelAddress || null,
+      hotel_checkin: info.hotelCheckin || null,
+      hotel_checkout: info.hotelCheckout || null,
+      hotel_phone: info.hotelPhone || null,
+      hotel_confirmation_code: info.hotelConfirmationCode || null,
+      hotel_notes: info.hotelNotes || null,
+      flight_company: info.flightCompany || null,
+      flight_number: info.flightNumber || null,
+      flight_departure_date: info.flightDepartureDate || null,
+      flight_departure_time: info.flightDepartureTime || null,
+      flight_departure_airport: info.flightDepartureAirport || null,
+      flight_arrival_date: info.flightArrivalDate || null,
+      flight_arrival_time: info.flightArrivalTime || null,
+      flight_arrival_airport: info.flightArrivalAirport || null,
+      flight_confirmation_code: info.flightConfirmationCode || null,
+      flight_notes: info.flightNotes || null,
+      car_rental_company: info.carRentalCompany || null,
+      car_rental_pickup_date: info.carRentalPickupDate || null,
+      car_rental_pickup_time: info.carRentalPickupTime || null,
+      car_rental_pickup_location: info.carRentalPickupLocation || null,
+      car_rental_return_date: info.carRentalReturnDate || null,
+      car_rental_return_time: info.carRentalReturnTime || null,
+      car_rental_return_location: info.carRentalReturnLocation || null,
+      car_rental_confirmation_code: info.carRentalConfirmationCode || null,
+      car_rental_notes: info.carRentalNotes || null,
+      personal_name: info.personalName || null,
+      personal_email: info.personalEmail || null,
+      personal_phone: info.personalPhone || null,
+      personal_document: info.personalDocument || null,
+      personal_emergency_contact: info.personalEmergencyContact || null,
+      personal_emergency_phone: info.personalEmergencyPhone || null,
+      personal_notes: info.personalNotes || null,
+    };
+
+    const { data, error } = await supabase
+      .from('user_travel_info')
+      .upsert(insertData, {
+        onConflict: 'group_id',
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return dbUserTravelInfoToUserTravelInfo(data);
+  },
+};

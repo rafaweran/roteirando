@@ -33,6 +33,18 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     price: '',
     currency: 'BRL',
     location: '',
+    address: '',
+  });
+
+  // Estado para endereço estruturado do passeio
+  const [tourAddressParts, setTourAddressParts] = useState({
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    zipCode: '',
   });
 
   const [prices, setPrices] = useState({
@@ -163,6 +175,149 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     }
   }, [trip, initialData]);
 
+  // Função para parsear endereço existente em partes
+  const parseAddress = (address: string) => {
+    if (!address) return { street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: '' };
+    
+    // Tentar parsear endereços no formato: "Rua, Número, Bairro, Cidade, Estado, CEP"
+    const parts: typeof tourAddressParts = { street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: '' };
+    
+    // Separar por vírgulas
+    const segments = address.split(',').map(s => s.trim()).filter(s => s);
+    
+    if (segments.length === 0) return parts;
+    
+    // Primeiro segmento geralmente tem rua e número/km
+    if (segments[0]) {
+      // Tentar detectar padrões: "RS-235", "km 52", "Rua X, 123", "Rua X 123"
+      const kmMatch = segments[0].match(/^(.+?)\s*(?:km|KM)\s*(\d+)$/i);
+      if (kmMatch) {
+        parts.street = kmMatch[1].trim();
+        parts.number = `km ${kmMatch[2]}`;
+      } else {
+        const streetNumMatch = segments[0].match(/^(.+?)(?:\s+)(\d+)$/);
+        if (streetNumMatch) {
+          parts.street = streetNumMatch[1].trim();
+          parts.number = streetNumMatch[2].trim();
+        } else {
+          parts.street = segments[0];
+        }
+      }
+    }
+    
+    // Tentar identificar cidade-estado no padrão "Cidade - Estado" ou "Cidade, Estado"
+    let cityStateIndex = -1;
+    for (let i = 1; i < segments.length; i++) {
+      const cityStateMatch = segments[i].match(/^(.+?)\s*-\s*(.+)$/);
+      if (cityStateMatch) {
+        parts.city = cityStateMatch[1].trim();
+        parts.state = cityStateMatch[2].trim();
+        cityStateIndex = i;
+        break;
+      }
+      // Se não encontrou com hífen, pode ser que cidade e estado estejam separados
+      if (segments[i].length <= 3 && i < segments.length - 1) {
+        // Pode ser estado (2 letras) seguido de CEP
+        parts.state = segments[i].toUpperCase();
+        cityStateIndex = i;
+      }
+    }
+    
+    // Segmentos entre rua e cidade-estado são bairro/complemento
+    if (cityStateIndex > 1) {
+      for (let i = 1; i < cityStateIndex; i++) {
+        if (!parts.neighborhood) {
+          parts.neighborhood = segments[i];
+        } else if (!parts.complement) {
+          parts.complement = segments[i];
+        }
+      }
+    } else if (segments.length > 1 && !parts.city) {
+      // Se não encontrou cidade-estado, segundo segmento pode ser bairro
+      parts.neighborhood = segments[1];
+      // Terceiro pode ser cidade
+      if (segments.length > 2) {
+        const nextCityStateMatch = segments[2].match(/^(.+?)\s*-\s*(.+)$/);
+        if (nextCityStateMatch) {
+          parts.city = nextCityStateMatch[1].trim();
+          parts.state = nextCityStateMatch[2].trim();
+        } else {
+          parts.city = segments[2];
+        }
+      }
+    }
+    
+    // Se ainda não encontrou cidade e estado, tentar nos últimos segmentos
+    if (!parts.city && segments.length >= 3) {
+      const secondLast = segments[segments.length - 2];
+      const last = segments[segments.length - 1];
+      
+      // Verificar se penúltimo é cidade e último é estado
+      if (last.length <= 3 && !parts.state) {
+        parts.state = last.toUpperCase();
+        parts.city = secondLast;
+      }
+    }
+    
+    // Último segmento pode ser CEP
+    const lastSegment = segments[segments.length - 1];
+    const zipMatch = lastSegment.match(/(\d{5}-?\d{3})/);
+    if (zipMatch) {
+      parts.zipCode = zipMatch[1].replace(/-/g, '');
+      // Remover CEP do último segmento se estava junto com outro dado
+      if (lastSegment !== zipMatch[0] && parts.city === lastSegment) {
+        parts.city = lastSegment.replace(zipMatch[0], '').trim();
+      }
+    }
+    
+    return parts;
+  };
+
+  // Função para formatar endereço completo (otimizado para geocodificação)
+  const formatFullAddress = (parts: typeof tourAddressParts): string => {
+    const partsArray: string[] = [];
+    
+    // Construir endereço na ordem ideal para geocodificação:
+    // Rua e número primeiro
+    if (parts.street) {
+      const streetPart = parts.number 
+        ? `${parts.street}, ${parts.number}`
+        : parts.street;
+      partsArray.push(streetPart);
+    }
+    
+    // Bairro
+    if (parts.neighborhood) {
+      partsArray.push(parts.neighborhood);
+    }
+    
+    // Cidade e Estado (importante para precisão)
+    if (parts.city && parts.state) {
+      partsArray.push(`${parts.city}, ${parts.state}`);
+    } else if (parts.city) {
+      partsArray.push(parts.city);
+    } else if (parts.state) {
+      partsArray.push(parts.state);
+    }
+    
+    // CEP (opcional, adiciona precisão)
+    if (parts.zipCode) {
+      const formattedZip = parts.zipCode.length === 8 
+        ? `${parts.zipCode.slice(0, 5)}-${parts.zipCode.slice(5)}`
+        : parts.zipCode;
+      partsArray.push(formattedZip);
+    }
+    
+    // Complemento (adicionar no final para não confundir geocodificação)
+    if (parts.complement && partsArray.length > 0) {
+      // Adicionar complemento entre rua e bairro se houver
+      const result = [partsArray[0], parts.complement, ...partsArray.slice(1)];
+      return result.join(', ');
+    }
+    
+    return partsArray.join(', ');
+  };
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -174,7 +329,13 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
         price: initialData.price.toString(),
         currency: 'BRL',
         location: '', // Not in mock data
+        address: initialData.address || '',
       });
+      
+      // Parsear endereço existente se houver
+      if (initialData.address) {
+        setTourAddressParts(parseAddress(initialData.address));
+      }
       if (initialData.links) {
         setLinks(initialData.links);
       }
@@ -200,6 +361,21 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       }
     }
   }, [initialData]);
+
+  // Sincronizar endereço estruturado com campo address
+  useEffect(() => {
+    const fullAddress = formatFullAddress(tourAddressParts);
+    console.log('📝 NewTourForm: Endereço formatado:', {
+      parts: tourAddressParts,
+      fullAddress: fullAddress
+    });
+    if (fullAddress) {
+      setFormData(prev => ({ ...prev, address: fullAddress }));
+    } else {
+      // Se todos os campos estiverem vazios, limpar o endereço
+      setFormData(prev => ({ ...prev, address: '' }));
+    }
+  }, [tourAddressParts]);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => {
@@ -377,6 +553,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
         imageUrl: imageUrls.length > 0 ? imageUrls[0] : undefined, // Primeira imagem como principal
         links: links.filter(l => l.title && l.url), // Filter out empty links
         tags: selectedTags.length > 0 ? selectedTags : undefined, // Tags selecionadas
+        address: formData.address || undefined, // Endereço do passeio
       };
 
       console.log('📝 NewTourForm: Enviando dados do passeio:', tourData);
@@ -921,6 +1098,77 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
             value={formData.location}
             onChange={(e) => handleChange('location', e.target.value)}
           />
+
+          {/* Address - Formulário Estruturado */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-text-primary flex items-center gap-2">
+              <MapPin size={16} />
+              Endereço do Passeio
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Input
+                id="tour-address-street"
+                label="Rua/Avenida"
+                placeholder="Ex: RS-235"
+                value={tourAddressParts.street}
+                onChange={(e) => setTourAddressParts(prev => ({ ...prev, street: e.target.value }))}
+              />
+              <Input
+                id="tour-address-number"
+                label="Número/Km"
+                placeholder="Ex: 123 ou km 52"
+                value={tourAddressParts.number}
+                onChange={(e) => setTourAddressParts(prev => ({ ...prev, number: e.target.value }))}
+              />
+              <Input
+                id="tour-address-complement"
+                label="Complemento (opcional)"
+                placeholder="Ex: Próximo ao restaurante"
+                value={tourAddressParts.complement}
+                onChange={(e) => setTourAddressParts(prev => ({ ...prev, complement: e.target.value }))}
+              />
+              <Input
+                id="tour-address-neighborhood"
+                label="Bairro (opcional)"
+                placeholder="Ex: Centro"
+                value={tourAddressParts.neighborhood}
+                onChange={(e) => setTourAddressParts(prev => ({ ...prev, neighborhood: e.target.value }))}
+              />
+              <Input
+                id="tour-address-city"
+                label="Cidade"
+                placeholder="Ex: Gramado"
+                value={tourAddressParts.city}
+                onChange={(e) => setTourAddressParts(prev => ({ ...prev, city: e.target.value }))}
+              />
+              <Input
+                id="tour-address-state"
+                label="Estado"
+                placeholder="Ex: RS"
+                value={tourAddressParts.state}
+                onChange={(e) => setTourAddressParts(prev => ({ ...prev, state: e.target.value.toUpperCase() }))}
+                maxLength={2}
+              />
+              <Input
+                id="tour-address-zipcode"
+                label="CEP (opcional)"
+                placeholder="Ex: 95400-000"
+                value={tourAddressParts.zipCode}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  if (value.length <= 8) {
+                    setTourAddressParts(prev => ({ ...prev, zipCode: value }));
+                  }
+                }}
+                maxLength={9}
+              />
+            </div>
+            {formData.address && (
+              <div className="text-xs text-text-secondary italic pt-1">
+                Endereço formatado: {formData.address}
+              </div>
+            )}
+          </div>
 
           {/* External Links Section */}
           <div className="space-y-3">

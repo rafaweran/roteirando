@@ -214,10 +214,10 @@ const DestinosGuide: React.FC = () => {
         </div>
 
         {/* Children Section */}
-        <div className="mb-10 sm:mb-12">
-          <div className="mb-4 sm:mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-1">Melhores opções para ir com crianças</h2>
-            <p className="text-text-secondary text-xs sm:text-sm">Destinos com atrações e infraestrutura adequadas para famílias</p>
+        <div className="mb-6 sm:mb-8 bg-gradient-to-br from-primary/5 via-surface/30 to-primary/5 rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-primary/20 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="mb-5 sm:mb-6 pb-4 border-b border-primary/10">
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-2">Melhores opções para ir com crianças</h2>
+            <p className="text-text-secondary text-sm sm:text-base leading-relaxed">Destinos com atrações e infraestrutura adequadas para famílias</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {childrenCities.map((city, idx) => (
@@ -227,10 +227,10 @@ const DestinosGuide: React.FC = () => {
         </div>
 
         {/* Elderly Section */}
-        <div className="mb-10 sm:mb-12">
-          <div className="mb-4 sm:mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-1">Melhores opções para ir com idosos</h2>
-            <p className="text-text-secondary text-xs sm:text-sm">Destinos com acessibilidade e ritmo adequado</p>
+        <div className="mb-6 sm:mb-8 bg-gradient-to-br from-primary/5 via-surface/30 to-primary/5 rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-primary/20 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="mb-5 sm:mb-6 pb-4 border-b border-primary/10">
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-2">Melhores opções para ir com idosos</h2>
+            <p className="text-text-secondary text-sm sm:text-base leading-relaxed">Destinos com acessibilidade e ritmo adequado</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {elderlyCities.map((city, idx) => (
@@ -240,18 +240,20 @@ const DestinosGuide: React.FC = () => {
         </div>
 
         {/* Caution Section */}
-        <div className="mb-10 sm:mb-12">
-          <div className="mb-4 sm:mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-1">Cidades que exigem mais cuidado</h2>
-            <p className="text-text-secondary text-xs sm:text-sm">Destinos que requerem mais preparo físico ou atenção especial</p>
+        <div className="mb-6 sm:mb-8 bg-gradient-to-br from-status-warning/5 via-surface/30 to-status-warning/5 rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-status-warning/20 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="mb-5 sm:mb-6 pb-4 border-b border-status-warning/10">
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-2">Cidades que exigem mais cuidado</h2>
+            <p className="text-text-secondary text-sm sm:text-base leading-relaxed">Destinos que requerem mais preparo físico ou atenção especial</p>
           </div>
           
           {/* Info Box */}
-          <div className="bg-status-warning/5 border border-status-warning/30 rounded-custom p-3 sm:p-4 mb-4 sm:mb-6">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <AlertTriangle size={18} className="sm:w-5 sm:h-5 text-status-warning flex-shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <h3 className="font-semibold text-text-primary mb-1 text-sm sm:text-base">Atenção especial necessária</h3>
+          <div className="bg-status-warning/10 border border-status-warning/30 rounded-custom p-4 sm:p-5 mb-5 sm:mb-6 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-status-warning/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={18} className="sm:w-5 sm:h-5 text-status-warning" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-text-primary mb-2 text-sm sm:text-base">Atenção especial necessária</h3>
                 <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
                   Estes destinos podem ser desafiadores para alguns grupos. Avalie bem antes de incluir no roteiro.
                 </p>
@@ -267,25 +269,33 @@ const DestinosGuide: React.FC = () => {
         </div>
 
         {/* Footer Info */}
-        <div className="bg-surface rounded-custom border border-border p-4 sm:p-6">
+        <div className="bg-gradient-to-br from-surface via-white to-surface rounded-xl sm:rounded-2xl border border-border/50 p-5 sm:p-6 shadow-sm">
           <div>
-            <h3 className="font-semibold text-text-primary mb-2 text-sm sm:text-base">Dicas importantes</h3>
-              <ul className="space-y-1.5 text-xs sm:text-sm text-text-secondary">
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1 flex-shrink-0">•</span>
-                  <span>Considere a distância e tempo de viagem ao planejar o dia</span>
+            <h3 className="font-semibold text-text-primary mb-4 text-base sm:text-lg pb-3 border-b border-border/50">Dicas importantes</h3>
+              <ul className="space-y-3 text-sm sm:text-base text-text-secondary">
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-primary text-xs font-bold">•</span>
+                  </div>
+                  <span className="leading-relaxed">Considere a distância e tempo de viagem ao planejar o dia</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1 flex-shrink-0">•</span>
-                  <span>Verifique as condições climáticas antes de sair</span>
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-primary text-xs font-bold">•</span>
+                  </div>
+                  <span className="leading-relaxed">Verifique as condições climáticas antes de sair</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1 flex-shrink-0">•</span>
-                  <span>Algumas atrações podem ter horários específicos - confirme antes</span>
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-primary text-xs font-bold">•</span>
+                  </div>
+                  <span className="leading-relaxed">Algumas atrações podem ter horários específicos - confirme antes</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1 flex-shrink-0">•</span>
-                  <span>Para idosos e crianças, priorize destinos mais próximos</span>
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-primary text-xs font-bold">•</span>
+                  </div>
+                  <span className="leading-relaxed">Para idosos e crianças, priorize destinos mais próximos</span>
                 </li>
               </ul>
           </div>

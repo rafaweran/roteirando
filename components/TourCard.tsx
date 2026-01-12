@@ -1,6 +1,6 @@
 import React from 'react';
-import { Clock, CalendarDays, ExternalLink, Check, Plus, Users, Edit2, ListChecks, X } from 'lucide-react';
-import { Tour } from '../types';
+import { Clock, CalendarDays, Check, Plus, Edit2, ListChecks, X } from 'lucide-react';
+import { Tour, Group } from '../types';
 import Button from './Button';
 
 interface TourCardProps {
@@ -10,6 +10,7 @@ interface TourCardProps {
   isUserView?: boolean;
   attendanceCount?: number; // Number of people going
   totalMembers?: number; // Total people in group
+  userGroup?: Group;
   onOpenAttendance?: (tour: Tour) => void;
   onCancelTour?: (tour: Tour) => void;
   onViewAttendanceList?: (tour: Tour) => void;
@@ -23,6 +24,7 @@ const TourCard: React.FC<TourCardProps> = ({
   isUserView, 
   attendanceCount = 0,
   totalMembers = 0,
+  userGroup,
   onOpenAttendance,
   onCancelTour,
   onViewAttendanceList,
@@ -98,16 +100,16 @@ const TourCard: React.FC<TourCardProps> = ({
       
       {/* Content */}
       <div className="p-4 sm:p-5 flex flex-col flex-1">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <h4 className="font-bold text-text-primary text-base sm:text-lg line-clamp-2 group-hover:text-primary transition-colors" title={tour.name}>
-            {tour.name}
-          </h4>
-        </div>
+        {/* Nome do Passeio */}
+        <h4 className="font-bold text-text-primary text-base sm:text-lg line-clamp-2 mb-3 group-hover:text-primary transition-colors" title={tour.name}>
+          {tour.name}
+        </h4>
         
-        <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+        {/* Data e Horário */}
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
           <div className="inline-flex items-center text-[10px] sm:text-xs font-medium text-text-secondary bg-surface px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-border/50">
             <CalendarDays size={12} className="sm:w-[14px] sm:h-[14px] mr-1 sm:mr-1.5 text-primary flex-shrink-0" />
-            <span className="whitespace-nowrap">{new Date(tour.date).toLocaleDateString()}</span>
+            <span className="whitespace-nowrap">{new Date(tour.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
           </div>
           <div className="inline-flex items-center text-[10px] sm:text-xs font-medium text-text-secondary bg-surface px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-border/50">
             <Clock size={12} className="sm:w-[14px] sm:h-[14px] mr-1 sm:mr-1.5 text-primary flex-shrink-0" />
@@ -117,100 +119,46 @@ const TourCard: React.FC<TourCardProps> = ({
 
         {/* Tags */}
         {tour.tags && tour.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {tour.tags.map((tag, idx) => (
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
+            {tour.tags.slice(0, 3).map((tag, idx) => (
               <span
                 key={idx}
-                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+                className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium bg-primary/10 text-primary border border-primary/20"
               >
                 {tag}
               </span>
             ))}
-          </div>
-        )}
-
-        {/* External Links Chips */}
-        {tour.links && tour.links.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {tour.links.map((link, idx) => (
-                <a 
-                  key={idx}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 px-2.5 py-1.5 rounded-full border border-primary/20 transition-colors"
-                  title={link.url}
-                >
-                {link.title}
-                <ExternalLink size={12} />
-              </a>
-            ))}
+            {tour.tags.length > 3 && (
+              <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium bg-surface text-text-secondary text-text-secondary border border-border/50">
+                +{tour.tags.length - 3}
+              </span>
+            )}
           </div>
         )}
         
-        <p className="text-sm text-text-secondary mb-4 line-clamp-2">
-          {tour.description}
-        </p>
-
-        {/* Preços Detalhados */}
-        {tour.prices && (
-          <div className="mb-4 p-3 bg-surface/50 rounded-lg border border-border">
-            <p className="text-xs font-semibold text-text-secondary mb-2 uppercase tracking-wide">Valores dos Ingressos</p>
-            <div className="space-y-2">
-              {tour.prices.inteira && (
-                <div className="flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-medium text-text-primary">Inteira</span>
-                    {tour.prices.inteira.description && (
-                      <p className="text-text-disabled text-[10px] mt-0.5">{tour.prices.inteira.description}</p>
-                    )}
-                  </div>
-                  <span className="font-bold text-primary">R$ {tour.prices.inteira.value.toFixed(2)}</span>
-                </div>
-              )}
-              {tour.prices.meia && (
-                <div className="flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-medium text-text-primary">Meia Entrada</span>
-                    {tour.prices.meia.description && (
-                      <p className="text-text-disabled text-[10px] mt-0.5">{tour.prices.meia.description}</p>
-                    )}
-                  </div>
-                  <span className="font-bold text-primary">R$ {tour.prices.meia.value.toFixed(2)}</span>
-                </div>
-              )}
-              {tour.prices.senior && (
-                <div className="flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-medium text-text-primary">Sênior</span>
-                    {tour.prices.senior.description && (
-                      <p className="text-text-disabled text-[10px] mt-0.5">{tour.prices.senior.description}</p>
-                    )}
-                  </div>
-                  <span className="font-bold text-primary">R$ {tour.prices.senior.value.toFixed(2)}</span>
-                </div>
-              )}
-            </div>
-          </div>
+        {/* Descrição */}
+        {tour.description && (
+          <p className="text-xs sm:text-sm text-text-secondary mb-4 line-clamp-3 flex-1">
+            {tour.description}
+          </p>
         )}
         
+        {/* Total Confirmado (apenas para usuários que confirmaram) */}
         {isSelected && isUserView && (
-          <div className="mt-auto mb-4 p-3 bg-surface rounded-xl border border-border flex items-center justify-between animate-in fade-in slide-in-from-bottom-2">
+          <div className="mt-auto mb-3 p-2.5 sm:p-3 bg-primary/5 rounded-lg border border-primary/20 flex items-center justify-between">
              <div className="flex flex-col">
-               <span className="text-[10px] uppercase tracking-wider font-bold text-text-secondary">Total Confirmado</span>
+               <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Confirmado</span>
                <span className="text-xs font-medium text-text-primary">{attendanceCount} pessoa{attendanceCount !== 1 ? 's' : ''}</span>
              </div>
-             <span className="font-bold text-primary text-lg">
+             <span className="font-bold text-primary text-base sm:text-lg">
                R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
              </span>
           </div>
         )}
         
+        {/* Ações */}
         <div 
-          className={`flex gap-3 pt-4 border-t border-surface ${!isSelected ? 'mt-auto' : ''}`}
+          className={`flex gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-surface ${!isSelected ? 'mt-auto' : ''}`}
           onClick={(e) => e.stopPropagation()}
         >
           {isUserView ? (
@@ -218,17 +166,18 @@ const TourCard: React.FC<TourCardProps> = ({
                {isSelected ? (
                  <button
                    onClick={() => onCancelTour && onCancelTour(tour)}
-                   className="w-full h-11 rounded-custom font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-white text-status-error border border-status-error/30 hover:bg-status-error/5 hover:border-status-error active:transform active:scale-[0.98]"
+                   className="w-full h-10 sm:h-11 rounded-lg font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-white text-status-error border border-status-error/30 hover:bg-status-error/5 hover:border-status-error active:transform active:scale-[0.98]"
                  >
-                   <X size={16} />
-                   Cancelar Passeio
+                   <X size={14} className="sm:w-4 sm:h-4" />
+                   <span className="hidden sm:inline">Cancelar Passeio</span>
+                   <span className="sm:hidden">Cancelar</span>
                  </button>
                ) : (
                  <button
                    onClick={() => onOpenAttendance && onOpenAttendance(tour)}
-                   className="w-full h-11 rounded-custom font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-primary text-white hover:bg-primary-hover shadow-sm active:transform active:scale-[0.98]"
+                   className="w-full h-10 sm:h-11 rounded-lg font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-primary text-white hover:bg-primary-hover shadow-sm active:transform active:scale-[0.98]"
                  >
-                   <Plus size={18} />
+                   <Plus size={16} className="sm:w-5 sm:h-5" />
                    Confirmar Presença
                  </button>
                )}
@@ -238,23 +187,23 @@ const TourCard: React.FC<TourCardProps> = ({
              <>
                <Button 
                  variant="outline" 
-                 className="h-9 text-xs flex-1"
+                 className="h-9 sm:h-10 text-xs flex-1"
                  onClick={(e) => {
                    e.stopPropagation();
                    onEditTour?.(tour);
                  }}
                >
-                 <Edit2 size={14} className="mr-2" />
+                 <Edit2 size={14} className="mr-1.5" />
                  Editar
                </Button>
                <Button 
-                 className="h-9 text-xs flex-1"
+                 className="h-9 sm:h-10 text-xs flex-1"
                  onClick={(e) => {
                    e.stopPropagation();
                    onViewAttendanceList?.(tour);
                  }}
                >
-                 <ListChecks size={16} className="mr-2" />
+                 <ListChecks size={14} className="mr-1.5" />
                  Ver Lista
                </Button>
              </>

@@ -461,6 +461,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                                   isUserView={isUser}
                                   attendanceCount={attendingMembers.length}
                                   totalMembers={totalMembers}
+                                  userGroup={isUser ? userGroup : undefined}
                                   onOpenAttendance={handleOpenAttendance}
                                   onCancelTour={handleOpenCancel}
                                   onViewAttendanceList={onViewTourAttendance}

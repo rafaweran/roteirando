@@ -12,7 +12,8 @@ import {
   Users,
   TentTree,
   Calendar,
-  BookOpen
+  BookOpen,
+  Luggage
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -26,6 +27,7 @@ interface LayoutProps {
   onNavigateAgenda?: () => void;
   onNavigateCityGuide?: () => void;
   onNavigateDestinosGuide?: () => void;
+  onNavigateMyTrip?: () => void;
   title?: string;
   userRole?: UserRole;
   userName?: string;
@@ -42,6 +44,7 @@ const Layout: React.FC<LayoutProps> = ({
   onNavigateAgenda,
   onNavigateCityGuide,
   onNavigateDestinosGuide,
+  onNavigateMyTrip,
   userRole = 'admin',
   userName = 'Admin User',
   userEmail = 'admin@travel.com'
@@ -159,6 +162,11 @@ const Layout: React.FC<LayoutProps> = ({
                   icon={Calendar} 
                   label="Meus passeios" 
                   onClick={onNavigateAgenda || onNavigateHome} 
+                />
+                <NavItem 
+                  icon={Luggage} 
+                  label="Minha Viagem" 
+                  onClick={onNavigateMyTrip || onNavigateHome} 
                 />
                 <NavItem 
                   icon={BookOpen} 
@@ -287,6 +295,14 @@ const Layout: React.FC<LayoutProps> = ({
                     label="Meus passeios" 
                     onClick={() => {
                       onNavigateAgenda?.();
+                      setIsMobileMenuOpen(false);
+                    }} 
+                  />
+                  <MobileNavItem 
+                    icon={Luggage} 
+                    label="Minha Viagem" 
+                    onClick={() => {
+                      onNavigateMyTrip?.();
                       setIsMobileMenuOpen(false);
                     }} 
                   />
