@@ -158,52 +158,52 @@ const FinancialView: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-custom border border-border p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <DollarSign size={24} className="text-primary" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="bg-white rounded-custom border border-border p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <DollarSign size={20} className="sm:w-6 sm:h-6 text-primary" />
             </div>
-            <TrendingUp size={20} className="text-status-success" />
+            <TrendingUp size={18} className="sm:w-5 sm:h-5 text-status-success" />
           </div>
-          <h3 className="text-sm font-medium text-text-secondary mb-1">Receita Total</h3>
-          <p className="text-2xl font-bold text-text-primary">
+          <h3 className="text-xs sm:text-sm font-medium text-text-secondary mb-1">Receita Total</h3>
+          <p className="text-xl sm:text-2xl font-bold text-text-primary break-words">
             R$ {financials.totalRevenue.toFixed(2).replace('.', ',')}
           </p>
         </div>
 
-        <div className="bg-white rounded-custom border border-border p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Calendar size={24} className="text-primary" />
+        <div className="bg-white rounded-custom border border-border p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <Calendar size={20} className="sm:w-6 sm:h-6 text-primary" />
             </div>
-            <TrendingUp size={20} className="text-status-success" />
+            <TrendingUp size={18} className="sm:w-5 sm:h-5 text-status-success" />
           </div>
-          <h3 className="text-sm font-medium text-text-secondary mb-1">Total de Passeios</h3>
-          <p className="text-2xl font-bold text-text-primary">{financials.totalTours}</p>
+          <h3 className="text-xs sm:text-sm font-medium text-text-secondary mb-1">Total de Passeios</h3>
+          <p className="text-xl sm:text-2xl font-bold text-text-primary">{financials.totalTours}</p>
         </div>
 
-        <div className="bg-white rounded-custom border border-border p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Users size={24} className="text-primary" />
+        <div className="bg-white rounded-custom border border-border p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <Users size={20} className="sm:w-6 sm:h-6 text-primary" />
             </div>
-            <TrendingUp size={20} className="text-status-success" />
+            <TrendingUp size={18} className="sm:w-5 sm:h-5 text-status-success" />
           </div>
-          <h3 className="text-sm font-medium text-text-secondary mb-1">Total de Grupos</h3>
-          <p className="text-2xl font-bold text-text-primary">{financials.totalGroups}</p>
+          <h3 className="text-xs sm:text-sm font-medium text-text-secondary mb-1">Total de Grupos</h3>
+          <p className="text-xl sm:text-2xl font-bold text-text-primary">{financials.totalGroups}</p>
         </div>
 
-        <div className="bg-white rounded-custom border border-border p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Users size={24} className="text-primary" />
+        <div className="bg-white rounded-custom border border-border p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <Users size={20} className="sm:w-6 sm:h-6 text-primary" />
             </div>
-            <TrendingUp size={20} className="text-status-success" />
+            <TrendingUp size={18} className="sm:w-5 sm:h-5 text-status-success" />
           </div>
-          <h3 className="text-sm font-medium text-text-secondary mb-1">Pessoas Confirmadas</h3>
-          <p className="text-2xl font-bold text-text-primary">{financials.confirmedPeople}</p>
-          <p className="text-xs text-text-disabled mt-1">de {financials.totalPeople} total</p>
+          <h3 className="text-xs sm:text-sm font-medium text-text-secondary mb-1">Pessoas Confirmadas</h3>
+          <p className="text-xl sm:text-2xl font-bold text-text-primary">{financials.confirmedPeople}</p>
+          <p className="text-[10px] sm:text-xs text-text-disabled mt-1">de {financials.totalPeople} total</p>
         </div>
       </div>
 

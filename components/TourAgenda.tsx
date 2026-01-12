@@ -124,29 +124,29 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-text-primary mb-2">Minha Agenda</h1>
-        <p className="text-text-secondary">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-2">Minha Agenda</h1>
+        <p className="text-sm sm:text-base text-text-secondary">
           {totalTours} passeio{totalTours !== 1 ? 's' : ''} confirmado{totalTours !== 1 ? 's' : ''}
         </p>
       </div>
 
       {/* Calendário Visual */}
-      <div className="bg-white rounded-[24px] border border-border p-6 mb-6 shadow-sm">
+      <div className="bg-white rounded-xl sm:rounded-[24px] border border-border p-3 sm:p-6 mb-4 sm:mb-6 shadow-sm">
         {/* Cabeçalho do Calendário */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-text-primary">
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-lg sm:text-xl font-bold text-text-primary">
               {MONTHS[month]} {year}
             </h2>
           </div>
 
           {/* Cabeçalho dos Dias */}
-          <div className="grid grid-cols-6 gap-3 mb-3">
+          <div className="grid grid-cols-6 gap-2 sm:gap-3 mb-2 sm:mb-3">
             {calendarDays.map((calendarDay) => (
               <div 
                 key={calendarDay.day} 
-                className="text-center text-xs font-semibold text-text-secondary py-2"
+                className="text-center text-[10px] sm:text-xs font-semibold text-text-secondary py-1.5 sm:py-2"
               >
                 {calendarDay.dayOfWeek}
               </div>
@@ -154,7 +154,7 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
           </div>
 
           {/* Dias 20 a 25 */}
-          <div className="grid grid-cols-6 gap-3">
+          <div className="grid grid-cols-6 gap-2 sm:gap-3">
             {calendarDays.map((calendarDay) => {
               const hasTours = calendarDay.tours.length > 0;
               const isToday = new Date().toDateString() === calendarDay.date.toDateString();
@@ -163,7 +163,7 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                 <div
                   key={calendarDay.day}
                   className={`
-                    min-h-[120px] rounded-xl border-2 p-3 transition-all duration-200
+                    min-h-[100px] sm:min-h-[120px] rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200
                     ${hasTours 
                       ? 'border-primary bg-primary/5 shadow-md' 
                       : 'border-border bg-surface/30'
@@ -232,18 +232,18 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
             if (calendarDay.tours.length === 0) return null;
 
             return (
-              <div key={calendarDay.day} className="bg-white rounded-[24px] border border-border overflow-hidden shadow-sm">
+              <div key={calendarDay.day} className="bg-white rounded-xl sm:rounded-[24px] border border-border overflow-hidden shadow-sm">
                 {/* Data Header */}
-                <div className="bg-primary/5 border-b border-border p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Calendar size={24} className="text-primary" />
+                <div className="bg-primary/5 border-b border-border p-3 sm:p-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Calendar size={20} className="sm:w-6 sm:h-6 text-primary" />
                     </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-text-primary capitalize">
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-base sm:text-lg font-bold text-text-primary capitalize truncate">
                         {calendarDay.dayOfWeek}, {calendarDay.day} de {MONTHS[month]}
                       </h2>
-                      <p className="text-sm text-text-secondary">{year}</p>
+                      <p className="text-xs sm:text-sm text-text-secondary">{year}</p>
                     </div>
                   </div>
                 </div>
@@ -253,13 +253,13 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                   {calendarDay.tours.map((tour) => (
                     <div 
                       key={tour.id} 
-                      className={`p-6 hover:bg-surface/30 transition-colors ${onViewTourDetail ? 'cursor-pointer' : ''}`}
+                      className={`p-4 sm:p-6 hover:bg-surface/30 transition-colors ${onViewTourDetail ? 'cursor-pointer' : ''}`}
                       onClick={() => onViewTourDetail && onViewTourDetail(tour)}
                     >
-                      <div className="flex flex-col md:flex-row md:items-start gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                         {/* Imagem */}
                         {tour.imageUrl && (
-                          <div className="w-full md:w-32 h-32 rounded-xl overflow-hidden flex-shrink-0">
+                          <div className="w-full sm:w-32 h-32 rounded-lg sm:rounded-xl overflow-hidden flex-shrink-0">
                             <img 
                               src={tour.imageUrl} 
                               alt={tour.name}
@@ -269,42 +269,42 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                         )}
 
                         {/* Conteúdo */}
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between gap-4 mb-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <CheckCircle2 size={20} className="text-status-success flex-shrink-0" />
-                                <h3 className="text-xl font-bold text-text-primary">{tour.name}</h3>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+                                <CheckCircle2 size={18} className="sm:w-5 sm:h-5 text-status-success flex-shrink-0" />
+                                <h3 className="text-base sm:text-xl font-bold text-text-primary break-words">{tour.name}</h3>
                               </div>
                               {tour.trip && (
-                                <p className="text-sm text-text-secondary mb-2">
+                                <p className="text-xs sm:text-sm text-text-secondary mb-2 break-words">
                                   {tour.trip.name} • {tour.trip.destination}
                                 </p>
                               )}
                             </div>
-                            <div className="text-right flex-shrink-0">
-                              <div className="text-lg font-bold text-primary">
+                            <div className="text-left sm:text-right flex-shrink-0">
+                              <div className="text-base sm:text-lg font-bold text-primary">
                                 R$ {tour.price.toFixed(2)}
                               </div>
-                              <div className="text-xs text-text-secondary">
+                              <div className="text-[10px] sm:text-xs text-text-secondary">
                                 por pessoa
                               </div>
                             </div>
                           </div>
 
                           {/* Informações */}
-                          <div className="flex flex-wrap gap-4 mb-3">
-                            <div className="flex items-center gap-2 text-sm text-text-secondary">
-                              <Clock size={16} className="text-primary" />
-                              {tour.time}
+                          <div className="flex flex-wrap gap-2 sm:gap-4 mb-2 sm:mb-3 text-xs sm:text-sm">
+                            <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary">
+                              <Clock size={14} className="sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                              <span className="whitespace-nowrap">{tour.time}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-text-secondary">
-                              <MapPin size={16} className="text-primary" />
-                              {tour.description || 'Local a definir'}
+                            <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary min-w-0">
+                              <MapPin size={14} className="sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                              <span className="truncate">{tour.description || 'Local a definir'}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-text-secondary">
-                              <Users size={16} className="text-primary" />
-                              {tour.attendanceCount} pessoa{tour.attendanceCount !== 1 ? 's' : ''} confirmada{tour.attendanceCount !== 1 ? 's' : ''}
+                            <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary">
+                              <Users size={14} className="sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                              <span className="whitespace-nowrap">{tour.attendanceCount} pessoa{tour.attendanceCount !== 1 ? 's' : ''} confirmada{tour.attendanceCount !== 1 ? 's' : ''}</span>
                             </div>
                             {tour.customDate && (
                               <div className="flex items-center gap-2 text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">

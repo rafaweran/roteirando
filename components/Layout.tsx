@@ -11,7 +11,8 @@ import {
   ChevronDown,
   Users,
   TentTree,
-  Calendar
+  Calendar,
+  BookOpen
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -23,6 +24,8 @@ interface LayoutProps {
   onNavigateGroups: () => void;
   onNavigateFinancial?: () => void;
   onNavigateAgenda?: () => void;
+  onNavigateCityGuide?: () => void;
+  onNavigateDestinosGuide?: () => void;
   title?: string;
   userRole?: UserRole;
   userName?: string;
@@ -37,6 +40,8 @@ const Layout: React.FC<LayoutProps> = ({
   onNavigateGroups,
   onNavigateFinancial,
   onNavigateAgenda,
+  onNavigateCityGuide,
+  onNavigateDestinosGuide,
   userRole = 'admin',
   userName = 'Admin User',
   userEmail = 'admin@travel.com'
@@ -119,15 +124,15 @@ const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Top Header Navigation */}
-      <header className="bg-white border-b border-border h-16 fixed top-0 left-0 right-0 z-40 px-4 md:px-8 shadow-sm/50">
+      <header className="bg-white border-b border-border h-16 fixed top-0 left-0 right-0 z-40 px-3 sm:px-4 md:px-8 shadow-sm/50">
         <div className="max-w-[1600px] mx-auto h-full flex items-center justify-between">
           
           {/* Logo */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={onNavigateHome}>
+          <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" onClick={onNavigateHome}>
             <img 
               src="/assets/logo.svg?v=2" 
               alt="Roteirando" 
-              className="h-6 object-contain"
+              className="h-5 sm:h-6 object-contain flex-shrink-0"
               onError={(e) => {
                 // Fallback para ícone se a logo não existir
                 const target = e.target as HTMLImageElement;
@@ -136,8 +141,8 @@ const Layout: React.FC<LayoutProps> = ({
                 if (fallback) fallback.style.display = 'flex';
               }}
             />
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white shadow-md shadow-primary/20 hidden" style={{ display: 'none' }}>
-              <Map size={18} />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-lg flex items-center justify-center text-white shadow-md shadow-primary/20 hidden flex-shrink-0" style={{ display: 'none' }}>
+              <Map size={16} className="sm:w-[18px] sm:h-[18px]" />
             </div>
           </div>
 
@@ -154,6 +159,11 @@ const Layout: React.FC<LayoutProps> = ({
                   icon={Calendar} 
                   label="Meus passeios" 
                   onClick={onNavigateAgenda || onNavigateHome} 
+                />
+                <NavItem 
+                  icon={BookOpen} 
+                  label="Guia de Destinos" 
+                  onClick={onNavigateDestinosGuide || (() => console.warn('onNavigateDestinosGuide não está definido'))}
                 />
               </>
             ) : (
@@ -190,6 +200,11 @@ const Layout: React.FC<LayoutProps> = ({
                   label="Administrativo" 
                   onClick={onNavigateFinancial || (() => {})}
                 />
+                <NavItem 
+                  icon={BookOpen} 
+                  label="Guia de Cidades" 
+                  onClick={onNavigateCityGuide || onNavigateHome}
+                />
                 <NavItem icon={Settings} label="Configurações" />
               </>
             )}
@@ -197,20 +212,20 @@ const Layout: React.FC<LayoutProps> = ({
 
           {/* User & Actions (Right) */}
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-3 pl-4 border-l border-border">
-              <div className="text-right hidden lg:block">
-                <p className="text-sm font-semibold text-text-primary leading-none">{userName}</p>
-                <p className="text-xs text-text-secondary mt-1">{userEmail}</p>
+            <div className="hidden md:flex items-center gap-2 lg:gap-3 pl-2 lg:pl-4 border-l border-border">
+              <div className="text-right hidden xl:block">
+                <p className="text-sm font-semibold text-text-primary leading-none truncate max-w-[150px]">{userName}</p>
+                <p className="text-xs text-text-secondary mt-1 truncate max-w-[150px]">{userEmail}</p>
               </div>
-              <div className="w-9 h-9 bg-surface rounded-full flex items-center justify-center text-text-secondary border border-border">
-                <UserCircle size={20} />
+              <div className="w-8 h-8 lg:w-9 lg:h-9 bg-surface rounded-full flex items-center justify-center text-text-secondary border border-border flex-shrink-0">
+                <UserCircle size={18} className="lg:w-5 lg:h-5" />
               </div>
               <button 
                 onClick={onLogout}
-                className="p-2 text-text-secondary hover:text-status-error hover:bg-status-error/5 rounded-full transition-colors"
+                className="p-1.5 lg:p-2 text-text-secondary hover:text-status-error hover:bg-status-error/5 rounded-full transition-colors flex-shrink-0"
                 title="Sair"
               >
-                <LogOut size={20} />
+                <LogOut size={18} className="lg:w-5 lg:h-5" />
               </button>
             </div>
 
@@ -272,6 +287,14 @@ const Layout: React.FC<LayoutProps> = ({
                     label="Meus passeios" 
                     onClick={() => {
                       onNavigateAgenda?.();
+                      setIsMobileMenuOpen(false);
+                    }} 
+                  />
+                  <MobileNavItem 
+                    icon={BookOpen} 
+                    label="Guia de Destinos" 
+                    onClick={() => {
+                      onNavigateDestinosGuide?.();
                       setIsMobileMenuOpen(false);
                     }} 
                   />
@@ -346,6 +369,14 @@ const Layout: React.FC<LayoutProps> = ({
                       setIsMobileMenuOpen(false);
                     }}
                   />
+                  <MobileNavItem 
+                    icon={BookOpen} 
+                    label="Guia de Cidades" 
+                    onClick={() => {
+                      onNavigateCityGuide?.();
+                      setIsMobileMenuOpen(false);
+                    }}
+                  />
                   <MobileNavItem icon={Settings} label="Configurações" />
                 </>
               )}
@@ -374,7 +405,7 @@ const Layout: React.FC<LayoutProps> = ({
       )}
 
       {/* Main Content */}
-      <main className="flex-1 w-full pt-24 pb-8 px-4 md:px-8 max-w-[1600px] mx-auto transition-all">
+      <main className="flex-1 w-full pt-20 sm:pt-24 pb-6 sm:pb-8 px-3 sm:px-4 md:px-8 max-w-[1600px] mx-auto transition-all">
         {children}
       </main>
     </div>

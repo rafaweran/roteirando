@@ -13,14 +13,18 @@ import TourDetailPage from './components/TourDetailPage';
 import FinancialView from './components/FinancialView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import TourAgenda from './components/TourAgenda';
+import CityGuide from './components/CityGuide';
+import DestinosGuide from './components/DestinosGuide';
+import { ToastProvider, useToast } from './hooks/useToast';
 import { Trip, Tour, UserRole, Group } from './types';
 import { tripsApi, toursApi, groupsApi } from './lib/database';
 import { Plus } from 'lucide-react';
 import Button from './components/Button';
 
-type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'tour-detail' | 'financial' | 'agenda';
+type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'tour-detail' | 'financial' | 'agenda' | 'city-guide' | 'destinos-guide';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { showSuccess, showError, showWarning } = useToast();
   const [currentView, setCurrentView] = useState<View>('login');
   
   // User Session State
@@ -95,54 +99,67 @@ const App: React.FC = () => {
   }, [currentView, userRole]);
 
   const handleLoginSuccess = async (role: UserRole, group?: Group) => {
+    console.log('🟢 [App] handleLoginSuccess chamado', { role, group: group?.name });
     try {
       setUserRole(role);
+      console.log('✅ [App] userRole atualizado para:', role);
+      
       if (role === 'user' && group) {
-        console.log('🔐 Login de usuário:', { groupId: group.id, tripId: group.tripId });
+        console.log('👤 [App] Login como usuário, configurando...');
         setCurrentUserGroup(group);
         setSelectedTripId(group.tripId);
+        console.log('✅ [App] Estado inicial configurado');
         
-        // Recarregar grupo do banco para ter dados atualizados
-        try {
-          const updatedGroup = await groupsApi.getById(group.id);
-          if (updatedGroup) {
-            setCurrentUserGroup(updatedGroup);
-            
-            // Verificar se precisa alterar senha (primeiro acesso)
-            if (!updatedGroup.passwordChanged) {
-              console.log('🔑 Primeiro acesso detectado - mostrando modal de alteração de senha');
-              setShowChangePasswordModal(true);
-            }
+        // Carregar dados em paralelo para melhor performance
+        console.log('📥 [App] Carregando dados em paralelo...');
+        const [updatedGroup] = await Promise.all([
+          groupsApi.getById(group.id).catch(() => {
+            console.log('⚠️ [App] Erro ao buscar grupo atualizado, usando original');
+            return group;
+          }),
+          loadTrips(),
+          loadTours(),
+          loadGroups()
+        ]);
+        console.log('✅ [App] Dados carregados');
+        
+        if (updatedGroup) {
+          setCurrentUserGroup(updatedGroup);
+          console.log('✅ [App] Grupo atualizado no estado');
+          
+          // Verificar se precisa alterar senha (primeiro acesso)
+          if (!updatedGroup.passwordChanged) {
+            console.log('🔐 [App] Primeiro acesso detectado, abrindo modal de senha');
+            setShowChangePasswordModal(true);
           }
-        } catch (err) {
-          console.error('Erro ao recarregar grupo:', err);
         }
-        
-        // Carregar dados da viagem do usuário
-        await loadTrips();
-        await loadTours();
-        await loadGroups();
         
         // Garantir que o selectedTripId está definido
         if (group.tripId) {
           setSelectedTripId(group.tripId);
-          console.log('✅ TripId definido:', group.tripId);
+          console.log('✅ [App] selectedTripId definido:', group.tripId);
         }
         
-        // Aguardar um pouco para garantir que os dados foram carregados
-        setTimeout(() => {
-          setCurrentView('trip-details'); // User goes straight to their trip
-        }, 100);
+        // Navegar diretamente sem setTimeout
+        console.log('🚀 [App] Navegando para trip-details');
+        setCurrentView('trip-details');
+        console.log('✅ [App] currentView atualizado para trip-details');
       } else {
-        // Admin: carregar todos os dados
-        await loadTrips();
-        await loadTours();
-        await loadGroups();
-        setCurrentView('dashboard'); // Admin goes to dashboard
+        console.log('👨‍💼 [App] Login como admin, carregando dados...');
+        // Admin: carregar todos os dados em paralelo
+        await Promise.all([
+          loadTrips(),
+          loadTours(),
+          loadGroups()
+        ]);
+        console.log('✅ [App] Dados do admin carregados');
+        console.log('🚀 [App] Navegando para dashboard');
+        setCurrentView('dashboard');
+        console.log('✅ [App] currentView atualizado para dashboard');
       }
     } catch (err) {
-      console.error('❌ Erro no handleLoginSuccess:', err);
-      alert('Erro ao fazer login. Tente novamente.');
+      console.error('❌ [App] Erro no handleLoginSuccess:', err);
+      showError('Erro ao fazer login. Tente novamente.');
     }
   };
 
@@ -201,6 +218,18 @@ const App: React.FC = () => {
   const handleNavigateFinancial = () => {
     setCurrentView('financial');
     setSelectedTripId(null);
+  };
+
+  const handleNavigateCityGuide = () => {
+    setCurrentView('city-guide');
+    setSelectedTripId(null);
+  };
+
+  const handleNavigateDestinosGuide = () => {
+    console.log('🚀 Navegando para Guia de Destinos');
+    setCurrentView('destinos-guide');
+    setSelectedTripId(null);
+    console.log('✅ currentView definido como: destinos-guide');
   };
 
   const handleNewTourClick = () => {
@@ -285,10 +314,10 @@ const App: React.FC = () => {
       setLoading(true);
       if (editingTour) {
         await toursApi.update(editingTour.id, tourData);
-        alert('✅ Passeio atualizado com sucesso!');
+        showSuccess('Passeio atualizado com sucesso!');
       } else {
         await toursApi.create(tourData);
-        alert('✅ Seu passeio foi criado com sucesso!');
+        showSuccess('Seu passeio foi criado com sucesso!');
       }
       // Recarregar passeios após salvar
       await loadTours();
@@ -301,7 +330,7 @@ const App: React.FC = () => {
       setEditingTour(null);
     } catch (err: any) {
       console.error('Erro ao salvar passeio:', err);
-      alert(`❌ Erro ao salvar passeio: ${err.message || 'Erro desconhecido'}`);
+      showError(`Erro ao salvar passeio: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -347,7 +376,7 @@ const App: React.FC = () => {
         // Recarregar grupos após atualizar
         await loadGroups();
         
-        alert('✅ Grupo atualizado com sucesso!');
+        showSuccess('Grupo atualizado com sucesso!');
       } else {
         // CRIAR NOVO GRUPO
         // Garantir que password_changed seja false para novos grupos
@@ -376,7 +405,7 @@ const App: React.FC = () => {
         // Recarregar grupos após salvar
         await loadGroups();
         
-        alert('✅ Grupo criado com sucesso! O responsável receberá as credenciais de acesso.');
+        showSuccess('Grupo criado com sucesso! O responsável receberá as credenciais de acesso.');
       }
       
       // Limpar estado de edição
@@ -397,7 +426,7 @@ const App: React.FC = () => {
         hint: err.hint,
         code: err.code
       });
-      alert(`❌ Erro ao salvar grupo: ${err.message || 'Erro desconhecido'}`);
+      showError(`Erro ao salvar grupo: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -419,7 +448,7 @@ const App: React.FC = () => {
       
       // Validação básica
       if (!tripData.name || !tripData.destination || !tripData.startDate || !tripData.endDate) {
-        alert('Por favor, preencha todos os campos obrigatórios.');
+        showWarning('Por favor, preencha todos os campos obrigatórios.');
         setLoading(false);
         return;
       }
@@ -466,12 +495,12 @@ const App: React.FC = () => {
       setCurrentView('dashboard');
       
       // Mostrar feedback de sucesso
-      alert('Viagem criada com sucesso!');
+      showSuccess('Viagem criada com sucesso!');
       
     } catch (err: any) {
       console.error('❌ Erro ao salvar viagem:', err);
       const errorMessage = err.message || err.error?.message || 'Erro desconhecido ao salvar viagem';
-      alert(`Erro ao salvar viagem: ${errorMessage}`);
+      showError(`Erro ao salvar viagem: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -525,7 +554,7 @@ const App: React.FC = () => {
       await loadGroups();
     } catch (error: any) {
       console.error('❌ Erro ao salvar presença:', error);
-      alert(`Erro ao salvar presença: ${error.message || 'Erro desconhecido'}`);
+      showError(`Erro ao salvar presença: ${error.message || 'Erro desconhecido'}`);
       throw error; // Re-throw para que o componente possa tratar
     }
   };
@@ -554,6 +583,8 @@ const App: React.FC = () => {
       onNavigateGroups={handleNavigateGroups}
       onNavigateFinancial={handleNavigateFinancial}
       onNavigateAgenda={handleNavigateAgenda}
+      onNavigateCityGuide={handleNavigateCityGuide}
+      onNavigateDestinosGuide={handleNavigateDestinosGuide}
       userRole={userRole}
       userName={userRole === 'user' ? currentUserGroup?.leaderName : 'Admin User'}
       userEmail={userRole === 'user' ? currentUserGroup?.leaderEmail : 'admin@travel.com'}
@@ -727,6 +758,14 @@ const App: React.FC = () => {
         />
       )}
 
+      {currentView === 'city-guide' && (
+        <CityGuide />
+      )}
+
+      {currentView === 'destinos-guide' && (
+        <DestinosGuide />
+      )}
+
       {/* Modal de Alteração de Senha (Primeiro Acesso) */}
       {userRole === 'user' && currentUserGroup && (
         <ChangePasswordModal
@@ -737,6 +776,14 @@ const App: React.FC = () => {
         />
       )}
     </Layout>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 };
 

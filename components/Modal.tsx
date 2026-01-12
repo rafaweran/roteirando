@@ -56,7 +56,7 @@ const Modal: React.FC<ModalProps> = ({
       {/* Modal Content */}
       <div 
         ref={modalRef}
-        className="bg-white rounded-[20px] shadow-2xl w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+        className="bg-white rounded-xl sm:rounded-[20px] shadow-2xl w-full max-w-md mx-4 sm:mx-auto relative z-10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
       >
         <div className="p-6">
           <div className="flex items-start gap-4">

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { CheckCircle2, XCircle, X } from 'lucide-react';
+import { CheckCircle2, XCircle, X, Info, AlertTriangle } from 'lucide-react';
 
-export type ToastType = 'success' | 'error';
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastProps {
   message: string;
@@ -16,66 +16,94 @@ const Toast: React.FC<ToastProps> = ({
   type, 
   isVisible, 
   onClose, 
-  duration = 4000 
+  duration = 5000 
 }) => {
   useEffect(() => {
     if (isVisible && duration > 0) {
-      console.log('🔔 Toast visível, iniciando timer de', duration, 'ms');
       const timer = setTimeout(() => {
-        console.log('🔔 Timer do toast expirado, fechando...');
-        try {
-          onClose();
-        } catch (error) {
-          console.error('❌ Erro ao fechar toast:', error);
-        }
+        onClose();
       }, duration);
-      return () => {
-        console.log('🔔 Limpando timer do toast');
-        clearTimeout(timer);
-      };
+      return () => clearTimeout(timer);
     }
   }, [isVisible, duration, onClose]);
 
-  if (!isVisible) {
-    console.log('🔔 Toast não está visível, não renderizando');
-    return null;
-  }
+  if (!isVisible) return null;
 
-  console.log('🔔 Renderizando toast:', { message, type, isVisible });
+  const config = {
+    success: {
+      bg: 'bg-status-success',
+      icon: CheckCircle2,
+      iconColor: 'text-white',
+      border: 'border-status-success/30',
+    },
+    error: {
+      bg: 'bg-status-error',
+      icon: XCircle,
+      iconColor: 'text-white',
+      border: 'border-status-error/30',
+    },
+    warning: {
+      bg: 'bg-status-warning',
+      icon: AlertTriangle,
+      iconColor: 'text-white',
+      border: 'border-status-warning/30',
+    },
+    info: {
+      bg: 'bg-primary',
+      icon: Info,
+      iconColor: 'text-white',
+      border: 'border-primary/30',
+    },
+  };
 
-  const bgColor = type === 'success' ? 'bg-status-success' : 'bg-status-error';
-  const Icon = type === 'success' ? CheckCircle2 : XCircle;
+  const { bg, icon: Icon, iconColor, border } = config[type];
 
-  try {
-    return (
-      <div className="fixed top-4 right-4 z-[9999] animate-in fade-in slide-in-from-top-2 duration-300">
-        <div className={`
-          ${bgColor} text-white rounded-lg shadow-lg p-4 pr-10 min-w-[300px] max-w-md
-          flex items-start gap-3 relative
-        `}>
-          <Icon size={20} className="flex-shrink-0 mt-0.5" />
-          <p className="flex-1 text-sm font-medium">{message || 'Mensagem vazia'}</p>
-          <button
-            onClick={() => {
-              console.log('🔔 Botão de fechar toast clicado');
-              try {
-                onClose();
-              } catch (error) {
-                console.error('❌ Erro ao fechar toast no botão:', error);
-              }
-            }}
-            className="absolute top-2 right-2 text-white/80 hover:text-white transition-colors"
-            aria-label="Fechar"
-          >
-            <X size={16} />
+  return (
+    <div className="fixed top-4 right-4 z-[9999] animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className={`
+        ${bg} text-white rounded-xl shadow-2xl p-4 pr-10 min-w-[320px] max-w-md
+        flex items-start gap-3 relative border-2 ${border}
+        backdrop-blur-sm
+      `}>
+        <div className="flex-shrink-0">
+          <Icon size={22} className={iconColor} strokeWidth={2.5} />
+        </div>
+        <p className="flex-1 text-sm font-medium leading-relaxed pr-2">
+          {message}
+        </p>
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-white/80 hover:text-white transition-all hover:scale-110 active:scale-95"
+          aria-label="Fechar"
+        >
+          <X size={18} strokeWidth={2.5} />
         </button>
+        
+        {/* Progress bar */}
+        {duration > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 rounded-b-xl overflow-hidden">
+            <div 
+              className="h-full bg-white/40 animate-shrink-width"
+              style={{
+                animation: `shrink ${duration}ms linear forwards`,
+              }}
+            />
+          </div>
+        )}
       </div>
+      
+      <style>{`
+        @keyframes shrink {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+      `}</style>
     </div>
-    );
-  } catch (error) {
-    console.error('❌ Erro ao renderizar toast:', error);
-    return null;
-  }
+  );
 };
 
 export default Toast;

@@ -6,6 +6,7 @@ import GroupCard from './GroupCard';
 import Button from './Button';
 import TourAttendanceModal from './TourAttendanceModal';
 import CancelTourModal from './CancelTourModal';
+import { useToast } from '../hooks/useToast';
 
 interface TripDetailsProps {
   trip: Trip;
@@ -50,6 +51,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [clearTourFilter, setClearTourFilter] = useState(false);
+  const { showSuccess } = useToast();
 
   const isUser = userRole === 'user';
 
@@ -79,12 +81,12 @@ const TripDetails: React.FC<TripDetailsProps> = ({
       try {
         // Cancelar = passar array vazio + motivo
         await onSaveAttendance(selectedTourForCancel.id, [], reason);
-        alert('✅ Passeio cancelado com sucesso!');
+        showSuccess('Passeio cancelado com sucesso!');
         setCancelModalOpen(false);
         setSelectedTourForCancel(null);
       } catch (error: any) {
         console.error('Erro ao cancelar passeio:', error);
-        alert(`Erro ao cancelar passeio: ${error.message || 'Erro desconhecido'}`);
+        // O erro já será mostrado pelo toast no App.tsx
       }
     }
   };
@@ -194,7 +196,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
       </button>
 
       {/* Hero / Header */}
-      <div className="bg-white rounded-[24px] border border-border p-6 md:p-8 mb-8 shadow-sm relative overflow-hidden">
+      <div className="bg-white rounded-xl sm:rounded-[24px] border border-border p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 shadow-sm relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row gap-6 md:items-start justify-between">
           <div className="flex-1 order-2 md:order-1">
             <div className="flex items-center gap-2 mb-2">
@@ -202,20 +204,20 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 {trip.status === 'active' ? 'Em andamento' : trip.status === 'upcoming' ? 'Confirmada' : 'Finalizada'}
               </span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">{trip.name}</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-3 sm:mb-4 break-words">{trip.name}</h1>
             
-            <div className="flex flex-wrap gap-4 md:gap-6 text-text-secondary mb-6">
-              <div className="flex items-center bg-surface px-3 py-1.5 rounded-lg">
-                <MapPin size={18} className="mr-2 text-primary" />
-                {trip.destination}
+            <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6 text-text-secondary mb-4 sm:mb-6">
+              <div className="flex items-center bg-surface px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm">
+                <MapPin size={16} className="sm:w-[18px] sm:h-[18px] mr-1.5 sm:mr-2 text-primary flex-shrink-0" />
+                <span className="truncate max-w-[200px] sm:max-w-none">{trip.destination}</span>
               </div>
-              <div className="flex items-center bg-surface px-3 py-1.5 rounded-lg">
-                <Calendar size={18} className="mr-2 text-primary" />
-                {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}
+              <div className="flex items-center bg-surface px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm">
+                <Calendar size={16} className="sm:w-[18px] sm:h-[18px] mr-1.5 sm:mr-2 text-primary flex-shrink-0" />
+                <span className="whitespace-nowrap">{new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}</span>
               </div>
             </div>
 
-            <p className="text-text-secondary leading-relaxed max-w-2xl mb-6">
+            <p className="text-sm sm:text-base text-text-secondary leading-relaxed max-w-2xl mb-4 sm:mb-6">
               {trip.description}
             </p>
 
@@ -238,7 +240,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
             )}
           </div>
           
-          <div className="w-full md:w-32 h-48 md:h-32 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 order-1 md:order-2 relative group cursor-pointer">
+          <div className="w-full sm:w-48 md:w-32 h-48 sm:h-48 md:h-32 rounded-xl sm:rounded-2xl overflow-hidden shadow-inner flex-shrink-0 order-1 md:order-2 relative group cursor-pointer">
             <img src={trip.imageUrl} alt={trip.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
             {!isUser && (
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center backdrop-blur-[2px]">
@@ -257,28 +259,32 @@ const TripDetails: React.FC<TripDetailsProps> = ({
         
         {/* Tab Navigation - Only show if Admin */}
         {!isUser && (
-            <div className="flex items-center gap-2 border-b border-border">
+            <div className="flex items-center gap-1 sm:gap-2 border-b border-border overflow-x-auto scrollbar-hide">
             <button
                 onClick={() => setActiveTab('tours')}
-                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 font-medium text-xs sm:text-sm border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'tours' 
                     ? 'border-primary text-primary' 
                     : 'border-transparent text-text-secondary hover:text-text-primary'
                 }`}
             >
-                <MapIcon size={18} />
-                Passeios ({tours.length})
+                <MapIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span className="hidden xs:inline">Passeios</span>
+                <span className="xs:hidden">Passeios</span>
+                <span className="ml-1">({tours.length})</span>
             </button>
             <button
                 onClick={() => setActiveTab('groups')}
-                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 font-medium text-xs sm:text-sm border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'groups' 
                     ? 'border-primary text-primary' 
                     : 'border-transparent text-text-secondary hover:text-text-primary'
                 }`}
             >
-                <Users size={18} />
-                Famílias / Grupos ({clearTourFilter || !selectedTourId ? groups.length : filteredGroups.length})
+                <Users size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span className="hidden sm:inline">Famílias / Grupos</span>
+                <span className="sm:hidden">Grupos</span>
+                <span className="ml-1">({clearTourFilter || !selectedTourId ? groups.length : filteredGroups.length})</span>
             </button>
             </div>
         )}
@@ -305,7 +311,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
             {!isUser && activeTab === 'tours' && (
               <Button 
                 variant="outline"
-                className="h-10 text-sm px-4 hidden sm:flex"
+                className="h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4 hidden sm:flex"
                 onClick={() => setActiveTab('groups')}
               >
                 <Users size={16} className="mr-2" />
@@ -434,7 +440,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
 
                         {/* Tours da Categoria */}
                         {!isCollapsed && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 pt-0 border-t border-border">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 p-3 sm:p-4 pt-0 border-t border-border">
                             {categoryTours.map(tour => {
                               // Compatibilidade: pode ser TourAttendanceInfo ou string[] (versão antiga)
                               const attendance = userGroup?.tourAttendance?.[tour.id];
@@ -501,7 +507,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                   </p>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {filteredGroups.map(group => (
                   <GroupCard key={group.id} group={group} />
                 ))}

@@ -209,34 +209,35 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onViewTourGr
     <>
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-text-primary">Todos os Passeios</h1>
-            <p className="text-text-secondary mt-1">Gerencie os passeios de todas as viagens cadastradas</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Todos os Passeios</h1>
+            <p className="text-xs sm:text-sm text-text-secondary mt-1">Gerencie os passeios de todas as viagens cadastradas</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {onAddTour && (
               <Button 
-                className="h-10 px-4 text-sm"
+                className="h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm flex-shrink-0"
                 onClick={onAddTour}
               >
-                <Plus size={18} className="mr-2" />
-                Novo Passeio
+                <Plus size={16} className="sm:w-[18px] sm:h-[18px] mr-1.5 sm:mr-2" />
+                <span className="hidden xs:inline">Novo Passeio</span>
+                <span className="xs:hidden">Novo</span>
               </Button>
             )}
-            <Button variant="outline" className="h-10 px-4 text-sm">
-              <Download size={18} className="mr-2" />
-              Exportar
+            <Button variant="outline" className="h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm flex-shrink-0">
+              <Download size={16} className="sm:w-[18px] sm:h-[18px] mr-1.5 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
             <Button 
               variant={showFilters ? 'primary' : 'outline'} 
-              className="h-10 px-4 text-sm relative"
+              className="h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm relative flex-shrink-0"
               onClick={() => setShowFilters(!showFilters)}
             >
-              <Filter size={18} className="mr-2" />
-              Filtrar
+              <Filter size={16} className="sm:w-[18px] sm:h-[18px] mr-1.5 sm:mr-2" />
+              <span className="hidden sm:inline">Filtrar</span>
               {activeFiltersCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-status-error text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-surface">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 sm:w-5 sm:h-5 bg-status-error text-white text-[9px] sm:text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-surface">
                   {activeFiltersCount}
                 </span>
               )}
@@ -245,7 +246,7 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onViewTourGr
         </div>
 
         {/* Filter & Search Container */}
-        <div className="bg-white p-5 rounded-custom border border-border mb-6 shadow-sm space-y-5 transition-all duration-300">
+        <div className="bg-white p-3 sm:p-5 rounded-custom border border-border mb-4 sm:mb-6 shadow-sm space-y-4 sm:space-y-5 transition-all duration-300">
           
           {/* Advanced Filters Section */}
           {showFilters && (

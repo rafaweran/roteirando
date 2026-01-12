@@ -91,20 +91,20 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl md:text-3xl font-bold text-text-primary">Detalhes do Passeio</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-primary">Detalhes do Passeio</h1>
           {trip && (
             <p className="text-sm text-text-secondary mt-1">{trip.name} • {trip.destination}</p>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Coluna Principal - Informações */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Imagem */}
           {tour.imageUrl && (
-            <div className="bg-white rounded-[24px] border border-border overflow-hidden">
-              <div className="w-full h-64 md:h-96 overflow-hidden relative">
+            <div className="bg-white rounded-xl sm:rounded-[24px] border border-border overflow-hidden">
+              <div className="w-full h-48 sm:h-64 md:h-96 overflow-hidden relative">
                 <img 
                   src={tour.imageUrl} 
                   alt={tour.name}
@@ -123,10 +123,10 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
           )}
 
           {/* Informações Básicas */}
-          <div className="bg-white rounded-[24px] border border-border p-6">
-            <h2 className="text-xl font-bold text-text-primary mb-4">{tour.name}</h2>
+          <div className="bg-white rounded-xl sm:rounded-[24px] border border-border p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-bold text-text-primary mb-3 sm:mb-4 break-words">{tour.name}</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <Calendar size={20} className="text-primary" />

@@ -97,21 +97,21 @@ const TourCard: React.FC<TourCardProps> = ({
       )}
       
       {/* Content */}
-      <div className="p-5 flex flex-col flex-1">
+      <div className="p-4 sm:p-5 flex flex-col flex-1">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h4 className="font-bold text-text-primary text-lg line-clamp-1 group-hover:text-primary transition-colors" title={tour.name}>
+          <h4 className="font-bold text-text-primary text-base sm:text-lg line-clamp-2 group-hover:text-primary transition-colors" title={tour.name}>
             {tour.name}
           </h4>
         </div>
         
-        <div className="flex flex-wrap gap-2 mb-4">
-          <div className="inline-flex items-center text-xs font-medium text-text-secondary bg-surface px-2.5 py-1 rounded-md border border-border/50">
-            <CalendarDays size={14} className="mr-1.5 text-primary" />
-            {new Date(tour.date).toLocaleDateString()}
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+          <div className="inline-flex items-center text-[10px] sm:text-xs font-medium text-text-secondary bg-surface px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-border/50">
+            <CalendarDays size={12} className="sm:w-[14px] sm:h-[14px] mr-1 sm:mr-1.5 text-primary flex-shrink-0" />
+            <span className="whitespace-nowrap">{new Date(tour.date).toLocaleDateString()}</span>
           </div>
-          <div className="inline-flex items-center text-xs font-medium text-text-secondary bg-surface px-2.5 py-1 rounded-md border border-border/50">
-            <Clock size={14} className="mr-1.5 text-primary" />
-            {tour.time}
+          <div className="inline-flex items-center text-[10px] sm:text-xs font-medium text-text-secondary bg-surface px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-border/50">
+            <Clock size={12} className="sm:w-[14px] sm:h-[14px] mr-1 sm:mr-1.5 text-primary flex-shrink-0" />
+            <span className="whitespace-nowrap">{tour.time}</span>
           </div>
         </div>
 

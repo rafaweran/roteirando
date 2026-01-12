@@ -49,6 +49,20 @@
         font-family: 'Inter', sans-serif;
         background-color: #FFFFFF;
       }
+      /* Scrollbar hide para mobile */
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      /* Breakpoint customizado para telas muito pequenas */
+      @media (max-width: 375px) {
+        .text-xs {
+          font-size: 0.625rem;
+        }
+      }
     </style>
   <script type="importmap">
 {

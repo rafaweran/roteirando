@@ -113,10 +113,10 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
       />
 
       {/* Modal Content */}
-      <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-xl sm:rounded-[24px] shadow-2xl w-full max-w-md mx-4 sm:mx-auto relative z-10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header */}
-        <div className="p-6 border-b border-border bg-surface/50">
+        <div className="p-4 sm:p-6 border-b border-border bg-surface/50">
           <div className="flex items-start justify-between mb-2">
             <div>
                <h3 className="text-xl font-bold text-text-primary">Confirmar Presença</h3>
@@ -136,7 +136,7 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
         </div>
 
         {/* Body - Scrollable List */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 sm:space-y-6">
           {/* Seção: Data do Passeio */}
           <div className="bg-surface/50 rounded-xl p-4 border border-border">
             <h4 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">

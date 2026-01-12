@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import Button from './Button';
 import { Tour } from '../types';
+import { useToast } from '../hooks/useToast';
 
 interface CancelTourModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ const CancelTourModal: React.FC<CancelTourModalProps> = ({
   onConfirm,
   tour
 }) => {
+  const { showWarning, showError } = useToast();
   const [reason, setReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -23,7 +25,7 @@ const CancelTourModal: React.FC<CancelTourModalProps> = ({
 
   const handleConfirm = async () => {
     if (!reason.trim()) {
-      alert('Por favor, informe o motivo do cancelamento.');
+      showWarning('Por favor, informe o motivo do cancelamento.');
       return;
     }
 
@@ -34,7 +36,7 @@ const CancelTourModal: React.FC<CancelTourModalProps> = ({
       setReason('');
     } catch (error) {
       console.error('Erro ao cancelar passeio:', error);
-      alert('Erro ao cancelar passeio. Tente novamente.');
+      showError('Erro ao cancelar passeio. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +51,7 @@ const CancelTourModal: React.FC<CancelTourModalProps> = ({
       />
 
       {/* Modal Content */}
-      <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl sm:rounded-[24px] shadow-2xl w-full max-w-md mx-4 sm:mx-auto relative z-10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
         
         {/* Header */}
         <div className="p-6 border-b border-border bg-surface/50">
