@@ -282,7 +282,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
         {/* Sidebar - Ações */}
         {userRole === 'user' && userGroup && (
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-[24px] border border-border p-6 sticky top-6">
+            <div className="bg-white rounded-xl sm:rounded-[24px] border border-border p-4 sm:p-6 sticky top-4 sm:top-6">
               <h3 className="text-lg font-bold text-text-primary mb-4">
                 {isSelected ? 'Sua Confirmação' : 'Confirmar Presença'}
               </h3>
@@ -339,6 +339,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                       fullWidth
                       onClick={() => setAttendanceModalOpen(true)}
                       variant="outline"
+                      className="min-h-[52px] sm:h-[48px] text-base sm:text-sm font-semibold"
                     >
                       Editar Confirmação
                     </Button>
@@ -346,9 +347,9 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                       fullWidth
                       onClick={() => setCancelModalOpen(true)}
                       variant="outline"
-                      className="text-status-error border-status-error/30 hover:bg-status-error/5"
+                      className="text-status-error border-status-error/30 hover:bg-status-error/5 min-h-[52px] sm:h-[48px] text-base sm:text-sm font-semibold"
                     >
-                      <X size={16} className="mr-2" />
+                      <X size={18} className="sm:w-4 sm:h-4 mr-2" />
                       Cancelar Passeio
                     </Button>
                   </div>
@@ -356,10 +357,10 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
               ) : (
                 <Button
                   fullWidth
-                  size="lg"
                   onClick={() => setAttendanceModalOpen(true)}
+                  className="min-h-[52px] sm:h-[48px] text-base sm:text-sm font-semibold"
                 >
-                  <Plus size={20} className="mr-2" />
+                  <Plus size={20} className="sm:w-5 sm:h-5 mr-2" />
                   Confirmar Presença
                 </Button>
               )}
