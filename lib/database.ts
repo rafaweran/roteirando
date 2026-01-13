@@ -960,6 +960,80 @@ export const adminsApi = {
       return false;
     }
   },
+
+  async getAdminByEmailWithPasswordChanged(email: string): Promise<{ email: string; password: string | null; passwordChanged: boolean | null } | null> {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      const { data, error } = await supabase
+        .from('admins')
+        .select('email, password, password_changed')
+        .eq('email', normalizedEmail)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        // Se a coluna password_changed não existir, tentar sem ela
+        if (error.code === '42703' || error.message?.includes('column "password_changed" does not exist')) {
+          const { data: dataWithoutPasswordChanged, error: errorWithoutPasswordChanged } = await supabase
+            .from('admins')
+            .select('email, password')
+            .eq('email', normalizedEmail)
+            .single();
+          
+          if (errorWithoutPasswordChanged || !dataWithoutPasswordChanged) {
+            return null;
+          }
+          
+          return {
+            email: dataWithoutPasswordChanged.email,
+            password: (dataWithoutPasswordChanged as any).password || null,
+            passwordChanged: false // Default para false se coluna não existir
+          };
+        }
+        console.error('❌ Erro ao buscar admin:', error);
+        return null;
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      return {
+        email: data.email,
+        password: (data as any).password || null,
+        passwordChanged: (data as any).password_changed ?? false
+      };
+    } catch (error) {
+      console.error('❌ Erro ao buscar admin:', error);
+      return null;
+    }
+  },
+
+  async updateAdminPassword(email: string, hashedPassword: string): Promise<boolean> {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      const { error } = await supabase
+        .from('admins')
+        .update({
+          password: hashedPassword,
+          password_changed: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('email', normalizedEmail);
+
+      if (error) {
+        console.error('❌ Erro ao atualizar senha do admin:', error);
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('❌ Erro ao atualizar senha do admin:', error);
+      return false;
+    }
+  },
 };
 
 // User Travel Info API

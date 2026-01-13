@@ -29,11 +29,20 @@ DROP TRIGGER IF EXISTS update_admins_updated_at ON admins;
 CREATE TRIGGER update_admins_updated_at BEFORE UPDATE ON admins
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Inserir ou atualizar o administrador
-INSERT INTO admins (email, name) 
-VALUES ('paulapgcferreira2@gmail.com', 'Paula Ferreira')
+-- Adicionar colunas se não existirem
+ALTER TABLE admins ADD COLUMN IF NOT EXISTS password VARCHAR(255);
+ALTER TABLE admins ADD COLUMN IF NOT EXISTS password_changed BOOLEAN DEFAULT FALSE;
+
+-- Inserir ou atualizar o administrador com senha inicial 12345678 (hasheada em base64)
+-- A senha "12345678" em base64 é "MTIzNDU2Nzg="
+INSERT INTO admins (email, name, password, password_changed) 
+VALUES ('paulapgcferreira2@gmail.com', 'Paula Ferreira', 'MTIzNDU2Nzg=', FALSE)
 ON CONFLICT (email) DO UPDATE 
-SET name = EXCLUDED.name, updated_at = NOW();
+SET 
+  name = EXCLUDED.name, 
+  password = COALESCE(EXCLUDED.password, admins.password, 'MTIzNDU2Nzg='),
+  password_changed = COALESCE(EXCLUDED.password_changed, admins.password_changed, FALSE),
+  updated_at = NOW();
 
 -- Verificar se foi adicionado
 SELECT * FROM admins WHERE email = 'paulapgcferreira2@gmail.com';

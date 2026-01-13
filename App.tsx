@@ -12,6 +12,7 @@ import TourAttendanceView from './components/TourAttendanceView';
 import TourDetailPage from './components/TourDetailPage';
 import FinancialView from './components/FinancialView';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import ChangePasswordModalAdmin from './components/ChangePasswordModalAdmin';
 import TourAgenda from './components/TourAgenda';
 import CityGuide from './components/CityGuide';
 import DestinosGuide from './components/DestinosGuide';
@@ -19,7 +20,7 @@ import MyTripPage from './components/MyTripPage';
 import UserCustomToursPage from './components/UserCustomToursPage';
 import { ToastProvider, useToast } from './hooks/useToast';
 import { Trip, Tour, UserRole, Group } from './types';
-import { tripsApi, toursApi, groupsApi } from './lib/database';
+import { tripsApi, toursApi, groupsApi, adminsApi } from './lib/database';
 import { Plus } from 'lucide-react';
 import Button from './components/Button';
 
@@ -47,6 +48,9 @@ const AppContent: React.FC = () => {
   const [selectedTourForGroups, setSelectedTourForGroups] = useState<string | null>(null);
   const [tripDetailsInitialTab, setTripDetailsInitialTab] = useState<'tours' | 'groups'>('tours');
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showChangePasswordModalAdmin, setShowChangePasswordModalAdmin] = useState(false);
+  const [currentAdminEmail, setCurrentAdminEmail] = useState<string | null>(null);
+  const [currentAdminPasswordHash, setCurrentAdminPasswordHash] = useState<string | null>(null);
 
   // Load data functions
   const loadTrips = async () => {
@@ -100,7 +104,7 @@ const AppContent: React.FC = () => {
     console.log('📍 View atual:', currentView, 'UserRole:', userRole);
   }, [currentView, userRole]);
 
-  const handleLoginSuccess = async (role: UserRole, group?: Group) => {
+  const handleLoginSuccess = async (role: UserRole, group?: Group, adminData?: { email: string; password: string | null; passwordChanged?: boolean | null }) => {
     console.log('🟢 [App] handleLoginSuccess chamado', { role, group: group?.name });
     try {
       setUserRole(role);
@@ -155,6 +159,15 @@ const AppContent: React.FC = () => {
           loadGroups()
         ]);
         console.log('✅ [App] Dados do admin carregados');
+        
+        // Verificar se admin precisa alterar senha (primeiro acesso)
+        if (adminData && adminData.password && !adminData.passwordChanged) {
+          console.log('🔐 [App] Admin precisa alterar senha no primeiro acesso', { email: adminData.email, hasPassword: !!adminData.password });
+          setCurrentAdminEmail(adminData.email);
+          setCurrentAdminPasswordHash(adminData.password);
+          setShowChangePasswordModalAdmin(true);
+        }
+        
         console.log('🚀 [App] Navegando para dashboard');
         setCurrentView('dashboard');
         console.log('✅ [App] currentView atualizado para dashboard');
@@ -794,12 +807,23 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      {/* Modal de Alteração de Senha (Primeiro Acesso) */}
+      {/* Modal de Alteração de Senha (Primeiro Acesso) - Usuário */}
       {userRole === 'user' && currentUserGroup && (
         <ChangePasswordModal
           isOpen={showChangePasswordModal}
           group={currentUserGroup}
           onSuccess={handlePasswordChangeSuccess}
+          onCancel={undefined} // Não permite cancelar no primeiro acesso
+        />
+      )}
+
+      {/* Modal de Alteração de Senha (Primeiro Acesso) - Admin */}
+      {userRole === 'admin' && currentAdminEmail && (
+        <ChangePasswordModalAdmin
+          isOpen={showChangePasswordModalAdmin}
+          adminEmail={currentAdminEmail}
+          currentPasswordHash={currentAdminPasswordHash}
+          onSuccess={handlePasswordChangeSuccessAdmin}
           onCancel={undefined} // Não permite cancelar no primeiro acesso
         />
       )}

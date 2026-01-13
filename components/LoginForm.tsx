@@ -8,7 +8,7 @@ import { verifyPassword } from '../lib/password';
 import { UserRole, Group } from '../types';
 
 interface LoginFormProps {
-  onSuccess: (role: UserRole, group?: Group) => void;
+  onSuccess: (role: UserRole, group?: Group, adminData?: { email: string; password: string | null; passwordChanged?: boolean | null }) => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
@@ -71,20 +71,21 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       // Lista de fallback (caso a tabela admins não exista ainda)
       const fallbackAdminEmails = [
         'admin@travel.com',
-        'raffiweran@gmail.com'
+        'raffiweran@gmail.com',
+        'paulapgcferreira2@gmail.com'
       ];
       
       // Verificar se é admin (banco + fallback) - otimizado
       let isAdmin = false;
-      let adminData = null;
+      let adminData: { email: string; password: string | null; passwordChanged?: boolean | null } | null = null;
       
       console.log('🔍 [LoginForm] Verificando se é admin...');
       try {
         isAdmin = await adminsApi.isAdmin(normalizedEmail);
         console.log('🔍 [LoginForm] Resultado isAdmin do banco:', isAdmin);
         if (isAdmin) {
-          adminData = await adminsApi.getAdminByEmail(normalizedEmail);
-          console.log('👤 [LoginForm] Admin encontrado:', adminData ? 'Sim' : 'Não');
+          adminData = await adminsApi.getAdminByEmailWithPasswordChanged(normalizedEmail);
+          console.log('👤 [LoginForm] Admin encontrado:', adminData ? 'Sim' : 'Não', adminData ? { hasPassword: !!adminData.password, passwordChanged: adminData.passwordChanged } : '');
         }
       } catch (error: any) {
         console.log('⚠️ [LoginForm] Erro ao verificar admin no banco:', error.message);
@@ -101,7 +102,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       
       if (isAdmin) {
         console.log('✅ [LoginForm] É admin, verificando senha...');
-        // Verificar senha do admin
+        // Verificar senha do admin - obrigatório se tiver senha cadastrada
         if (adminData && adminData.password) {
           const passwordMatch = verifyPassword(inputPassword, adminData.password.trim());
           console.log('🔐 [LoginForm] Senha admin:', passwordMatch ? 'Correta' : 'Incorreta');
@@ -110,10 +111,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             setIsLoading(false);
             return;
           }
+        } else if (fallbackAdminEmails.includes(normalizedEmail)) {
+          // Admin na lista de fallback sem senha no banco - permite login sem senha
+          console.log('⚠️ [LoginForm] Admin fallback sem senha cadastrada, permitindo login');
+        } else {
+          // Admin no banco mas sem senha - requer senha
+          setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
+          setIsLoading(false);
+          return;
         }
-        // Login como admin
-        console.log('🚀 [LoginForm] Chamando onSuccess para admin');
-        onSuccess('admin');
+        // Login como admin - passar dados do admin para verificar se precisa alterar senha
+        console.log('🚀 [LoginForm] Chamando onSuccess para admin', { adminData });
+        onSuccess('admin', undefined, adminData || { email: normalizedEmail, password: null, passwordChanged: false });
         setIsLoading(false);
         return;
       }
