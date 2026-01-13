@@ -23,10 +23,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
     
-    if (!formData.email || !formData.email.trim()) {
+    const emailTrimmed = formData.email?.trim() || '';
+    
+    if (!emailTrimmed) {
       newErrors.email = 'E-mail é obrigatório';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email.trim())) {
-      newErrors.email = 'Digite um e-mail válido';
+    } else {
+      // Validação de email mais robusta
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailTrimmed)) {
+        newErrors.email = 'Digite um e-mail válido';
+      }
     }
 
     if (!formData.password || !formData.password.trim()) {
@@ -183,7 +189,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         {errors.general && (
             <div className="bg-status-error/10 text-status-error text-sm p-3 rounded-lg flex items-center gap-2">
                 <Info size={16} />
@@ -194,7 +200,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         <Input
           id="email"
           name="email"
-          type="email"
+          type="text"
+          inputMode="email"
+          autoComplete="email"
           label="E-mail"
           placeholder="exemplo@email.com"
           icon={Mail}
