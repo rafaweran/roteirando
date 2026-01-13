@@ -106,3 +106,18 @@ export interface UserTravelInfo {
   personalEmergencyPhone?: string;
   personalNotes?: string;
 }
+
+export interface UserCustomTour {
+  id: string;
+  groupId: string;
+  name: string;
+  date: string;
+  time: string;
+  price?: number;
+  description?: string;
+  imageUrl?: string;
+  address?: string;
+  location?: string; // Local/ponto de encontro
+  createdAt?: string;
+  updatedAt?: string;
+}

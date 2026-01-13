@@ -16,13 +16,14 @@ import TourAgenda from './components/TourAgenda';
 import CityGuide from './components/CityGuide';
 import DestinosGuide from './components/DestinosGuide';
 import MyTripPage from './components/MyTripPage';
+import UserCustomToursPage from './components/UserCustomToursPage';
 import { ToastProvider, useToast } from './hooks/useToast';
 import { Trip, Tour, UserRole, Group } from './types';
 import { tripsApi, toursApi, groupsApi } from './lib/database';
 import { Plus } from 'lucide-react';
 import Button from './components/Button';
 
-type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'tour-detail' | 'financial' | 'agenda' | 'city-guide' | 'destinos-guide' | 'my-trip';
+type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'tour-detail' | 'financial' | 'agenda' | 'city-guide' | 'destinos-guide' | 'my-trip' | 'custom-tours';
 
 const AppContent: React.FC = () => {
   const { showSuccess, showError, showWarning } = useToast();
@@ -235,6 +236,11 @@ const AppContent: React.FC = () => {
 
   const handleNavigateMyTrip = () => {
     setCurrentView('my-trip');
+    setSelectedTripId(null);
+  };
+
+  const handleNavigateCustomTours = () => {
+    setCurrentView('custom-tours');
     setSelectedTripId(null);
   };
 
@@ -762,6 +768,7 @@ const AppContent: React.FC = () => {
           trips={trips}
           userGroup={currentUserGroup}
           onViewTourDetail={handleViewTourDetail}
+          onAddCustomTour={handleNavigateCustomTours}
         />
       )}
 
@@ -777,6 +784,13 @@ const AppContent: React.FC = () => {
         <MyTripPage 
           userGroup={currentUserGroup}
           onBack={() => setCurrentView('dashboard')}
+        />
+      )}
+
+      {currentView === 'custom-tours' && userRole === 'user' && currentUserGroup && (
+        <UserCustomToursPage 
+          userGroup={currentUserGroup}
+          onBack={() => setCurrentView('my-trip')}
         />
       )}
 

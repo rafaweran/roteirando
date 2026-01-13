@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import Button from './Button';
 import { Tour, Trip, Group, TourAttendanceInfo } from '../types';
 
 interface TourAgendaProps {
@@ -7,6 +8,7 @@ interface TourAgendaProps {
   trips: Trip[];
   userGroup: Group;
   onViewTourDetail?: (tour: Tour) => void;
+  onAddCustomTour?: () => void;
 }
 
 const DAYS_OF_WEEK = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -15,7 +17,7 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onViewTourDetail }) => {
+const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onViewTourDetail, onAddCustomTour }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // Filtrar apenas passeios confirmados pelo grupo
@@ -124,11 +126,22 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-2">Minha Agenda</h1>
-        <p className="text-sm sm:text-base text-text-secondary">
-          {totalTours} passeio{totalTours !== 1 ? 's' : ''} confirmado{totalTours !== 1 ? 's' : ''}
-        </p>
+      <div className="mb-4 sm:mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-2">Minha Agenda</h1>
+          <p className="text-sm sm:text-base text-text-secondary">
+            {totalTours} passeio{totalTours !== 1 ? 's' : ''} confirmado{totalTours !== 1 ? 's' : ''}
+          </p>
+        </div>
+        {onAddCustomTour && (
+          <Button
+            onClick={onAddCustomTour}
+            className="min-h-[44px] sm:h-[48px] px-4 sm:px-6 text-sm sm:text-base font-semibold whitespace-nowrap"
+          >
+            <Plus size={18} className="mr-2" />
+            Novo Passeio
+          </Button>
+        )}
       </div>
 
       {/* Calendário Visual */}
