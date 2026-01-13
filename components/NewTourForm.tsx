@@ -48,11 +48,8 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     zipCode: '',
   });
 
-  const [prices, setPrices] = useState({
-    inteira: { value: '', description: 'Ingresso padrão para adultos' },
-    meia: { value: '', description: 'Estudantes, pessoas com deficiência e acompanhantes' },
-    senior: { value: '', description: 'Idosos a partir de 60 anos' },
-  });
+  // Array dinâmico de preços: [{id, description, value}]
+  const [prices, setPrices] = useState<Array<{id: string; description: string; value: string}>>([]);
 
   const [links, setLinks] = useState<TourLink[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -133,12 +130,22 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     return cleaned;
   };
 
-  const handlePriceChange = (type: 'inteira' | 'meia' | 'senior', value: string) => {
+  const handlePriceChange = (id: string, value: string) => {
     const parsed = parseCurrency(value);
-    setPrices(prev => ({
-      ...prev,
-      [type]: { ...prev[type], value: parsed }
-    }));
+    setPrices(prev => prev.map(p => p.id === id ? { ...p, value: parsed } : p));
+  };
+
+  const handlePriceDescriptionChange = (id: string, description: string) => {
+    setPrices(prev => prev.map(p => p.id === id ? { ...p, description } : p));
+  };
+
+  const handleAddPrice = () => {
+    const newId = `price_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setPrices(prev => [...prev, { id: newId, description: '', value: '' }]);
+  };
+
+  const handleRemovePrice = (id: string) => {
+    setPrices(prev => prev.filter(p => p.id !== id));
   };
 
   const getDisplayValue = (value: string): string => {
@@ -346,20 +353,18 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       }
       // Carregar preços múltiplos se existirem
       if (initialData.prices) {
-        setPrices({
-          inteira: {
-            value: initialData.prices.inteira?.value ? initialData.prices.inteira.value.toString() : '',
-            description: initialData.prices.inteira?.description || 'Ingresso padrão para adultos'
-          },
-          meia: {
-            value: initialData.prices.meia?.value ? initialData.prices.meia.value.toString() : '',
-            description: initialData.prices.meia?.description || 'Estudantes, pessoas com deficiência e acompanhantes'
-          },
-          senior: {
-            value: initialData.prices.senior?.value ? initialData.prices.senior.value.toString() : '',
-            description: initialData.prices.senior?.description || 'Idosos a partir de 60 anos'
+        const pricesArray: Array<{id: string; description: string; value: string}> = [];
+        // Converter objeto de preços para array dinâmico
+        Object.entries(initialData.prices).forEach(([key, priceData]) => {
+          if (priceData && priceData.value !== undefined) {
+            pricesArray.push({
+              id: `price_${key}_${Date.now()}`,
+              description: priceData.description || '',
+              value: priceData.value.toString()
+            });
           }
         });
+        setPrices(pricesArray);
       }
     }
   }, [initialData]);
@@ -517,31 +522,26 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       // Se não houver data informada, usar a data de início da viagem como padrão
       const defaultDate = formData.date || (activeTrip?.startDate ? activeTrip.startDate.split('T')[0] : new Date().toISOString().split('T')[0]);
       
-      // Preparar preços múltiplos
+      // Preparar preços múltiplos - converter array dinâmico para objeto JSON
       const tourPrices: any = {};
-      if (prices.inteira.value) {
-        tourPrices.inteira = {
-          value: parseFloat(prices.inteira.value),
-          description: prices.inteira.description
-        };
-      }
-      if (prices.meia.value) {
-        tourPrices.meia = {
-          value: parseFloat(prices.meia.value),
-          description: prices.meia.description
-        };
-      }
-      if (prices.senior.value) {
-        tourPrices.senior = {
-          value: parseFloat(prices.senior.value),
-          description: prices.senior.description
-        };
-      }
+      prices.forEach((price, index) => {
+        if (price.value && price.value.trim() !== '') {
+          // Usar um ID único baseado no índice ou gerar uma chave baseada na descrição
+          const key = price.description 
+            ? price.description.toLowerCase().replace(/[^a-z0-9]+/g, '_').substring(0, 30) || `price_${index}`
+            : `price_${index}`;
+          tourPrices[key] = {
+            value: parseFloat(price.value),
+            description: price.description || ''
+          };
+        }
+      });
 
-      // Preço padrão: usar inteira se disponível, senão o campo price antigo, senão 0
+      // Preço padrão: usar o primeiro valor disponível, senão o campo price antigo, senão 0
       // Se não houver nenhum preço, usar 0 (passeio sem valor fixo)
-      const defaultPrice = prices.inteira.value 
-        ? parseFloat(prices.inteira.value) 
+      const firstPriceValue = prices.find(p => p.value && p.value.trim() !== '');
+      const defaultPrice = firstPriceValue 
+        ? parseFloat(firstPriceValue.value) 
         : (formData.price ? parseFloat(formData.price) : 0);
       
       const tourData = {
@@ -936,183 +936,84 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
             )}
           </div>
 
-          {/* Prices by Ticket Type */}
+          {/* Prices - Campos Dinâmicos */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-text-primary">
                 Valores dos Ingressos
               </label>
               <span className="text-xs text-text-disabled">
-                Opcional - preencha se houver valor fixo
+                Opcional - adicione diferentes tipos de ingresso
               </span>
             </div>
 
-            {/* Ingresso Inteira */}
-            <div className="bg-surface/50 rounded-lg p-4 border border-border">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-text-primary">
-                  Ingresso Inteira
-                </label>
-                <span className="text-xs text-text-secondary bg-white px-2 py-1 rounded border border-border">
-                  Padrão
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">R$</span>
-                  <input
-                    type="text"
-                    placeholder="0,00"
-                    value={getDisplayValue(prices.inteira.value)}
-                    onChange={(e) => handlePriceChange('inteira', e.target.value)}
-                    onBlur={(e) => {
-                      const parsed = parseCurrency(e.target.value);
-                      if (parsed) {
-                        setPrices(prev => ({
-                          ...prev,
-                          inteira: { ...prev.inteira, value: parsed }
-                        }));
-                      }
-                    }}
-                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  />
+            {/* Lista dinâmica de preços */}
+            {prices.map((price, index) => (
+              <div key={price.id} className="bg-surface/50 rounded-lg p-4 border border-border animate-in fade-in slide-in-from-left-2 duration-300">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-semibold text-text-primary">
+                    Valor {index + 1}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePrice(price.id)}
+                    className="p-1.5 text-text-secondary hover:text-status-error hover:bg-status-error/10 rounded-lg transition-colors"
+                    title="Remover valor"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Descrição (ex: Adultos, idade mínima, etc.)"
-                    value={prices.inteira.description}
-                    onChange={(e) => setPrices(prev => ({
-                      ...prev,
-                      inteira: { ...prev.inteira, description: e.target.value }
-                    }))}
-                    className="w-full h-12 px-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <label className="text-xs text-text-secondary mb-1.5 block">Descrição</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Ingresso Inteira, Meia Entrada, Idosos, etc."
+                      value={price.description}
+                      onChange={(e) => handlePriceDescriptionChange(price.id, e.target.value)}
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="text-xs text-text-secondary mb-1.5 block">Valor (R$)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">R$</span>
+                      <input
+                        type="text"
+                        placeholder="0,00"
+                        value={getDisplayValue(price.value)}
+                        onChange={(e) => handlePriceChange(price.id, e.target.value)}
+                        onBlur={(e) => {
+                          const parsed = parseCurrency(e.target.value);
+                          if (parsed) {
+                            handlePriceChange(price.id, parsed);
+                          }
+                        }}
+                        className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
 
-            {/* Meia Entrada */}
-            <div className="bg-surface/50 rounded-lg p-4 border border-border">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-text-primary">
-                  Meia Entrada
-                </label>
-                <span className="text-xs text-text-secondary bg-primary/10 text-primary px-2 py-1 rounded border border-primary/20">
-                  50% desconto
-                </span>
+            {/* Botão para adicionar novo valor */}
+            <button
+              type="button"
+              onClick={handleAddPrice}
+              className="w-full h-12 border border-dashed border-primary/30 rounded-custom flex items-center justify-center gap-2 text-primary font-medium hover:bg-primary/5 hover:border-primary transition-all duration-200 group"
+            >
+              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+                <Plus size={14} />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">R$</span>
-                  <input
-                    type="text"
-                    placeholder="0,00"
-                    value={getDisplayValue(prices.meia.value)}
-                    onChange={(e) => handlePriceChange('meia', e.target.value)}
-                    onBlur={(e) => {
-                      const parsed = parseCurrency(e.target.value);
-                      if (parsed) {
-                        setPrices(prev => ({
-                          ...prev,
-                          meia: { ...prev.meia, value: parsed }
-                        }));
-                      }
-                    }}
-                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  />
-                </div>
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Descrição (ex: Estudantes, PCD, etc.)"
-                    value={prices.meia.description}
-                    onChange={(e) => setPrices(prev => ({
-                      ...prev,
-                      meia: { ...prev.meia, description: e.target.value }
-                    }))}
-                    className="w-full h-12 px-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Ingresso Sênior */}
-            <div className="bg-surface/50 rounded-lg p-4 border border-border">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-text-primary">
-                  Ingresso Sênior
-                </label>
-                <span className="text-xs text-text-secondary bg-status-success/10 text-status-success px-2 py-1 rounded border border-status-success/20">
-                  60+ anos
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">R$</span>
-                  <input
-                    type="text"
-                    placeholder="0,00"
-                    value={getDisplayValue(prices.senior.value)}
-                    onChange={(e) => handlePriceChange('senior', e.target.value)}
-                    onBlur={(e) => {
-                      const parsed = parseCurrency(e.target.value);
-                      if (parsed) {
-                        setPrices(prev => ({
-                          ...prev,
-                          senior: { ...prev.senior, value: parsed }
-                        }));
-                      }
-                    }}
-                    className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  />
-                </div>
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Descrição (ex: Idosos a partir de 60 anos)"
-                    value={prices.senior.description}
-                    onChange={(e) => setPrices(prev => ({
-                      ...prev,
-                      senior: { ...prev.senior, description: e.target.value }
-                    }))}
-                    className="w-full h-12 px-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  />
-                </div>
-              </div>
-            </div>
+              Adicionar Valor de Ingresso
+            </button>
             
-
-            {/* Campo de preço único (legado - opcional) */}
-            <div className="bg-surface/30 rounded-lg p-3 border border-border/50">
-              <div className="flex items-center gap-2 mb-2">
-                <label className="text-xs font-medium text-text-secondary">
-                  Valor Único (opcional - para compatibilidade)
-                </label>
-              </div>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium text-sm">R$</span>
-                <input
-                  type="text"
-                  placeholder="0,00"
-                  value={getDisplayValue(formData.price)}
-                  onChange={(e) => {
-                    const parsed = parseCurrency(e.target.value);
-                    handleChange('price', parsed);
-                  }}
-                  onBlur={(e) => {
-                    const parsed = parseCurrency(e.target.value);
-                    if (parsed) {
-                      handleChange('price', parsed);
-                    }
-                  }}
-                  className="w-full h-10 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                />
-              </div>
-              <p className="text-[10px] text-text-disabled mt-1">
-                Use apenas se não houver tipos específicos de ingresso
+            {prices.length === 0 && (
+              <p className="text-xs text-text-disabled text-center py-2">
+                Clique no botão acima para adicionar valores de ingresso
               </p>
-            </div>
+            )}
           </div>
 
           {/* Location */}
