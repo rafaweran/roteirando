@@ -35,6 +35,7 @@ export interface Tour {
   price: number; // Preço padrão (mantido para compatibilidade)
   prices?: TourPrices; // Preços por tipo de ingresso
   description: string;
+  observations?: string; // Observações em destaque
   imageUrl?: string;
   links?: TourLink[];
   tags?: string[]; // Tags/categorias do passeio (ex: Restaurante, Passeios, Shows, etc.)

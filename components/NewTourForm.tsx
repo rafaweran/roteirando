@@ -27,6 +27,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    observations: '',
     date: '',
     startTime: '',
     endTime: '',
@@ -323,6 +324,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       setFormData({
         name: initialData.name,
         description: initialData.description,
+        observations: (initialData as any).observations || '',
         date: initialData.date,
         startTime: initialData.time,
         endTime: '', // Not in mock data
@@ -550,6 +552,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
         price: defaultPrice, // Preço padrão para compatibilidade
         prices: Object.keys(tourPrices).length > 0 ? tourPrices : undefined, // Preços múltiplos
         description: formData.description || '',
+        observations: formData.observations || undefined, // Observações em destaque
         imageUrl: imageUrls.length > 0 ? imageUrls[0] : undefined, // Primeira imagem como principal
         links: links.filter(l => l.title && l.url), // Filter out empty links
         tags: selectedTags.length > 0 ? selectedTags : undefined, // Tags selecionadas
@@ -845,6 +848,29 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
             />
+          </div>
+
+          {/* Observações - Campo em Destaque */}
+          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-primary/10 rounded-xl sm:rounded-2xl p-5 sm:p-6 border-2 border-primary/30 shadow-md">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <span className="text-primary text-lg font-bold">!</span>
+              </div>
+              <label htmlFor="observations" className="text-base sm:text-lg font-bold text-text-primary">
+                Observações
+              </label>
+            </div>
+            <textarea
+              id="observations"
+              rows={5}
+              className="w-full rounded-lg border-2 border-primary/40 bg-white px-4 py-3 text-text-primary outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/30 placeholder:text-text-disabled resize-none text-sm sm:text-base font-medium"
+              placeholder="Adicione observações importantes sobre este passeio (instruções especiais, recomendações, avisos, etc.)"
+              value={formData.observations}
+              onChange={(e) => handleChange('observations', e.target.value)}
+            />
+            <p className="text-xs text-text-secondary mt-2 italic">
+              Este campo é destacado para informações importantes que devem ser facilmente visualizadas
+            </p>
           </div>
 
           {/* Date */}

@@ -23,6 +23,7 @@ interface DBTour {
   time: string;
   price: number;
   description: string;
+  observations: string | null;
   image_url: string | null;
   tags: string[] | null;
   address: string | null;
@@ -100,6 +101,7 @@ function dbTourToTour(dbTour: DBTour, links: TourLink[] = []): Tour {
     price: parseFloat(dbTour.price.toString()),
     prices: prices,
     description: dbTour.description,
+    observations: dbTour.observations || undefined,
     imageUrl: dbTour.image_url || undefined,
     links: links.length > 0 ? links : undefined,
     tags: dbTour.tags && dbTour.tags.length > 0 ? dbTour.tags : undefined,
@@ -416,6 +418,11 @@ export const toursApi = {
     if (tour.address) {
       insertData.address = tour.address;
     }
+
+    // Adiciona observações se existirem
+    if (tour.observations) {
+      insertData.observations = tour.observations;
+    }
     
     console.log('📋 Dados para insert:', {
       ...insertData,
@@ -516,6 +523,7 @@ export const toursApi = {
     if (tour.time !== undefined) updateData.time = tour.time;
     if (tour.price !== undefined) updateData.price = tour.price;
     if (tour.description !== undefined) updateData.description = tour.description;
+    if (tour.observations !== undefined) updateData.observations = tour.observations || null;
     if (tour.imageUrl !== undefined) updateData.image_url = tour.imageUrl;
     if (tour.address !== undefined) updateData.address = tour.address || null;
     
