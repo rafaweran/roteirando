@@ -764,8 +764,15 @@ export const groupsApi = {
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.from('groups').delete().eq('id', id);
-    if (error) throw error;
+    const { error } = await supabase
+      .from('groups')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Erro ao deletar grupo:', error);
+      throw new Error(error.message || 'Erro ao deletar grupo');
+    }
   },
 };
 

@@ -89,13 +89,73 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Load all data when user logs in
+  // Restaurar sessão ao carregar a página
   useEffect(() => {
-    if (currentView !== 'login' && userRole === 'admin') {
-      console.log('🔄 Carregando dados do banco...');
-      loadTrips();
-      loadTours();
-      loadGroups();
+    const restoreSession = async () => {
+      try {
+        const sessionData = localStorage.getItem('roteirando_session');
+        if (!sessionData) {
+          return; // Não há sessão salva
+        }
+
+        const session = JSON.parse(sessionData);
+        const sessionAge = Date.now() - (session.timestamp || 0);
+        const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
+
+        // Verificar se a sessão não expirou
+        if (sessionAge > maxAge) {
+          localStorage.removeItem('roteirando_session');
+          return;
+        }
+
+        if (session.role === 'user' && session.groupId) {
+          // Restaurar sessão de usuário
+          try {
+            const group = await groupsApi.getById(session.groupId);
+            if (group) {
+              setUserRole('user');
+              setCurrentUserGroup(group);
+              setSelectedTripId(session.tripId || group.tripId);
+              
+              // Carregar dados
+              await Promise.all([
+                loadTrips(),
+                loadTours(),
+                loadGroups()
+              ]);
+              
+              setCurrentView('trip-details');
+            }
+          } catch (error) {
+            // Se não conseguir restaurar, limpar sessão
+            localStorage.removeItem('roteirando_session');
+          }
+        } else if (session.role === 'admin') {
+          // Restaurar sessão de admin
+          setUserRole('admin');
+          
+          // Carregar dados
+          await Promise.all([
+            loadTrips(),
+            loadTours(),
+            loadGroups()
+          ]);
+          
+          setCurrentView('dashboard');
+        }
+      } catch (error) {
+        console.error('Erro ao restaurar sessão:', error);
+        localStorage.removeItem('roteirando_session');
+      }
+    };
+
+    restoreSession();
+  }, []); // Executar apenas uma vez ao montar
+
+  // Load all data when user logs in (apenas se ainda não foram carregados)
+  useEffect(() => {
+    if (currentView !== 'login' && userRole === 'admin' && trips.length === 0 && tours.length === 0 && groups.length === 0) {
+      Promise.all([loadTrips(), loadTours(), loadGroups()]);
     }
   }, [currentView, userRole]);
 
@@ -107,6 +167,14 @@ const AppContent: React.FC = () => {
       if (role === 'user' && group) {
         setCurrentUserGroup(group);
         setSelectedTripId(group.tripId);
+        
+        // Salvar sessão no localStorage
+        localStorage.setItem('roteirando_session', JSON.stringify({
+          role: 'user',
+          groupId: group.id,
+          tripId: group.tripId,
+          timestamp: Date.now()
+        }));
         
         // Carregar dados em paralelo para melhor performance
         const [updatedGroup] = await Promise.all([
@@ -131,6 +199,13 @@ const AppContent: React.FC = () => {
         
         setCurrentView('trip-details');
       } else {
+        // Salvar sessão do admin no localStorage
+        localStorage.setItem('roteirando_session', JSON.stringify({
+          role: 'admin',
+          email: adminData?.email || null,
+          timestamp: Date.now()
+        }));
+        
         // Admin: carregar todos os dados em paralelo
         await Promise.all([
           loadTrips(),
@@ -169,10 +244,14 @@ const AppContent: React.FC = () => {
   };
 
   const handleLogout = () => {
+    // Limpar sessão do localStorage
+    localStorage.removeItem('roteirando_session');
     setCurrentView('login');
     setSelectedTripId(null);
     setUserRole('admin');
     setCurrentUserGroup(null);
+    setCurrentAdminEmail(null);
+    setCurrentAdminPasswordHash(null);
   };
 
   const handleTripClick = (trip: Trip) => {
@@ -275,8 +354,18 @@ const AppContent: React.FC = () => {
     console.log(`Deleted tour with ID: ${tourId}`);
   };
   
-  const handleDeleteGroup = (groupId: string) => {
-    console.log(`Deleted group with ID: ${groupId}`);
+  const handleDeleteGroup = async (groupId: string) => {
+    try {
+      await groupsApi.delete(groupId);
+      showSuccess('Grupo deletado com sucesso!');
+      // Recarregar grupos após deletar
+      await loadGroups();
+    } catch (error: any) {
+      console.error('Erro ao deletar grupo:', error);
+      const errorMessage = error?.message || error?.error?.message || 'Erro desconhecido';
+      showError(`Erro ao deletar grupo: ${errorMessage}`);
+      throw error; // Re-throw para que o componente possa tratar
+    }
   };
 
   const handleEditGroup = (group: Group) => {
@@ -541,10 +630,11 @@ const AppContent: React.FC = () => {
       }
 
       // Update local state
-      setCurrentUserGroup({
+      const updatedGroup = {
           ...currentUserGroup,
           tourAttendance: updatedAttendance
-      });
+      };
+      setCurrentUserGroup(updatedGroup);
       
       if (members.length > 0) {
         console.log(`✅ User ${currentUserGroup.leaderName} updated attendance for tour ${tourId}. Members going:`, members);
@@ -552,6 +642,17 @@ const AppContent: React.FC = () => {
       
       // Recarregar grupos para ter dados atualizados
       await loadGroups();
+      
+      // Após recarregar, atualizar currentUserGroup com os dados mais recentes do banco
+      try {
+        const refreshedGroup = await groupsApi.getById(currentUserGroup.id);
+        if (refreshedGroup) {
+          setCurrentUserGroup(refreshedGroup);
+          console.log('✅ currentUserGroup atualizado após salvar presença');
+        }
+      } catch (err) {
+        console.warn('⚠️ Não foi possível atualizar currentUserGroup após salvar presença:', err);
+      }
     } catch (error: any) {
       console.error('❌ Erro ao salvar presença:', error);
       showError(`Erro ao salvar presença: ${error.message || 'Erro desconhecido'}`);
@@ -642,6 +743,8 @@ const AppContent: React.FC = () => {
           onViewTourGroups={handleViewTourGroups}
           onDelete={handleDeleteTour}
           onAddTour={handleNewTourClick}
+          tours={tours}
+          trips={trips}
         />
       )}
 
@@ -693,12 +796,44 @@ const AppContent: React.FC = () => {
       {/* FIXED: Robust check for Tour Attendance View */}
       {currentView === 'tour-detail' && selectedTourForDetail && (() => {
         const trip = trips.find(t => t.id === selectedTourForDetail.tripId);
+        // Filtrar grupos da mesma viagem do passeio
+        let tourGroups = groups.filter(g => g.tripId === selectedTourForDetail.tripId);
+        
+        // Se for usuário, garantir que o currentUserGroup esteja incluído se pertencer à mesma viagem
+        if (userRole === 'user' && currentUserGroup && currentUserGroup.tripId === selectedTourForDetail.tripId) {
+          // Verificar se o grupo do usuário já está na lista
+          const userGroupInList = tourGroups.find(g => g.id === currentUserGroup.id);
+          if (!userGroupInList) {
+            // Adicionar o grupo do usuário à lista se não estiver presente
+            tourGroups = [...tourGroups, currentUserGroup];
+            console.log('✅ App.tsx - Adicionando currentUserGroup à lista de grupos');
+          } else {
+            // Se já está na lista, garantir que está atualizado com os dados mais recentes
+            tourGroups = tourGroups.map(g => 
+              g.id === currentUserGroup.id ? currentUserGroup : g
+            );
+            console.log('✅ App.tsx - Atualizando currentUserGroup na lista');
+          }
+        }
+        
+        console.log('📋 App.tsx - Renderizando TourDetailPage:', {
+          tourId: selectedTourForDetail.id,
+          tourName: selectedTourForDetail.name,
+          tripId: selectedTourForDetail.tripId,
+          totalGroups: groups.length,
+          tourGroups: tourGroups.length,
+          userRole,
+          hasCurrentUserGroup: !!currentUserGroup,
+          currentUserGroupId: currentUserGroup?.id,
+          currentUserGroupInList: tourGroups.some(g => g.id === currentUserGroup?.id)
+        });
         return (
           <TourDetailPage
             tour={selectedTourForDetail}
             trip={trip}
             userRole={userRole}
             userGroup={userRole === 'user' ? currentUserGroup : undefined}
+            groups={tourGroups}
             onBack={handleBackFromTourDetail}
             onConfirmAttendance={userRole === 'user' ? handleSaveAttendance : undefined}
           />

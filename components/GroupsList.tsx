@@ -19,27 +19,29 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Função para recarregar dados
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [groupsData, tripsData] = await Promise.all([
+        groupsApi.getAll(),
+        tripsApi.getAll()
+      ]);
+      setGroups(groupsData);
+      setTrips(tripsData);
+    } catch (err: any) {
+      console.error('Erro ao carregar dados:', err);
+      setGroups([]);
+      setTrips([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Load data from database
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [groupsData, tripsData] = await Promise.all([
-          groupsApi.getAll(),
-          tripsApi.getAll()
-        ]);
-        setGroups(groupsData);
-        setTrips(tripsData);
-        console.log('✅ GroupsList: Dados carregados', { groups: groupsData.length, trips: tripsData.length });
-      } catch (err: any) {
-        console.error('Erro ao carregar dados:', err);
-        setGroups([]);
-        setTrips([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadData();
   }, []);
 
@@ -70,11 +72,33 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
     if (onEdit) onEdit(group);
   };
 
-  const handleConfirmDelete = () => {
-    if (groupToDelete && onDelete) {
-      onDelete(groupToDelete.id);
+  const handleConfirmDelete = async () => {
+    if (!groupToDelete || !onDelete) {
+      console.error('❌ [GroupsList] Erro: groupToDelete ou onDelete não está definido', { groupToDelete, onDelete });
+      return;
+    }
+
+    if (isDeleting) {
+      return;
+    }
+
+    setIsDeleting(true);
+    
+    try {
+      // Chamar função de delete
+      await onDelete(groupToDelete.id);
+      
+      // Recarregar dados após deletar
+      await loadData();
+      
+      // Fechar modal e limpar estado
       setDeleteModalOpen(false);
       setGroupToDelete(null);
+      setIsDeleting(false);
+    } catch (error: any) {
+      console.error('❌ [GroupsList] Erro ao deletar grupo:', error);
+      setIsDeleting(false);
+      // Não fechar modal se houver erro
     }
   };
 
@@ -298,12 +322,18 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
 
       <Modal
         isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
+        onClose={() => {
+          if (!isDeleting) {
+            setDeleteModalOpen(false);
+            setGroupToDelete(null);
+          }
+        }}
         title="Excluir Grupo"
         description={`Tem certeza que deseja excluir o grupo "${groupToDelete?.name}"? Esta ação não pode ser desfeita.`}
         variant="danger"
-        confirmLabel="Sim, excluir"
+        confirmLabel={isDeleting ? "Excluindo..." : "Sim, excluir"}
         onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
       />
     </>
   );

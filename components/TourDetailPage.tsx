@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Calendar, Clock, MapPin, DollarSign, ExternalLink, Users, Check, Plus, X } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { ArrowLeft, Calendar, Clock, MapPin, DollarSign, ExternalLink, Users, Check, Plus, X, Phone, Mail } from 'lucide-react';
 import Button from './Button';
 import TourAttendanceModal from './TourAttendanceModal';
 import CancelTourModal from './CancelTourModal';
 import { Tour, Trip, Group, UserRole } from '../types';
+import { groupsApi } from '../lib/database';
 
 interface TourDetailPageProps {
   tour: Tour;
   trip?: Trip;
   userRole: UserRole;
   userGroup?: Group;
+  groups?: Group[]; // Lista de grupos para mostrar os que confirmaram presença
   onBack: () => void;
   onConfirmAttendance?: (tourId: string, members: string[], customDate?: string | null) => void;
 }
@@ -19,11 +21,65 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   trip,
   userRole,
   userGroup,
+  groups: groupsProp = [],
   onBack,
   onConfirmAttendance
 }) => {
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [groups, setGroups] = useState<Group[]>(groupsProp);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  
+  // Carregar grupos da mesma viagem quando o componente montar
+  useEffect(() => {
+    const loadGroupsForTour = async () => {
+      if (!trip?.id) {
+        // Se não tem trip, usar os grupos passados via props
+        if (groupsProp.length > 0) {
+          setGroups(groupsProp);
+        }
+        return;
+      }
+      
+      setLoadingGroups(true);
+      try {
+        console.log('🔄 TourDetailPage - Carregando grupos para viagem:', trip.id, 'passeio:', tour.id);
+        const tripGroups = await groupsApi.getByTripId(trip.id);
+        console.log('✅ TourDetailPage - Grupos carregados:', tripGroups.length);
+        console.log('📊 TourDetailPage - Grupos com presença no passeio:', tripGroups.filter(g => {
+          const attendance = g.tourAttendance?.[tour.id];
+          if (!attendance) return false;
+          const members = Array.isArray(attendance) ? attendance : (attendance.members || []);
+          return members.length > 0;
+        }).map(g => ({
+          name: g.name,
+          count: Array.isArray(g.tourAttendance?.[tour.id]) 
+            ? g.tourAttendance[tour.id].length 
+            : (g.tourAttendance?.[tour.id]?.members?.length || 0)
+        })));
+        setGroups(tripGroups);
+      } catch (error) {
+        console.error('❌ Erro ao carregar grupos:', error);
+        // Manter os grupos passados via props em caso de erro
+        if (groupsProp.length > 0) {
+          setGroups(groupsProp);
+        }
+      } finally {
+        setLoadingGroups(false);
+      }
+    };
+    
+    // Sempre recarregar grupos para garantir dados atualizados com tourAttendance
+    loadGroupsForTour();
+  }, [trip?.id, tour.id]);
+  
+  // Atualizar grupos quando groupsProp mudar (fallback)
+  useEffect(() => {
+    if (groupsProp.length > 0 && groups.length === 0 && !loadingGroups) {
+      console.log('📥 TourDetailPage - Usando grupos das props:', groupsProp.length);
+      setGroups(groupsProp);
+    }
+  }, [groupsProp, groups.length, loadingGroups]);
 
   // Verificar se o grupo já confirmou presença
   const attendance = userGroup?.tourAttendance?.[tour.id];
@@ -44,6 +100,80 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
     : 0;
   const isPartial = attendanceCount > 0 && attendanceCount < totalMembers;
   const totalValue = tour.price * attendanceCount;
+
+  // Filtrar grupos que confirmaram presença neste passeio
+  const attendingGroups = useMemo(() => {
+    // Se for usuário, garantir que o userGroup esteja incluído na lista de grupos para filtragem
+    let groupsToFilter = groups;
+    if (userRole === 'user' && userGroup && !groups.find(g => g.id === userGroup.id)) {
+      groupsToFilter = [...groups, userGroup];
+      console.log('✅ TourDetailPage - Adicionando userGroup à lista para filtragem');
+    }
+    
+    console.log('🔍 TourDetailPage - Filtrando grupos:', {
+      totalGroups: groups.length,
+      groupsToFilter: groupsToFilter.length,
+      tourId: tour.id,
+      groupsWithAttendance: groupsToFilter.filter(g => g?.tourAttendance?.[tour.id]).length,
+      userGroupId: userGroup?.id,
+      userGroupHasAttendance: userGroup?.tourAttendance?.[tour.id] ? 'sim' : 'não'
+    });
+
+    const filtered = groupsToFilter
+      .filter(g => {
+        if (!g || !g.tourAttendance || !g.tourAttendance[tour.id]) {
+          return false;
+        }
+        
+        const attendance = g.tourAttendance[tour.id];
+        let members: string[] = [];
+        
+        if (Array.isArray(attendance)) {
+          members = attendance;
+        } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+          members = attendance.members || [];
+        }
+        
+        return members.length > 0;
+      })
+      .map(g => {
+        const attendance = g.tourAttendance![tour.id];
+        let members: string[] = [];
+        
+        if (Array.isArray(attendance)) {
+          members = attendance;
+        } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
+          members = attendance.members || [];
+        }
+        
+        return {
+          ...g,
+          attendingCount: members.length,
+          attendingNames: members
+        };
+      });
+
+    console.log('✅ TourDetailPage - Grupos confirmados:', filtered.length);
+    if (filtered.length > 0) {
+      console.log('📋 TourDetailPage - Detalhes dos grupos confirmados:', filtered.map(g => ({ 
+        name: g.name, 
+        count: g.attendingCount,
+        members: g.attendingNames 
+      })));
+    } else {
+      console.log('⚠️ TourDetailPage - Nenhum grupo confirmado. Verificando grupos disponíveis...');
+      console.log('📊 TourDetailPage - Todos os grupos:', groups.map(g => ({
+        name: g.name,
+        hasTourAttendance: !!g.tourAttendance,
+        attendanceKeys: g.tourAttendance ? Object.keys(g.tourAttendance) : [],
+        hasThisTourAttendance: !!g.tourAttendance?.[tour.id],
+        attendanceData: g.tourAttendance?.[tour.id]
+      })));
+    }
+    return filtered;
+  }, [groups, tour.id, userRole, userGroup]);
+
+  const totalAttendingPeople = attendingGroups.reduce((acc, g) => acc + g.attendingCount, 0);
 
   // Formatar data para exibição
   const formatDate = (dateStr: string) => {
@@ -365,6 +495,122 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                 </Button>
               )}
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Seção de Grupos que Confirmaram Presença - Sempre visível */}
+      <div className="mt-6 bg-white rounded-xl sm:rounded-[24px] border border-border p-4 sm:p-6" id="grupos-confirmados-section">
+        {(() => {
+          console.log('🎨 TourDetailPage - Renderizando seção de grupos:', {
+            attendingGroupsCount: attendingGroups.length,
+            totalGroups: groups.length,
+            tourId: tour.id,
+            tourName: tour.name
+          });
+          return null;
+        })()}
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div className="flex-1">
+            <h2 className="text-lg sm:text-xl font-bold text-text-primary flex items-center gap-2">
+              <Users size={20} className="text-primary" />
+              Grupos que Vão para Este Passeio
+            </h2>
+            {attendingGroups.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-2">
+                <p className="text-xs sm:text-sm text-text-secondary">
+                  <span className="font-semibold text-text-primary">{attendingGroups.length}</span> grupo{attendingGroups.length !== 1 ? 's' : ''}
+                </p>
+                <span className="text-text-disabled">•</span>
+                <p className="text-xs sm:text-sm text-text-secondary">
+                  <span className="font-semibold text-primary">{totalAttendingPeople}</span> pessoa{totalAttendingPeople !== 1 ? 's' : ''} confirmada{totalAttendingPeople !== 1 ? 's' : ''}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-2">
+                <p className="text-xs sm:text-sm text-text-secondary">
+                  Nenhum grupo confirmou presença ainda
+                </p>
+                <p className="text-xs text-text-disabled mt-1">
+                  Total de grupos na viagem: {groups.length}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {attendingGroups.length > 0 ? (
+          <div className="space-y-3 sm:space-y-4">
+            {attendingGroups.map((group) => (
+              <div
+                key={group.id}
+                className="p-4 sm:p-5 bg-surface rounded-xl border border-border hover:border-primary/30 transition-colors"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Users size={18} className="text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-text-primary mb-1 break-words">{group.name}</h3>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm text-text-secondary">
+                            <span className="font-medium">Líder:</span>
+                            <span>{group.leaderName}</span>
+                          </div>
+                          {group.leaderPhone && (
+                            <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                              <Phone size={12} />
+                              {group.leaderPhone}
+                            </div>
+                          )}
+                          {group.leaderEmail && (
+                            <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                              <Mail size={12} />
+                              {group.leaderEmail}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col sm:items-end gap-3">
+                    <div className="flex flex-col sm:items-end gap-1">
+                      <span className="text-xs font-semibold text-text-secondary uppercase">Quantidade:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center min-w-[40px] h-10 rounded-lg bg-primary/10 text-primary font-bold text-base sm:text-lg px-3">
+                          {group.attendingCount}
+                        </span>
+                        <span className="text-xs text-text-secondary">pessoa{group.attendingCount !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                    {group.attendingNames.length > 0 && (
+                      <div className="flex flex-col sm:items-end gap-1.5 w-full sm:w-auto">
+                        <span className="text-xs font-semibold text-text-secondary uppercase">Participantes:</span>
+                        <div className="flex flex-wrap gap-1.5 justify-end">
+                          {group.attendingNames.map((name, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white border border-border text-text-primary"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-text-secondary">
+            <Users size={48} className="mx-auto mb-3 text-text-disabled opacity-50" />
+            <p className="text-sm font-medium">Nenhum grupo confirmou presença neste passeio ainda.</p>
+            <p className="text-xs text-text-disabled mt-1">Os grupos precisam confirmar presença para aparecer aqui.</p>
           </div>
         )}
       </div>

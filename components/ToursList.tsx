@@ -11,12 +11,22 @@ interface ToursListProps {
   onViewTourGroups?: (tour: Tour) => void; // Nova prop para visualizar grupos de um passeio específico
   onDelete: (tourId: string) => void;
   onAddTour?: () => void;
+  tours?: Tour[]; // Dados já carregados (opcional)
+  trips?: Trip[]; // Dados já carregados (opcional)
 }
 
-const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onViewTourGroups, onDelete, onAddTour }) => {
-  const [tours, setTours] = useState<Tour[]>([]);
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+const ToursList: React.FC<ToursListProps> = ({ 
+  onEdit, 
+  onViewGroup, 
+  onViewTourGroups, 
+  onDelete, 
+  onAddTour,
+  tours: toursProp,
+  trips: tripsProp
+}) => {
+  const [tours, setTours] = useState<Tour[]>(toursProp || []);
+  const [trips, setTrips] = useState<Trip[]>(tripsProp || []);
+  const [loading, setLoading] = useState<boolean>(!toursProp || !tripsProp);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -39,8 +49,26 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onViewTourGr
     )
   ).sort();
 
-  // Load data from database
+  // Atualizar estado quando props mudarem
   useEffect(() => {
+    if (toursProp) {
+      setTours(toursProp);
+    }
+    if (tripsProp) {
+      setTrips(tripsProp);
+    }
+    if (toursProp && tripsProp) {
+      setLoading(false);
+    }
+  }, [toursProp, tripsProp]);
+
+  // Load data from database apenas se não foram fornecidos via props
+  useEffect(() => {
+    if (toursProp && tripsProp) {
+      // Dados já foram fornecidos via props, não precisa carregar
+      return;
+    }
+    
     const loadData = async () => {
       try {
         setLoading(true);
@@ -50,7 +78,6 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onViewTourGr
         ]);
         setTours(toursData);
         setTrips(tripsData);
-        console.log('✅ ToursList: Dados carregados', { tours: toursData.length, trips: tripsData.length });
       } catch (err: any) {
         console.error('Erro ao carregar dados:', err);
         setTours([]);
@@ -60,7 +87,7 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onViewTourGr
       }
     };
     loadData();
-  }, []);
+  }, [toursProp, tripsProp]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -384,7 +411,15 @@ const ToursList: React.FC<ToursListProps> = ({ onEdit, onViewGroup, onViewTourGr
           </div>
         </div>
 
-        {filteredTours.length > 0 ? (
+        {loading ? (
+          <div className="bg-white rounded-custom border border-border p-12 text-center animate-in fade-in duration-300">
+            <div className="w-16 h-16 bg-surface rounded-full flex items-center justify-center mx-auto mb-4 text-text-disabled animate-pulse">
+              <Clock size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-text-primary mb-1">Carregando passeios...</h3>
+            <p className="text-text-secondary">Aguarde enquanto buscamos os dados.</p>
+          </div>
+        ) : filteredTours.length > 0 ? (
           <>
             {/* MOBILE VIEW: Cards */}
             <div className="md:hidden flex flex-col gap-4">
