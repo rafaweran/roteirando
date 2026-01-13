@@ -827,36 +827,26 @@ export const adminsApi = {
   async isAdmin(email: string): Promise<boolean> {
     try {
       const normalizedEmail = email.toLowerCase().trim();
-      console.log('🔍 adminsApi.isAdmin: Verificando email:', normalizedEmail);
       
+      // Tentar buscar apenas email (mais rápido e não depende da coluna password)
       const { data, error } = await supabase
         .from('admins')
-        .select('email, password')
+        .select('email')
         .eq('email', normalizedEmail)
-        .single();
-
-      console.log('📥 Resposta do Supabase:', { data, error });
+        .maybeSingle(); // Usar maybeSingle para não dar erro se não encontrar
 
       if (error) {
-        // Se a tabela não existir ou não encontrar, retorna false
-        if (error.code === 'PGRST116' || error.code === '42P01' || error.message?.includes('does not exist')) {
-          console.log('⚠️ Tabela admins não existe ainda ou registro não encontrado, usando lista hardcoded');
-          console.log('   Código do erro:', error.code);
-          console.log('   Mensagem:', error.message);
+        // Se a tabela não existir, retorna false
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
           return false;
         }
-        console.log('❌ Erro ao verificar admin:', error.code, error.message);
+        // Outros erros também retornam false
         return false;
       }
 
-      const isAdmin = !!data;
-      console.log('✅ Resultado da verificação:', isAdmin);
-      return isAdmin;
+      return !!data;
     } catch (error: any) {
-      console.error('❌ Erro ao verificar se é admin:', error);
-      console.error('   Tipo:', typeof error);
-      console.error('   Mensagem:', error?.message);
-      console.error('   Stack:', error?.stack);
+      // Em caso de erro, retorna false
       return false;
     }
   },
@@ -864,38 +854,36 @@ export const adminsApi = {
   async getAdminByEmail(email: string): Promise<{ email: string; password: string | null } | null> {
     try {
       const normalizedEmail = email.toLowerCase().trim();
-      const { data, error } = await supabase
+      
+      // Tentar buscar com password primeiro
+      let { data, error } = await supabase
         .from('admins')
         .select('email, password')
         .eq('email', normalizedEmail)
         .single();
 
-      if (error) {
-        // Se a coluna password não existir, ainda retornar os dados do email
-        if (error.code === '42703' || error.message?.includes('column "password" does not exist')) {
-          console.log('⚠️ Coluna password não existe na tabela admins ainda');
-          // Tentar buscar sem password
-          const { data: dataWithoutPassword, error: errorWithoutPassword } = await supabase
-            .from('admins')
-            .select('email')
-            .eq('email', normalizedEmail)
-            .single();
-          
-          if (errorWithoutPassword || !dataWithoutPassword) {
-            return null;
-          }
-          
-          return {
-            email: dataWithoutPassword.email,
-            password: null
-          };
-        }
+      // Se erro por coluna não existir, buscar sem password
+      if (error && (error.code === '42703' || error.message?.includes('column "password" does not exist'))) {
+        const { data: dataWithoutPassword, error: errorWithoutPassword } = await supabase
+          .from('admins')
+          .select('email')
+          .eq('email', normalizedEmail)
+          .single();
         
-        if (error.code === 'PGRST116') {
-          // Não encontrado
+        if (errorWithoutPassword || !dataWithoutPassword) {
           return null;
         }
         
+        return {
+          email: dataWithoutPassword.email,
+          password: null
+        };
+      }
+      
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
+        }
         console.error('❌ Erro ao buscar admin:', error);
         return null;
       }

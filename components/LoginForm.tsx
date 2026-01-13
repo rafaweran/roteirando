@@ -40,27 +40,21 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     }
 
     setErrors(newErrors);
-    const isValid = Object.keys(newErrors).length === 0;
-    console.log('🔍 [LoginForm] Validação:', isValid ? '✅ Válido' : '❌ Inválido', newErrors);
-    return isValid;
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔵 [LoginForm] handleSubmit chamado', { isLoading, email: formData.email });
     
     // Prevenir múltiplos cliques - verificar ANTES da validação
     if (isLoading) {
-      console.log('⚠️ [LoginForm] Já está carregando, ignorando clique');
       return;
     }
 
     if (!validate()) {
-      console.log('❌ [LoginForm] Validação falhou');
       return;
     }
 
-    console.log('✅ [LoginForm] Validação passou, iniciando login...');
     setIsLoading(true);
     setErrors({});
     
@@ -79,71 +73,64 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       let isAdmin = false;
       let adminData: { email: string; password: string | null; passwordChanged?: boolean | null } | null = null;
       
-      console.log('🔍 [LoginForm] Verificando se é admin...');
-      try {
-        isAdmin = await adminsApi.isAdmin(normalizedEmail);
-        console.log('🔍 [LoginForm] Resultado isAdmin do banco:', isAdmin);
-        if (isAdmin) {
-          adminData = await adminsApi.getAdminByEmailWithPasswordChanged(normalizedEmail);
-          console.log('👤 [LoginForm] Admin encontrado:', adminData ? 'Sim' : 'Não', adminData ? { hasPassword: !!adminData.password, passwordChanged: adminData.passwordChanged } : '');
-        }
-      } catch (error: any) {
-        console.log('⚠️ [LoginForm] Erro ao verificar admin no banco:', error.message);
-        // Se erro no banco, verifica fallback
-        isAdmin = fallbackAdminEmails.some(email => email.toLowerCase().trim() === normalizedEmail);
-        console.log('🔍 [LoginForm] Verificação fallback:', isAdmin);
-      }
+      // Primeiro verificar na lista de fallback (mais rápido)
+      const isFallbackAdmin = fallbackAdminEmails.some(email => email.toLowerCase().trim() === normalizedEmail);
       
-      // Se não encontrou no banco, verifica na lista de fallback
-      if (!isAdmin) {
-        isAdmin = fallbackAdminEmails.some(email => email.toLowerCase().trim() === normalizedEmail);
-        console.log('🔍 [LoginForm] Verificação fallback final:', isAdmin);
+      // Se não está na lista de fallback, verificar no banco
+      if (!isFallbackAdmin) {
+        try {
+          isAdmin = await adminsApi.isAdmin(normalizedEmail);
+          if (isAdmin) {
+            adminData = await adminsApi.getAdminByEmailWithPasswordChanged(normalizedEmail);
+          }
+        } catch (error: any) {
+          // Se erro, não é admin
+          isAdmin = false;
+        }
+      } else {
+        // Está na lista de fallback, é admin
+        isAdmin = true;
+        // Tentar buscar dados do banco se existir
+        try {
+          adminData = await adminsApi.getAdminByEmailWithPasswordChanged(normalizedEmail);
+        } catch (error) {
+          // Se não encontrar no banco, usar dados básicos
+          adminData = { email: normalizedEmail, password: null, passwordChanged: false };
+        }
       }
       
       if (isAdmin) {
-        console.log('✅ [LoginForm] É admin, verificando senha...');
         // Verificar senha do admin - obrigatório se tiver senha cadastrada
         if (adminData && adminData.password) {
           const passwordMatch = verifyPassword(inputPassword, adminData.password.trim());
-          console.log('🔐 [LoginForm] Senha admin:', passwordMatch ? 'Correta' : 'Incorreta');
           if (!passwordMatch) {
             setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
             setIsLoading(false);
             return;
           }
-        } else if (fallbackAdminEmails.includes(normalizedEmail)) {
-          // Admin na lista de fallback sem senha no banco - permite login sem senha
-          console.log('⚠️ [LoginForm] Admin fallback sem senha cadastrada, permitindo login');
-        } else {
+        } else if (!isFallbackAdmin) {
           // Admin no banco mas sem senha - requer senha
           setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
           setIsLoading(false);
           return;
         }
-        // Login como admin - passar dados do admin para verificar se precisa alterar senha
-        console.log('🚀 [LoginForm] Chamando onSuccess para admin', { adminData });
+        // Login como admin
         onSuccess('admin', undefined, adminData || { email: normalizedEmail, password: null, passwordChanged: false });
         setIsLoading(false);
         return;
       }
 
-      // Buscar grupo específico por email (otimizado - não busca todos)
-      // Primeiro tenta buscar diretamente se houver API para isso
-      // Se não, busca todos mas apenas uma vez
-      console.log('🔍 [LoginForm] Buscando grupo para email:', normalizedEmail);
+      // Buscar grupo específico por email
       const allGroups = await groupsApi.getAll();
-      console.log('📋 [LoginForm] Total de grupos encontrados:', allGroups.length);
       const userGroup = allGroups.find(g => {
         if (!g.leaderEmail) return false;
         return g.leaderEmail.toLowerCase().trim() === normalizedEmail;
       });
       
       if (userGroup) {
-        console.log('✅ [LoginForm] Grupo encontrado:', userGroup.name);
         // Verificar senha se o grupo tiver senha
         if (userGroup.leaderPassword) {
           const passwordMatch = verifyPassword(inputPassword, userGroup.leaderPassword.trim());
-          console.log('🔐 [LoginForm] Senha grupo:', passwordMatch ? 'Correta' : 'Incorreta');
           if (!passwordMatch) {
             setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
             setIsLoading(false);
@@ -152,18 +139,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         }
         
         // Login como usuário
-        console.log('🚀 [LoginForm] Chamando onSuccess para usuário');
         onSuccess('user', userGroup);
         setIsLoading(false);
         return;
       }
       
       // Não encontrado
-      console.log('❌ [LoginForm] Usuário não encontrado');
       setErrors({ general: 'Usuário não encontrado ou senha incorreta.' });
       setIsLoading(false);
     } catch (error: any) {
-      console.error('❌ [LoginForm] Erro no login:', error);
+      console.error('Erro no login:', error);
       setErrors({ general: 'Erro ao fazer login. Tente novamente.' });
       setIsLoading(false);
     }

@@ -99,81 +99,56 @@ const AppContent: React.FC = () => {
     }
   }, [currentView, userRole]);
 
-  // Debug: Log view changes
-  useEffect(() => {
-    console.log('📍 View atual:', currentView, 'UserRole:', userRole);
-  }, [currentView, userRole]);
 
   const handleLoginSuccess = async (role: UserRole, group?: Group, adminData?: { email: string; password: string | null; passwordChanged?: boolean | null }) => {
-    console.log('🟢 [App] handleLoginSuccess chamado', { role, group: group?.name });
     try {
       setUserRole(role);
-      console.log('✅ [App] userRole atualizado para:', role);
       
       if (role === 'user' && group) {
-        console.log('👤 [App] Login como usuário, configurando...');
         setCurrentUserGroup(group);
         setSelectedTripId(group.tripId);
-        console.log('✅ [App] Estado inicial configurado');
         
         // Carregar dados em paralelo para melhor performance
-        console.log('📥 [App] Carregando dados em paralelo...');
         const [updatedGroup] = await Promise.all([
-          groupsApi.getById(group.id).catch(() => {
-            console.log('⚠️ [App] Erro ao buscar grupo atualizado, usando original');
-            return group;
-          }),
+          groupsApi.getById(group.id).catch(() => group),
           loadTrips(),
           loadTours(),
           loadGroups()
         ]);
-        console.log('✅ [App] Dados carregados');
         
         if (updatedGroup) {
           setCurrentUserGroup(updatedGroup);
-          console.log('✅ [App] Grupo atualizado no estado');
           
           // Verificar se precisa alterar senha (primeiro acesso)
           if (!updatedGroup.passwordChanged) {
-            console.log('🔐 [App] Primeiro acesso detectado, abrindo modal de senha');
             setShowChangePasswordModal(true);
           }
         }
         
-        // Garantir que o selectedTripId está definido
         if (group.tripId) {
           setSelectedTripId(group.tripId);
-          console.log('✅ [App] selectedTripId definido:', group.tripId);
         }
         
-        // Navegar diretamente sem setTimeout
-        console.log('🚀 [App] Navegando para trip-details');
         setCurrentView('trip-details');
-        console.log('✅ [App] currentView atualizado para trip-details');
       } else {
-        console.log('👨‍💼 [App] Login como admin, carregando dados...');
         // Admin: carregar todos os dados em paralelo
         await Promise.all([
           loadTrips(),
           loadTours(),
           loadGroups()
         ]);
-        console.log('✅ [App] Dados do admin carregados');
         
         // Verificar se admin precisa alterar senha (primeiro acesso)
         if (adminData && adminData.password && !adminData.passwordChanged) {
-          console.log('🔐 [App] Admin precisa alterar senha no primeiro acesso', { email: adminData.email, hasPassword: !!adminData.password });
           setCurrentAdminEmail(adminData.email);
           setCurrentAdminPasswordHash(adminData.password);
           setShowChangePasswordModalAdmin(true);
         }
         
-        console.log('🚀 [App] Navegando para dashboard');
         setCurrentView('dashboard');
-        console.log('✅ [App] currentView atualizado para dashboard');
       }
     } catch (err) {
-      console.error('❌ [App] Erro no handleLoginSuccess:', err);
+      console.error('Erro no handleLoginSuccess:', err);
       showError('Erro ao fazer login. Tente novamente.');
     }
   };
