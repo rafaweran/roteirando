@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DollarSign, TrendingUp, CreditCard, Calendar, Users, Map, Trophy, Clock } from 'lucide-react';
 import { tripsApi, toursApi, groupsApi } from '../lib/database';
 import { Trip, Tour, Group } from '../types';
+import { getAttendanceMembers, getPricePerPerson } from '../lib/pricing';
 
 const FinancialView: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -49,18 +50,13 @@ const FinancialView: React.FC = () => {
       groups.forEach(group => {
         if (group.tourAttendance && group.tourAttendance[tour.id]) {
           const attendance = group.tourAttendance[tour.id];
-          let members: string[] = [];
-          
-          if (Array.isArray(attendance)) {
-            members = attendance;
-          } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
-            members = attendance.members || [];
-          }
+          const members = getAttendanceMembers(attendance as any);
           
           if (members.length > 0) {
             tourConfirmedGroups++;
             tourConfirmedPeople += members.length;
-            totalRevenue += tour.price * members.length;
+            const pricePerPerson = getPricePerPerson(tour, attendance as any);
+            totalRevenue += pricePerPerson * members.length;
           }
         }
       });
@@ -110,18 +106,13 @@ const FinancialView: React.FC = () => {
       groups.forEach(group => {
         if (group.tourAttendance && group.tourAttendance[tour.id]) {
           const attendance = group.tourAttendance[tour.id];
-          let members: string[] = [];
-          
-          if (Array.isArray(attendance)) {
-            members = attendance;
-          } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
-            members = attendance.members || [];
-          }
+          const members = getAttendanceMembers(attendance as any);
           
           if (members.length > 0) {
             confirmedGroups++;
             confirmedPeople += members.length;
-            revenue += tour.price * members.length;
+            const pricePerPerson = getPricePerPerson(tour, attendance as any);
+            revenue += pricePerPerson * members.length;
           }
         }
       });
@@ -351,17 +342,12 @@ const FinancialView: React.FC = () => {
                   tripGroups.forEach(group => {
                     if (group.tourAttendance && group.tourAttendance[tour.id]) {
                       const attendance = group.tourAttendance[tour.id];
-                      let members: string[] = [];
-                      
-                      if (Array.isArray(attendance)) {
-                        members = attendance;
-                      } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
-                        members = attendance.members || [];
-                      }
+                      const members = getAttendanceMembers(attendance as any);
                       
                       if (members.length > 0) {
                         tripConfirmedPeople += members.length;
-                        tripRevenue += tour.price * members.length;
+                        const pricePerPerson = getPricePerPerson(tour, attendance as any);
+                        tripRevenue += pricePerPerson * members.length;
                       }
                     }
                   });

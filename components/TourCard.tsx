@@ -2,6 +2,7 @@ import React from 'react';
 import { Clock, CalendarDays, Check, Plus, Edit2, ListChecks, X, Eye } from 'lucide-react';
 import { Tour, Group } from '../types';
 import Button from './Button';
+import { getAttendanceTotal } from '../lib/pricing';
 
 interface TourCardProps {
   tour: Tour;
@@ -53,7 +54,7 @@ const TourCard: React.FC<TourCardProps> = ({
     return `R$ ${tour.price.toFixed(2)}`;
   };
 
-  const totalValue = tour.price * attendanceCount;
+  const totalValue = getAttendanceTotal(tour, userGroup?.tourAttendance?.[tour.id] as any);
 
   const handleCardClick = () => {
     if (onViewTourDetail) {
