@@ -804,18 +804,42 @@ export const tourAttendanceApi = {
       if (error) throw error;
     } else {
       // Upsert attendance
+      // Só incluir selected_price_key se for fornecido (para evitar erro se a coluna não existir)
+      const insertData: any = {
+        group_id: groupId,
+        tour_id: tourId,
+        members: members,
+        custom_date: customDate || null, // NULL = data original do tour
+      };
+      
+      // Só adicionar selected_price_key se for fornecido e não for vazio
+      if (selectedPriceKey && selectedPriceKey.trim() !== '') {
+        insertData.selected_price_key = selectedPriceKey;
+      }
+      
       const { error } = await supabase
         .from('tour_attendance')
-        .upsert({
-          group_id: groupId,
-          tour_id: tourId,
-          members: members,
-          custom_date: customDate || null, // NULL = data original do tour
-          selected_price_key: selectedPriceKey || null, // NULL = nenhum tipo selecionado
-        }, {
+        .upsert(insertData, {
           onConflict: 'group_id,tour_id',
         });
-      if (error) throw error;
+      
+      // Se der erro relacionado à coluna selected_price_key não existir, tentar novamente sem ela
+      if (error && error.message && error.message.includes('selected_price_key')) {
+        console.warn('⚠️ Coluna selected_price_key não encontrada. Tentando salvar sem ela...');
+        const { error: retryError } = await supabase
+          .from('tour_attendance')
+          .upsert({
+            group_id: groupId,
+            tour_id: tourId,
+            members: members,
+            custom_date: customDate || null,
+          }, {
+            onConflict: 'group_id,tour_id',
+          });
+        if (retryError) throw retryError;
+      } else if (error) {
+        throw error;
+      }
     }
   },
 
