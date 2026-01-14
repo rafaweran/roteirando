@@ -866,7 +866,11 @@ export const tourAttendanceApi = {
         membersCount: members.length,
         customDate,
         selectedPriceKey,
-        insertData
+        selectedPriceKeyType: typeof selectedPriceKey,
+        selectedPriceKeyLength: selectedPriceKey?.length,
+        insertData,
+        insertDataKeys: Object.keys(insertData),
+        hasSelectedPriceKeyInInsert: 'selected_price_key' in insertData
       });
       
       const { error, data } = await supabase
@@ -878,6 +882,15 @@ export const tourAttendanceApi = {
       
       if (data) {
         console.log('✅ tourAttendanceApi.saveAttendance - Dados salvos:', data);
+        console.log('🔍 tourAttendanceApi.saveAttendance - Verificando selected_price_key salvo:', {
+          savedSelectedPriceKey: data[0]?.selected_price_key,
+          savedSelectedPriceKeyType: typeof data[0]?.selected_price_key,
+          allFields: Object.keys(data[0] || {})
+        });
+      }
+      
+      if (error) {
+        console.error('❌ tourAttendanceApi.saveAttendance - Erro ao salvar:', error);
       }
       
       // Se der erro relacionado à coluna selected_price_key não existir, tentar novamente sem ela

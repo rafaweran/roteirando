@@ -115,9 +115,16 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
       tourName: tour.name,
       selectedMembers: selectedMembers.length,
       finalCustomDate,
+      selectedPriceKey,
+      selectedPriceKeyType: typeof selectedPriceKey,
+      selectedPriceKeyLength: selectedPriceKey?.length,
       finalSelectedPriceKey,
+      finalSelectedPriceKeyType: typeof finalSelectedPriceKey,
+      hasTourPrices: !!tour.prices,
       availablePriceKeys: tour.prices ? Object.keys(tour.prices) : [],
-      selectedPrice: finalSelectedPriceKey && tour.prices ? tour.prices[finalSelectedPriceKey as keyof typeof tour.prices] : null
+      availablePriceKeysCount: tour.prices ? Object.keys(tour.prices).length : 0,
+      selectedPrice: finalSelectedPriceKey && tour.prices ? tour.prices[finalSelectedPriceKey as keyof typeof tour.prices] : null,
+      willPassSelectedPriceKey: !!finalSelectedPriceKey
     });
     
     onConfirm(tour.id, selectedMembers, finalCustomDate, finalSelectedPriceKey);
