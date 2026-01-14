@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Users, Calendar, Clock, MapPin, Search, Phone, Mail, FileText, Download, Printer } from 'lucide-react';
 import { Tour, Trip, Group } from '../types';
 import Button from './Button';
+import { getAttendanceMembers, getPricePerPerson } from '../lib/pricing';
 
 interface TourAttendanceViewProps {
   tour: Tour;
@@ -61,7 +62,13 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
 
   // Statistics
   const totalPeople = attendingGroups.reduce((acc, curr) => acc + curr.attendingCount, 0);
-  const totalRevenue = totalPeople * tour.price;
+  const totalRevenue = attendingGroups.reduce((sum, g) => {
+    const attendance = g.tourAttendance?.[tour.id];
+    const members = getAttendanceMembers(attendance as any);
+    if (members.length === 0) return sum;
+    const pricePerPerson = getPricePerPerson(tour, attendance as any);
+    return sum + pricePerPerson * members.length;
+  }, 0);
   
   // Filter logic
   const filteredGroups = attendingGroups.filter(g => 

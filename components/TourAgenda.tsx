@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import Button from './Button';
 import { Tour, Trip, Group, TourAttendanceInfo } from '../types';
+import { getAttendanceMembers, getPricePerPerson } from '../lib/pricing';
 
 interface TourAgendaProps {
   tours: Tour[];
@@ -40,16 +41,19 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
         // Compatibilidade: pode ser TourAttendanceInfo ou string[] (versão antiga)
         let members: string[] = [];
         let customDate: string | null = null;
+        let selectedPriceKey: string | undefined = undefined;
         
         if (Array.isArray(attendance)) {
           members = attendance;
         } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
           members = attendance.members || [];
           customDate = attendance.customDate || null;
+          selectedPriceKey = attendance.selectedPriceKey || undefined;
         }
         
         // Usar data personalizada se existir, senão usar data original do tour
         const displayDate = customDate || tour.date;
+        const pricePerPerson = getPricePerPerson(tour, attendance as any);
         
         return {
           ...tour,
@@ -57,7 +61,10 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
           attendanceCount: members.length,
           attendingMembers: members,
           customDate: customDate,
-          displayDate: displayDate // Data que será exibida/agrupada
+          displayDate: displayDate, // Data que será exibida/agrupada
+          selectedPriceKey,
+          pricePerPerson,
+          totalValue: pricePerPerson * members.length,
         };
       });
   }, [tours, trips, userGroup]);
@@ -107,7 +114,7 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
 
   // Calcular total de passeios e valor
   const totalTours = confirmedTours.length;
-  const totalValue = confirmedTours.reduce((sum, tour) => sum + (tour.price * tour.attendanceCount), 0);
+  const totalValue = confirmedTours.reduce((sum, tour: any) => sum + (tour.totalValue || 0), 0);
 
   if (confirmedTours.length === 0) {
     return (
@@ -297,7 +304,7 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                             </div>
                             <div className="text-left sm:text-right flex-shrink-0">
                               <div className="text-base sm:text-lg font-bold text-primary">
-                                R$ {tour.price.toFixed(2)}
+                                R$ {(tour.pricePerPerson ?? tour.price).toFixed(2)}
                               </div>
                               <div className="text-[10px] sm:text-xs text-text-secondary">
                                 por pessoa

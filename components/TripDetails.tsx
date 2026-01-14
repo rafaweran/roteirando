@@ -19,7 +19,7 @@ interface TripDetailsProps {
   initialTab?: 'tours' | 'groups';
   userRole?: UserRole;
   userGroup?: Group;
-  onSaveAttendance?: (tourId: string, members: string[], cancelReason?: string) => void;
+  onSaveAttendance?: (tourId: string, members: string[], customDate?: string | null, cancelReason?: string, selectedPriceKey?: string) => Promise<void> | void;
   onViewTourAttendance?: (tour: Tour) => void;
   onViewTourDetail?: (tour: Tour) => void;
   selectedTourId?: string | null; // Tour ID para filtrar grupos quando na aba de grupos
@@ -65,9 +65,9 @@ const TripDetails: React.FC<TripDetailsProps> = ({
     setAttendanceModalOpen(true);
   };
 
-  const handleConfirmAttendance = (tourId: string, members: string[], customDate?: string | null) => {
+  const handleConfirmAttendance = (tourId: string, members: string[], customDate?: string | null, selectedPriceKey?: string) => {
      if (onSaveAttendance) {
-       onSaveAttendance(tourId, members, customDate);
+       onSaveAttendance(tourId, members, customDate, undefined, selectedPriceKey);
      }
   };
 
