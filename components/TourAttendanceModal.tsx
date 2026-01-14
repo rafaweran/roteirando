@@ -108,7 +108,22 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
     // Se escolheu data personalizada, usar customDate, senão null (data original)
     const finalCustomDate = dateOption === 'custom' && customDate ? customDate : null;
     // Passar o tipo de ingresso selecionado
-    const finalSelectedPriceKey = tour.prices && Object.keys(tour.prices).length > 0 ? selectedPriceKey : undefined;
+    // IMPORTANTE: Só passar se houver preços dinâmicos E se selectedPriceKey não estiver vazio
+    let finalSelectedPriceKey: string | undefined = undefined;
+    if (tour.prices && Object.keys(tour.prices).length > 0) {
+      if (selectedPriceKey && selectedPriceKey.trim() !== '') {
+        finalSelectedPriceKey = selectedPriceKey.trim();
+      } else {
+        // Se selectedPriceKey está vazio mas há preços, usar o primeiro disponível como fallback
+        const firstKey = Object.keys(tour.prices)[0];
+        if (firstKey) {
+          finalSelectedPriceKey = firstKey;
+          console.warn('⚠️ TourAttendanceModal - selectedPriceKey estava vazio, usando primeiro disponível:', firstKey);
+        } else {
+          console.warn('⚠️ TourAttendanceModal - selectedPriceKey está vazio e não há chaves disponíveis');
+        }
+      }
+    }
     
     console.log('💾 TourAttendanceModal - Salvando confirmação:', {
       tourId: tour.id,
@@ -124,7 +139,8 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
       availablePriceKeys: tour.prices ? Object.keys(tour.prices) : [],
       availablePriceKeysCount: tour.prices ? Object.keys(tour.prices).length : 0,
       selectedPrice: finalSelectedPriceKey && tour.prices ? tour.prices[finalSelectedPriceKey as keyof typeof tour.prices] : null,
-      willPassSelectedPriceKey: !!finalSelectedPriceKey
+      willPassSelectedPriceKey: !!finalSelectedPriceKey,
+      totalPrice: calculateTotalPrice()
     });
     
     onConfirm(tour.id, selectedMembers, finalCustomDate, finalSelectedPriceKey);
