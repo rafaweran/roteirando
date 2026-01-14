@@ -628,10 +628,20 @@ const AppContent: React.FC = () => {
   const handleSaveAttendance = async (tourId: string, members: string[], customDate?: string | null, cancelReason?: string, selectedPriceKey?: string) => {
     if (userRole !== 'user' || !currentUserGroup) return;
 
+    console.log('💾 App.tsx - handleSaveAttendance chamado:', {
+      tourId,
+      membersCount: members.length,
+      customDate,
+      selectedPriceKey,
+      hasSelectedPriceKey: !!selectedPriceKey
+    });
+
     try {
       // Salvar no banco de dados
       const { tourAttendanceApi } = await import('./lib/database');
       await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate, selectedPriceKey);
+
+      console.log('✅ App.tsx - Presença salva no banco com selectedPriceKey:', selectedPriceKey);
 
       // Log do motivo se for cancelamento
       if (members.length === 0 && cancelReason) {
@@ -649,6 +659,11 @@ const AppContent: React.FC = () => {
             selectedPriceKey: selectedPriceKey || undefined
           }
       };
+      
+      console.log('📝 App.tsx - updatedAttendance criado:', {
+        tourId,
+        attendance: updatedAttendance[tourId]
+      });
 
       // If member list is empty, we can clean up the key (optional)
       if (members.length === 0) {

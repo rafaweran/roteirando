@@ -610,15 +610,26 @@ export const groupsApi = {
       .from('tour_attendance')
       .select('*');
 
-    const attendanceByGroupId: Record<string, Record<string, { members: string[]; customDate?: string | null }>> = {};
+    const attendanceByGroupId: Record<string, Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }>> = {};
     attendance?.forEach((att: DBTourAttendance) => {
       if (!attendanceByGroupId[att.group_id]) {
         attendanceByGroupId[att.group_id] = {};
       }
-      attendanceByGroupId[att.group_id][att.tour_id] = {
+      const attendanceInfo = {
         members: att.members,
-        customDate: att.custom_date || null
+        customDate: att.custom_date || null,
+        selectedPriceKey: att.selected_price_key || undefined
       };
+      
+      console.log('📥 groupsApi.getAll - Recuperando attendance:', {
+        groupId: att.group_id,
+        tourId: att.tour_id,
+        membersCount: att.members.length,
+        selectedPriceKey: attendanceInfo.selectedPriceKey,
+        rawSelectedPriceKey: att.selected_price_key
+      });
+      
+      attendanceByGroupId[att.group_id][att.tour_id] = attendanceInfo;
     });
 
     return groups.map((group: DBGroup) => 
@@ -643,15 +654,26 @@ export const groupsApi = {
       .select('*')
       .in('group_id', groupIds);
 
-    const attendanceByGroupId: Record<string, Record<string, { members: string[]; customDate?: string | null }>> = {};
+    const attendanceByGroupId: Record<string, Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }>> = {};
     attendance?.forEach((att: DBTourAttendance) => {
       if (!attendanceByGroupId[att.group_id]) {
         attendanceByGroupId[att.group_id] = {};
       }
-      attendanceByGroupId[att.group_id][att.tour_id] = {
+      const attendanceInfo = {
         members: att.members,
-        customDate: att.custom_date || null
+        customDate: att.custom_date || null,
+        selectedPriceKey: att.selected_price_key || undefined
       };
+      
+      console.log('📥 groupsApi.getByTripId - Recuperando attendance:', {
+        groupId: att.group_id,
+        tourId: att.tour_id,
+        membersCount: att.members.length,
+        selectedPriceKey: attendanceInfo.selectedPriceKey,
+        rawSelectedPriceKey: att.selected_price_key
+      });
+      
+      attendanceByGroupId[att.group_id][att.tour_id] = attendanceInfo;
     });
 
     return groups.map((group: DBGroup) => 
@@ -675,12 +697,23 @@ export const groupsApi = {
       .select('*')
       .eq('group_id', id);
 
-    const attendanceMap: Record<string, { members: string[]; customDate?: string | null }> = {};
+    const attendanceMap: Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }> = {};
     attendance?.forEach((att: DBTourAttendance) => {
-      attendanceMap[att.tour_id] = {
+      const attendanceInfo = {
         members: att.members,
-        customDate: att.custom_date || null
+        customDate: att.custom_date || null,
+        selectedPriceKey: att.selected_price_key || undefined
       };
+      
+      console.log('📥 groupsApi.getById - Recuperando attendance:', {
+        groupId: id,
+        tourId: att.tour_id,
+        membersCount: att.members.length,
+        selectedPriceKey: attendanceInfo.selectedPriceKey,
+        rawSelectedPriceKey: att.selected_price_key
+      });
+      
+      attendanceMap[att.tour_id] = attendanceInfo;
     });
 
     return dbGroupToGroup(group, attendanceMap);
@@ -815,17 +848,35 @@ export const tourAttendanceApi = {
       // Só adicionar selected_price_key se for fornecido e não for vazio
       if (selectedPriceKey && selectedPriceKey.trim() !== '') {
         insertData.selected_price_key = selectedPriceKey;
+        console.log('💾 tourAttendanceApi.saveAttendance - Adicionando selected_price_key:', selectedPriceKey);
+      } else {
+        console.warn('⚠️ tourAttendanceApi.saveAttendance - selectedPriceKey não fornecido ou vazio:', selectedPriceKey);
       }
       
-      const { error } = await supabase
+      console.log('💾 tourAttendanceApi.saveAttendance - Dados para salvar:', {
+        groupId,
+        tourId,
+        membersCount: members.length,
+        customDate,
+        selectedPriceKey,
+        insertData
+      });
+      
+      const { error, data } = await supabase
         .from('tour_attendance')
         .upsert(insertData, {
           onConflict: 'group_id,tour_id',
-        });
+        })
+        .select();
+      
+      if (data) {
+        console.log('✅ tourAttendanceApi.saveAttendance - Dados salvos:', data);
+      }
       
       // Se der erro relacionado à coluna selected_price_key não existir, tentar novamente sem ela
       if (error && error.message && error.message.includes('selected_price_key')) {
         console.warn('⚠️ Coluna selected_price_key não encontrada. Tentando salvar sem ela...');
+        console.warn('⚠️ IMPORTANTE: Execute o script SQL para adicionar a coluna selected_price_key!');
         const { error: retryError } = await supabase
           .from('tour_attendance')
           .upsert({
@@ -838,6 +889,7 @@ export const tourAttendanceApi = {
           });
         if (retryError) throw retryError;
       } else if (error) {
+        console.error('❌ tourAttendanceApi.saveAttendance - Erro ao salvar:', error);
         throw error;
       }
     }
@@ -854,11 +906,20 @@ export const tourAttendanceApi = {
 
     const attendance: Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }> = {};
     data.forEach((att: DBTourAttendance) => {
-      attendance[att.tour_id] = {
+      const attendanceInfo = {
         members: att.members,
         customDate: att.custom_date || null,
         selectedPriceKey: att.selected_price_key || undefined
       };
+      
+      console.log('📥 tourAttendanceApi.getAttendanceByGroup - Recuperando:', {
+        tourId: att.tour_id,
+        membersCount: att.members.length,
+        selectedPriceKey: attendanceInfo.selectedPriceKey,
+        rawSelectedPriceKey: att.selected_price_key
+      });
+      
+      attendance[att.tour_id] = attendanceInfo;
     });
 
     return attendance;
