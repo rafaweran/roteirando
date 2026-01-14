@@ -85,12 +85,14 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   const attendance = userGroup?.tourAttendance?.[tour.id];
   let attendingMembers: string[] = [];
   let customDate: string | null = null;
+  let selectedPriceKey: string | undefined = undefined;
   
   if (Array.isArray(attendance)) {
     attendingMembers = attendance;
   } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
     attendingMembers = attendance.members || [];
     customDate = attendance.customDate || null;
+    selectedPriceKey = attendance.selectedPriceKey || undefined;
   }
 
   const isSelected = attendingMembers.length > 0;
@@ -99,7 +101,39 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
     ? (userGroup.leaderName ? userGroup.members.length + 1 : userGroup.members.length)
     : 0;
   const isPartial = attendanceCount > 0 && attendanceCount < totalMembers;
-  const totalValue = tour.price * attendanceCount;
+  
+  // Calcular valor total baseado no tipo de ingresso selecionado
+  const calculateTotalValue = () => {
+    if (attendanceCount === 0) return 0;
+    
+    // Se houver preços dinâmicos e um tipo selecionado, usar esse preço
+    if (tour.prices && selectedPriceKey && tour.prices[selectedPriceKey as keyof typeof tour.prices]) {
+      const selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+      if (selectedPrice && selectedPrice.value !== undefined) {
+        return attendanceCount * selectedPrice.value;
+      }
+    }
+    
+    // Caso contrário, usar preço padrão
+    return attendanceCount * tour.price;
+  };
+  
+  const totalValue = calculateTotalValue();
+  
+  // Obter descrição do tipo de ingresso selecionado
+  const getSelectedPriceDescription = () => {
+    if (tour.prices && selectedPriceKey && tour.prices[selectedPriceKey as keyof typeof tour.prices]) {
+      const selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+      if (selectedPrice && selectedPrice.description) {
+        return selectedPrice.description;
+      }
+      // Se não houver descrição, formatar a chave
+      return selectedPriceKey.charAt(0).toUpperCase() + selectedPriceKey.slice(1).replace(/_/g, ' ');
+    }
+    return null;
+  };
+  
+  const selectedPriceDescription = getSelectedPriceDescription();
 
   // Filtrar grupos que confirmaram presença neste passeio
   const attendingGroups = useMemo(() => {
@@ -476,6 +510,16 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                         <span className="text-sm text-text-secondary">Pessoas confirmadas</span>
                         <span className="font-bold text-text-primary">{attendanceCount}</span>
                       </div>
+                      {selectedPriceDescription && (
+                        <div className="mb-2 pt-2 border-t border-border">
+                          <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider block mb-1">
+                            Tipo de Ingresso:
+                          </span>
+                          <span className="text-sm font-medium text-text-primary">
+                            {selectedPriceDescription}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-text-secondary">Total</span>
                         <span className="text-lg font-bold text-primary">
