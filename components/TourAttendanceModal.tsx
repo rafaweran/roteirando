@@ -109,6 +109,17 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
     const finalCustomDate = dateOption === 'custom' && customDate ? customDate : null;
     // Passar o tipo de ingresso selecionado
     const finalSelectedPriceKey = tour.prices && Object.keys(tour.prices).length > 0 ? selectedPriceKey : undefined;
+    
+    console.log('💾 TourAttendanceModal - Salvando confirmação:', {
+      tourId: tour.id,
+      tourName: tour.name,
+      selectedMembers: selectedMembers.length,
+      finalCustomDate,
+      finalSelectedPriceKey,
+      availablePriceKeys: tour.prices ? Object.keys(tour.prices) : [],
+      selectedPrice: finalSelectedPriceKey && tour.prices ? tour.prices[finalSelectedPriceKey as keyof typeof tour.prices] : null
+    });
+    
     onConfirm(tour.id, selectedMembers, finalCustomDate, finalSelectedPriceKey);
     onClose();
   };

@@ -106,34 +106,143 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   const calculateTotalValue = () => {
     if (attendanceCount === 0) return 0;
     
+    console.log('💰 TourDetailPage - Calculando valor total:', {
+      attendanceCount,
+      selectedPriceKey,
+      hasPrices: !!tour.prices,
+      pricesKeys: tour.prices ? Object.keys(tour.prices) : [],
+      pricesEntries: tour.prices ? Object.entries(tour.prices).map(([k, v]: [string, any]) => ({
+        key: k,
+        description: v?.description,
+        value: v?.value
+      })) : [],
+      tourPrice: tour.price
+    });
+    
     // Se houver preços dinâmicos e um tipo selecionado, usar esse preço
-    if (tour.prices && selectedPriceKey && tour.prices[selectedPriceKey as keyof typeof tour.prices]) {
-      const selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+    if (tour.prices && selectedPriceKey) {
+      // Tentar encontrar o preço pela chave exata
+      let selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+      let matchedKey = selectedPriceKey;
+      
+      // Se não encontrar pela chave exata, tentar encontrar por correspondência parcial
+      if (!selectedPrice && tour.prices) {
+        const priceEntries = Object.entries(tour.prices);
+        // Tentar correspondência exata (case-insensitive)
+        let matched = priceEntries.find(([key]) => key.toLowerCase() === selectedPriceKey.toLowerCase());
+        
+        // Se não encontrar, tentar correspondência parcial
+        if (!matched) {
+          matched = priceEntries.find(([key]) => 
+            key.toLowerCase().includes(selectedPriceKey.toLowerCase()) || 
+            selectedPriceKey.toLowerCase().includes(key.toLowerCase())
+          );
+        }
+        
+        if (matched) {
+          selectedPrice = matched[1] as any;
+          matchedKey = matched[0];
+          console.log('✅ TourDetailPage - Preço encontrado por correspondência:', {
+            originalKey: selectedPriceKey,
+            matchedKey: matchedKey,
+            price: selectedPrice
+          });
+        }
+      }
+      
       if (selectedPrice && selectedPrice.value !== undefined) {
-        return attendanceCount * selectedPrice.value;
+        const total = attendanceCount * selectedPrice.value;
+        console.log('✅ TourDetailPage - Valor calculado com preço selecionado:', {
+          pricePerPerson: selectedPrice.value,
+          attendanceCount,
+          total,
+          key: matchedKey
+        });
+        return total;
+      } else {
+        console.warn('⚠️ TourDetailPage - Preço não encontrado para chave:', selectedPriceKey, {
+          availableKeys: tour.prices ? Object.keys(tour.prices) : []
+        });
       }
     }
     
     // Caso contrário, usar preço padrão
-    return attendanceCount * tour.price;
+    const defaultTotal = attendanceCount * tour.price;
+    console.log('⚠️ TourDetailPage - Usando preço padrão:', {
+      tourPrice: tour.price,
+      attendanceCount,
+      total: defaultTotal
+    });
+    return defaultTotal;
   };
   
   const totalValue = calculateTotalValue();
   
   // Obter descrição do tipo de ingresso selecionado
   const getSelectedPriceDescription = () => {
-    if (tour.prices && selectedPriceKey && tour.prices[selectedPriceKey as keyof typeof tour.prices]) {
-      const selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
-      if (selectedPrice && selectedPrice.description) {
-        return selectedPrice.description;
+    if (tour.prices && selectedPriceKey) {
+      // Tentar encontrar o preço pela chave exata
+      let selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+      let matchedKey = selectedPriceKey;
+      
+      // Se não encontrar pela chave exata, tentar encontrar por correspondência parcial
+      if (!selectedPrice && tour.prices) {
+        const priceEntries = Object.entries(tour.prices);
+        // Tentar correspondência exata (case-insensitive)
+        let matched = priceEntries.find(([key]) => key.toLowerCase() === selectedPriceKey.toLowerCase());
+        
+        // Se não encontrar, tentar correspondência parcial
+        if (!matched) {
+          matched = priceEntries.find(([key]) => 
+            key.toLowerCase().includes(selectedPriceKey.toLowerCase()) || 
+            selectedPriceKey.toLowerCase().includes(key.toLowerCase())
+          );
+        }
+        
+        if (matched) {
+          selectedPrice = matched[1] as any;
+          matchedKey = matched[0];
+        }
       }
-      // Se não houver descrição, formatar a chave
-      return selectedPriceKey.charAt(0).toUpperCase() + selectedPriceKey.slice(1).replace(/_/g, ' ');
+      
+      if (selectedPrice) {
+        if (selectedPrice.description) {
+          console.log('✅ TourDetailPage - Descrição encontrada:', {
+            key: matchedKey,
+            description: selectedPrice.description
+          });
+          return selectedPrice.description;
+        }
+        // Se não houver descrição, formatar a chave
+        return matchedKey.charAt(0).toUpperCase() + matchedKey.slice(1).replace(/_/g, ' ');
+      }
     }
+    console.warn('⚠️ TourDetailPage - Descrição não encontrada para chave:', selectedPriceKey);
     return null;
   };
   
   const selectedPriceDescription = getSelectedPriceDescription();
+  
+  // Log para debug
+  useEffect(() => {
+    if (isSelected && userRole === 'user') {
+      console.log('🔍 TourDetailPage - Debug completo de confirmação:', {
+        tourId: tour.id,
+        tourName: tour.name,
+        selectedPriceKey,
+        selectedPriceDescription,
+        attendanceCount,
+        totalValue,
+        prices: tour.prices ? Object.entries(tour.prices).map(([key, price]: [string, any]) => ({
+          key,
+          description: price?.description,
+          value: price?.value
+        })) : null,
+        attendanceData: attendance,
+        attendanceType: Array.isArray(attendance) ? 'array' : typeof attendance
+      });
+    }
+  }, [isSelected, selectedPriceKey, attendanceCount, tour.id, tour.prices, attendance]);
 
   // Filtrar grupos que confirmaram presença neste passeio
   const attendingGroups = useMemo(() => {
@@ -510,14 +619,25 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                         <span className="text-sm text-text-secondary">Pessoas confirmadas</span>
                         <span className="font-bold text-text-primary">{attendanceCount}</span>
                       </div>
-                      {selectedPriceDescription && (
+                      {/* Sempre mostrar tipo de ingresso se houver múltiplos preços e um selecionado */}
+                      {tour.prices && Object.keys(tour.prices).length > 1 && (
                         <div className="mb-2 pt-2 border-t border-border">
                           <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider block mb-1">
-                            Tipo de Ingresso:
+                            Tipo de Ingresso Selecionado:
                           </span>
-                          <span className="text-sm font-medium text-text-primary">
-                            {selectedPriceDescription}
-                          </span>
+                          {selectedPriceDescription ? (
+                            <span className="text-sm font-medium text-text-primary">
+                              {selectedPriceDescription}
+                            </span>
+                          ) : selectedPriceKey ? (
+                            <span className="text-sm font-medium text-text-primary">
+                              {selectedPriceKey} (chave: {selectedPriceKey})
+                            </span>
+                          ) : (
+                            <span className="text-xs text-text-secondary italic">
+                              Nenhum tipo selecionado
+                            </span>
+                          )}
                         </div>
                       )}
                       <div className="flex items-center justify-between">
