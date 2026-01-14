@@ -688,6 +688,16 @@ const AppContent: React.FC = () => {
       try {
         const refreshedGroup = await groupsApi.getById(currentUserGroup.id);
         if (refreshedGroup) {
+          console.log('🔄 App.tsx - Grupo recarregado do banco:', {
+            groupId: refreshedGroup.id,
+            groupName: refreshedGroup.name,
+            tourAttendance: refreshedGroup.tourAttendance ? Object.keys(refreshedGroup.tourAttendance) : [],
+            attendanceForTour: refreshedGroup.tourAttendance?.[tourId] ? {
+              members: (refreshedGroup.tourAttendance[tourId] as any)?.members || [],
+              selectedPriceKey: (refreshedGroup.tourAttendance[tourId] as any)?.selectedPriceKey,
+              customDate: (refreshedGroup.tourAttendance[tourId] as any)?.customDate
+            } : null
+          });
           setCurrentUserGroup(refreshedGroup);
           console.log('✅ currentUserGroup atualizado após salvar presença');
         }
@@ -866,7 +876,12 @@ const AppContent: React.FC = () => {
           userRole,
           hasCurrentUserGroup: !!currentUserGroup,
           currentUserGroupId: currentUserGroup?.id,
-          currentUserGroupInList: tourGroups.some(g => g.id === currentUserGroup?.id)
+          currentUserGroupInList: tourGroups.some(g => g.id === currentUserGroup?.id),
+          currentUserGroupAttendance: currentUserGroup?.tourAttendance?.[selectedTourForDetail.id] ? {
+            members: (currentUserGroup.tourAttendance[selectedTourForDetail.id] as any)?.members || [],
+            selectedPriceKey: (currentUserGroup.tourAttendance[selectedTourForDetail.id] as any)?.selectedPriceKey,
+            customDate: (currentUserGroup.tourAttendance[selectedTourForDetail.id] as any)?.customDate
+          } : null
         });
         return (
           <TourDetailPage

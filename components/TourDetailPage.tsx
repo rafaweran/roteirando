@@ -87,12 +87,28 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   let customDate: string | null = null;
   let selectedPriceKey: string | undefined = undefined;
   
+  console.log('🔍 TourDetailPage - Verificando attendance:', {
+    hasUserGroup: !!userGroup,
+    tourId: tour.id,
+    attendance: attendance,
+    attendanceType: Array.isArray(attendance) ? 'array' : typeof attendance,
+    attendanceKeys: attendance && typeof attendance === 'object' ? Object.keys(attendance) : []
+  });
+  
   if (Array.isArray(attendance)) {
     attendingMembers = attendance;
   } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
     attendingMembers = attendance.members || [];
     customDate = attendance.customDate || null;
     selectedPriceKey = attendance.selectedPriceKey || undefined;
+    console.log('✅ TourDetailPage - Extraído do attendance:', {
+      membersCount: attendingMembers.length,
+      customDate,
+      selectedPriceKey,
+      hasSelectedPriceKey: !!selectedPriceKey
+    });
+  } else {
+    console.warn('⚠️ TourDetailPage - Attendance não está no formato esperado:', attendance);
   }
 
   const isSelected = attendingMembers.length > 0;

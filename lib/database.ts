@@ -125,6 +125,13 @@ function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, { members: 
       password_changed_raw: dbGroup.password_changed,
       password_changed_type: typeof dbGroup.password_changed,
       passwordChanged_mapped: passwordChanged,
+      attendanceKeys: Object.keys(attendance),
+      attendanceDetails: Object.entries(attendance).map(([tourId, att]) => ({
+        tourId,
+        membersCount: att.members?.length || 0,
+        selectedPriceKey: att.selectedPriceKey,
+        hasSelectedPriceKey: !!att.selectedPriceKey
+      }))
     });
   }
   
