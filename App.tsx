@@ -51,6 +51,10 @@ const AppContent: React.FC = () => {
   const [showChangePasswordModalAdmin, setShowChangePasswordModalAdmin] = useState(false);
   const [currentAdminEmail, setCurrentAdminEmail] = useState<string | null>(null);
   const [currentAdminPasswordHash, setCurrentAdminPasswordHash] = useState<string | null>(null);
+  
+  // Histórico de navegação para suporte ao botão voltar do navegador
+  const [navigationHistory, setNavigationHistory] = useState<Array<{ view: View; tripId?: string | null; tourId?: string | null }>>([]);
+  const [isNavigatingBack, setIsNavigatingBack] = useState(false);
 
   // Load data functions
   const loadTrips = async () => {
@@ -89,68 +93,127 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Restaurar sessão ao carregar a página
+  // Limpar qualquer sessão antiga ao carregar a página (segurança)
   useEffect(() => {
-    const restoreSession = async () => {
-      try {
-        const sessionData = localStorage.getItem('roteirando_session');
-        if (!sessionData) {
-          return; // Não há sessão salva
+    // Sempre limpar sessão antiga e exigir login real
+    localStorage.removeItem('roteirando_session');
+    setCurrentView('login');
+    console.log('🔒 Sistema de login: sessão antiga removida, login obrigatório');
+    
+    // Inicializar histórico de navegação
+    setNavigationHistory([{ view: 'login' }]);
+  }, []); // Executar apenas uma vez ao montar
+
+  // Função para adicionar entrada ao histórico e atualizar URL
+  const navigateToView = (view: View, tripId?: string | null, tourId?: string | null, addToHistory: boolean = true) => {
+    // Se estiver navegando para trás, apenas atualizar o estado sem adicionar ao histórico
+    if (isNavigatingBack) {
+      setIsNavigatingBack(false);
+      // Apenas atualizar estado, não adicionar ao histórico
+      setCurrentView(view);
+      if (tripId !== undefined) setSelectedTripId(tripId);
+      if (tourId !== undefined) {
+        if (view === 'tour-detail') {
+          const tour = tours.find(t => t.id === tourId);
+          if (tour) setSelectedTourForDetail(tour);
+        } else if (view === 'tour-attendance') {
+          const tour = tours.find(t => t.id === tourId);
+          if (tour) setSelectedTourForAttendance(tour);
         }
-
-        const session = JSON.parse(sessionData);
-        const sessionAge = Date.now() - (session.timestamp || 0);
-        const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
-
-        // Verificar se a sessão não expirou
-        if (sessionAge > maxAge) {
-          localStorage.removeItem('roteirando_session');
-          return;
+      }
+      return;
+    }
+    
+    if (addToHistory && currentView !== 'login') {
+      // Adicionar estado atual ao histórico antes de mudar
+      const currentState = {
+        view: currentView,
+        tripId: selectedTripId,
+        tourId: selectedTourForDetail?.id || selectedTourForAttendance?.id || undefined
+      };
+      
+      setNavigationHistory(prev => {
+        // Não adicionar se for o mesmo estado
+        const lastState = prev[prev.length - 1];
+        if (lastState && 
+            lastState.view === currentState.view && 
+            lastState.tripId === currentState.tripId && 
+            lastState.tourId === currentState.tourId) {
+          return prev;
         }
+        return [...prev, currentState];
+      });
+      
+      // Adicionar ao histórico do navegador
+      window.history.pushState(
+        { view, tripId, tourId },
+        '',
+        `#${view}${tripId ? `-${tripId}` : ''}${tourId ? `-${tourId}` : ''}`
+      );
+    }
+    
+    // Atualizar estado
+    setCurrentView(view);
+    if (tripId !== undefined) setSelectedTripId(tripId);
+    if (tourId !== undefined) {
+      if (view === 'tour-detail') {
+        const tour = tours.find(t => t.id === tourId);
+        if (tour) setSelectedTourForDetail(tour);
+      } else if (view === 'tour-attendance') {
+        const tour = tours.find(t => t.id === tourId);
+        if (tour) setSelectedTourForAttendance(tour);
+      }
+    }
+  };
 
-        if (session.role === 'user' && session.groupId) {
-          // Restaurar sessão de usuário
-          try {
-            const group = await groupsApi.getById(session.groupId);
-            if (group) {
-              setUserRole('user');
-              setCurrentUserGroup(group);
-              setSelectedTripId(session.tripId || group.tripId);
-              
-              // Carregar dados
-              await Promise.all([
-                loadTrips(),
-                loadTours(),
-                loadGroups()
-              ]);
-              
-              setCurrentView('trip-details');
-            }
-          } catch (error) {
-            // Se não conseguir restaurar, limpar sessão
-            localStorage.removeItem('roteirando_session');
+  // Ouvir eventos de popstate (botão voltar/avançar do navegador)
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state) {
+        setIsNavigatingBack(true);
+        const { view, tripId, tourId } = event.state;
+        setCurrentView(view as View);
+        if (tripId !== undefined) setSelectedTripId(tripId);
+        if (tourId !== undefined) {
+          if (view === 'tour-detail') {
+            const tour = tours.find(t => t.id === tourId);
+            if (tour) setSelectedTourForDetail(tour);
+          } else if (view === 'tour-attendance') {
+            const tour = tours.find(t => t.id === tourId);
+            if (tour) setSelectedTourForAttendance(tour);
           }
-        } else if (session.role === 'admin') {
-          // Restaurar sessão de admin
-          setUserRole('admin');
-          
-          // Carregar dados
-          await Promise.all([
-            loadTrips(),
-            loadTours(),
-            loadGroups()
-          ]);
-          
-          setCurrentView('dashboard');
         }
-      } catch (error) {
-        console.error('Erro ao restaurar sessão:', error);
-        localStorage.removeItem('roteirando_session');
+      } else {
+        // Se não houver state, usar window.history.back() ou voltar para login
+        setNavigationHistory(prev => {
+          if (prev.length > 1) {
+            const previousState = prev[prev.length - 2];
+            setIsNavigatingBack(true);
+            setCurrentView(previousState.view);
+            if (previousState.tripId !== undefined) setSelectedTripId(previousState.tripId);
+            if (previousState.tourId !== undefined) {
+              const tour = tours.find(t => t.id === previousState.tourId);
+              if (tour) {
+                if (previousState.view === 'tour-detail') {
+                  setSelectedTourForDetail(tour);
+                } else if (previousState.view === 'tour-attendance') {
+                  setSelectedTourForAttendance(tour);
+                }
+              }
+            }
+            return prev.slice(0, -1);
+          } else {
+            // Voltar para login se não houver histórico
+            setCurrentView('login');
+            return [{ view: 'login' }];
+          }
+        });
       }
     };
 
-    restoreSession();
-  }, []); // Executar apenas uma vez ao montar
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [tours]);
 
   // Load all data when user logs in (apenas se ainda não foram carregados)
   useEffect(() => {
@@ -168,13 +231,8 @@ const AppContent: React.FC = () => {
         setCurrentUserGroup(group);
         setSelectedTripId(group.tripId);
         
-        // Salvar sessão no localStorage
-        localStorage.setItem('roteirando_session', JSON.stringify({
-          role: 'user',
-          groupId: group.id,
-          tripId: group.tripId,
-          timestamp: Date.now()
-        }));
+        // Não salvar sessão no localStorage por segurança
+        // O usuário deve fazer login sempre que acessar o sistema
         
         // Carregar dados em paralelo para melhor performance
         const [updatedGroup] = await Promise.all([
@@ -194,17 +252,13 @@ const AppContent: React.FC = () => {
         }
         
         if (group.tripId) {
-          setSelectedTripId(group.tripId);
+          navigateToView('trip-details', group.tripId);
+        } else {
+          navigateToView('trip-details', null);
         }
-        
-        setCurrentView('trip-details');
       } else {
-        // Salvar sessão do admin no localStorage
-        localStorage.setItem('roteirando_session', JSON.stringify({
-          role: 'admin',
-          email: adminData?.email || null,
-          timestamp: Date.now()
-        }));
+        // Não salvar sessão do admin no localStorage por segurança
+        // O admin deve fazer login sempre que acessar o sistema
         
         // Admin: carregar todos os dados em paralelo
         await Promise.all([
@@ -220,7 +274,7 @@ const AppContent: React.FC = () => {
           setShowChangePasswordModalAdmin(true);
         }
         
-        setCurrentView('dashboard');
+        navigateToView('dashboard', null);
       }
     } catch (err) {
       console.error('Erro no handleLoginSuccess:', err);
@@ -246,6 +300,7 @@ const AppContent: React.FC = () => {
   const handleLogout = () => {
     // Limpar sessão do localStorage
     localStorage.removeItem('roteirando_session');
+    setNavigationHistory([{ view: 'login' }]);
     setCurrentView('login');
     setSelectedTripId(null);
     setUserRole('admin');
@@ -255,99 +310,80 @@ const AppContent: React.FC = () => {
   };
 
   const handleTripClick = (trip: Trip) => {
-    setSelectedTripId(trip.id);
     setTripDetailsInitialTab('tours');
-    setCurrentView('trip-details');
+    navigateToView('trip-details', trip.id);
   };
 
   const handleNavigateHome = () => {
     if (userRole === 'user') {
-      if (currentUserGroup) setSelectedTripId(currentUserGroup.tripId);
-      setCurrentView('trip-details');
+      const tripId = currentUserGroup?.tripId || null;
+      navigateToView('trip-details', tripId);
     } else {
-      setCurrentView('dashboard');
-      setSelectedTripId(null);
+      navigateToView('dashboard', null);
     }
   };
 
   const handleNavigateAgenda = () => {
-    setCurrentView('agenda');
+    navigateToView('agenda');
   };
 
   const handleNavigateTours = () => {
-    setCurrentView('all-tours');
-    setSelectedTripId(null);
+    navigateToView('all-tours', null);
   };
 
   const handleNavigateGroups = () => {
-    setCurrentView('all-groups');
-    setSelectedTripId(null);
+    navigateToView('all-groups', null);
   };
 
   const handleNavigateFinancial = () => {
-    setCurrentView('financial');
-    setSelectedTripId(null);
+    navigateToView('financial', null);
   };
 
   const handleNavigateCityGuide = () => {
-    setCurrentView('city-guide');
-    setSelectedTripId(null);
+    navigateToView('city-guide', null);
   };
 
   const handleNavigateDestinosGuide = () => {
     console.log('🚀 Navegando para Guia de Destinos');
-    setCurrentView('destinos-guide');
-    setSelectedTripId(null);
+    navigateToView('destinos-guide', null);
     console.log('✅ currentView definido como: destinos-guide');
   };
 
   const handleNavigateMyTrip = () => {
-    setCurrentView('my-trip');
-    setSelectedTripId(null);
+    navigateToView('my-trip', null);
   };
 
   const handleNavigateCustomTours = () => {
-    setCurrentView('custom-tours');
-    setSelectedTripId(null);
+    navigateToView('custom-tours', null);
   };
 
   const handleNewTourClick = () => {
     console.log('🔄 handleNewTourClick: Criando novo passeio...');
     setEditingTour(null);
-    setSelectedTripId(null); // Limpar seleção de viagem para permitir seleção no formulário
-    setCurrentView('new-tour');
+    navigateToView('new-tour', null);
     console.log('✅ handleNewTourClick: View alterada para new-tour');
   };
 
   const handleEditTour = (tour: Tour) => {
     setEditingTour(tour);
-    setSelectedTripId(tour.tripId); 
-    setCurrentView('edit-tour');
+    navigateToView('edit-tour', tour.tripId);
   };
 
   const handleViewTourAttendance = (tour: Tour) => {
     // Quando clica em "Ver Lista", ir para a aba de grupos do TripDetails com o passeio selecionado
-    setSelectedTripId(tour.tripId);
     setSelectedTourForGroups(tour.id);
     setTripDetailsInitialTab('groups');
-    setCurrentView('trip-details');
+    navigateToView('trip-details', tour.tripId);
   };
 
   const handleViewTourDetail = (tour: Tour) => {
     setSelectedTourForDetail(tour);
-    setSelectedTripId(tour.tripId);
-    setCurrentView('tour-detail');
+    navigateToView('tour-detail', tour.tripId, tour.id);
   };
 
   const handleBackFromTourDetail = () => {
-    // Voltar para a view anterior (pode ser trip-details, all-tours, ou agenda)
-    if (selectedTripId) {
-      setCurrentView('trip-details');
-    } else if (userRole === 'user') {
-      setCurrentView('agenda');
-    } else {
-      setCurrentView('all-tours');
-    }
+    // Usar histórico do navegador para voltar
+    window.history.back();
   };
 
   const handleDeleteTour = (tourId: string) => {
@@ -370,32 +406,29 @@ const AppContent: React.FC = () => {
 
   const handleEditGroup = (group: Group) => {
     setEditingGroup(group);
-    setSelectedTripId(group.tripId);
-    setCurrentView('edit-group');
+    navigateToView('edit-group', group.tripId);
   };
 
   const handleViewGroup = (tripId: string) => {
-    setSelectedTripId(tripId);
     setTripDetailsInitialTab('groups');
     setSelectedTourForGroups(null); // Limpar filtro de passeio
-    setCurrentView('trip-details');
+    navigateToView('trip-details', tripId);
   };
 
   const handleViewTourGroups = (tour: Tour) => {
     // Visualizar grupos que confirmaram presença neste passeio específico
-    setSelectedTripId(tour.tripId);
     setSelectedTourForGroups(tour.id);
     setTripDetailsInitialTab('groups');
-    setCurrentView('trip-details');
+    navigateToView('trip-details', tour.tripId);
   };
 
   const handleNewGroupClick = () => {
     setEditingGroup(null);
-    setCurrentView('new-group');
+    navigateToView('new-group', selectedTripId);
   };
 
   const handleNewTripClick = () => {
-    setCurrentView('new-trip');
+    navigateToView('new-trip', null);
   };
 
   const handleSaveTour = async (tourData: any) => {
@@ -412,11 +445,11 @@ const AppContent: React.FC = () => {
       await loadTours();
       if (selectedTripId) {
         setTripDetailsInitialTab('tours');
-        setCurrentView('trip-details');
-      } else {
-        setCurrentView('all-tours');
-      }
-      setEditingTour(null);
+      navigateToView('trip-details', selectedTripId);
+    } else {
+      navigateToView('all-tours', null);
+    }
+    setEditingTour(null);
     } catch (err: any) {
       console.error('Erro ao salvar passeio:', err);
       showError(`Erro ao salvar passeio: ${err.message || 'Erro desconhecido'}`);
@@ -426,11 +459,7 @@ const AppContent: React.FC = () => {
   };
 
   const handleCancelNewTour = () => {
-    if (selectedTripId) {
-      setCurrentView('trip-details');
-    } else {
-      setCurrentView('all-tours');
-    }
+    window.history.back();
     setEditingTour(null);
   };
 
@@ -503,9 +532,9 @@ const AppContent: React.FC = () => {
       // Navegar de volta
       if (selectedTripId) {
         setTripDetailsInitialTab('groups');
-        setCurrentView('trip-details');
+        navigateToView('trip-details', selectedTripId);
       } else {
-        setCurrentView('all-groups');
+        navigateToView('all-groups', null);
       }
     } catch (err: any) {
       console.error('❌ Erro ao salvar grupo:', err);
@@ -523,11 +552,7 @@ const AppContent: React.FC = () => {
 
   const handleCancelNewGroup = () => {
     setEditingGroup(null);
-    if (selectedTripId) {
-        setCurrentView('trip-details');
-    } else {
-        setCurrentView('all-groups');
-    }
+    window.history.back();
   };
 
   const handleSaveTrip = async (tripData: any) => {
@@ -581,7 +606,7 @@ const AppContent: React.FC = () => {
       await loadTrips();
       
       // Navegar para dashboard
-      setCurrentView('dashboard');
+      navigateToView('dashboard', null);
       
       // Mostrar feedback de sucesso
       showSuccess('Viagem criada com sucesso!');
@@ -596,7 +621,7 @@ const AppContent: React.FC = () => {
   };
 
   const handleCancelNewTrip = () => {
-    setCurrentView('dashboard');
+    window.history.back();
   };
 
   // User Selection Logic (Granular Attendance)
@@ -852,7 +877,7 @@ const AppContent: React.FC = () => {
             tour={selectedTourForAttendance}
             trip={tourTrip!}
             groups={tourGroups}
-            onBack={() => setCurrentView('trip-details')}
+            onBack={() => window.history.back()}
           />
         );
       })()}
@@ -914,7 +939,7 @@ const AppContent: React.FC = () => {
       {currentView === 'custom-tours' && userRole === 'user' && currentUserGroup && (
         <UserCustomToursPage 
           userGroup={currentUserGroup}
-          onBack={() => setCurrentView('my-trip')}
+          onBack={() => window.history.back()}
         />
       )}
 
