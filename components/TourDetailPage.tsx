@@ -13,7 +13,7 @@ interface TourDetailPageProps {
   userGroup?: Group;
   groups?: Group[]; // Lista de grupos para mostrar os que confirmaram presença
   onBack: () => void;
-  onConfirmAttendance?: (tourId: string, members: string[], customDate?: string | null) => void;
+  onConfirmAttendance?: (tourId: string, members: string[], customDate?: string | null, selectedPriceKey?: string) => void;
 }
 
 const TourDetailPage: React.FC<TourDetailPageProps> = ({
@@ -195,9 +195,9 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
     });
   };
 
-  const handleConfirmAttendance = (tourId: string, members: string[], customDate?: string | null) => {
+  const handleConfirmAttendance = (tourId: string, members: string[], customDate?: string | null, selectedPriceKey?: string) => {
     if (onConfirmAttendance) {
-      onConfirmAttendance(tourId, members, customDate);
+      onConfirmAttendance(tourId, members, customDate, selectedPriceKey);
     }
     setAttendanceModalOpen(false);
   };

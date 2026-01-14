@@ -60,6 +60,7 @@ interface DBTourAttendance {
   tour_id: string;
   members: string[];
   custom_date: string | null; // Data personalizada escolhida pelo grupo (NULL = data original do tour)
+  selected_price_key: string | null; // Chave do tipo de ingresso selecionado (ex: "inteira", "meia", "price_0", etc.)
   created_at: string;
   updated_at: string;
 }
@@ -109,7 +110,7 @@ function dbTourToTour(dbTour: DBTour, links: TourLink[] = []): Tour {
   };
 }
 
-function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, { members: string[]; customDate?: string | null }> = {}): Group {
+function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }> = {}): Group {
   // Se password_changed for null, undefined ou false, considerar como primeiro acesso
   // Apenas se for explicitamente true, considerar que já alterou
   const passwordChanged = dbGroup.password_changed === true;
@@ -790,7 +791,8 @@ export const tourAttendanceApi = {
     groupId: string, 
     tourId: string, 
     members: string[], 
-    customDate?: string | null
+    customDate?: string | null,
+    selectedPriceKey?: string
   ): Promise<void> {
     if (members.length === 0) {
       // Delete attendance if no members
@@ -809,6 +811,7 @@ export const tourAttendanceApi = {
           tour_id: tourId,
           members: members,
           custom_date: customDate || null, // NULL = data original do tour
+          selected_price_key: selectedPriceKey || null, // NULL = nenhum tipo selecionado
         }, {
           onConflict: 'group_id,tour_id',
         });
@@ -816,7 +819,7 @@ export const tourAttendanceApi = {
     }
   },
 
-  async getAttendanceByGroup(groupId: string): Promise<Record<string, { members: string[]; customDate?: string | null }>> {
+  async getAttendanceByGroup(groupId: string): Promise<Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }>> {
     const { data, error } = await supabase
       .from('tour_attendance')
       .select('*')
@@ -825,11 +828,12 @@ export const tourAttendanceApi = {
     if (error) throw error;
     if (!data) return {};
 
-    const attendance: Record<string, { members: string[]; customDate?: string | null }> = {};
+    const attendance: Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }> = {};
     data.forEach((att: DBTourAttendance) => {
       attendance[att.tour_id] = {
         members: att.members,
-        customDate: att.custom_date || null
+        customDate: att.custom_date || null,
+        selectedPriceKey: att.selected_price_key || undefined
       };
     });
 

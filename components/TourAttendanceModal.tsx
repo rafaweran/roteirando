@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Users, User, Calendar } from 'lucide-react';
+import { X, Check, Users, User, Calendar, DollarSign } from 'lucide-react';
 import Button from './Button';
 import DatePicker from './DatePicker';
 import { Tour, Group, TourAttendanceInfo } from '../types';
@@ -7,7 +7,7 @@ import { Tour, Group, TourAttendanceInfo } from '../types';
 interface TourAttendanceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (tourId: string, selectedMembers: string[], customDate?: string | null) => void;
+  onConfirm: (tourId: string, selectedMembers: string[], customDate?: string | null, selectedPriceKey?: string) => void;
   tour: Tour;
   group: Group;
 }
@@ -22,6 +22,7 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [dateOption, setDateOption] = useState<'group' | 'custom'>('group'); // 'group' = data original, 'custom' = data personalizada
   const [customDate, setCustomDate] = useState<string>('');
+  const [selectedPriceKey, setSelectedPriceKey] = useState<string>(''); // Chave do tipo de ingresso selecionado
 
   // Criar lista completa incluindo líder + membros
   const allGroupMembers = React.useMemo(() => {
@@ -67,11 +68,20 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
           setDateOption('group');
           setCustomDate('');
         }
+        // Restaurar tipo de ingresso selecionado se existir
+        if (attendanceInfo.selectedPriceKey) {
+          setSelectedPriceKey(attendanceInfo.selectedPriceKey);
+        } else {
+          // Se não houver tipo selecionado, usar o primeiro disponível ou vazio
+          setSelectedPriceKey(tour.prices ? Object.keys(tour.prices)[0] || '' : '');
+        }
       } else {
         // Default: Select all members (including leader) initially for easier UX
         setSelectedMembers([...allGroupMembers]);
         setDateOption('group');
         setCustomDate('');
+        // Selecionar o primeiro tipo de ingresso disponível por padrão
+        setSelectedPriceKey(tour.prices ? Object.keys(tour.prices)[0] || '' : '');
       }
     }
   }, [isOpen, group, tour, allGroupMembers]);
@@ -97,12 +107,31 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   const handleSave = () => {
     // Se escolheu data personalizada, usar customDate, senão null (data original)
     const finalCustomDate = dateOption === 'custom' && customDate ? customDate : null;
-    onConfirm(tour.id, selectedMembers, finalCustomDate);
+    // Passar o tipo de ingresso selecionado
+    const finalSelectedPriceKey = tour.prices && Object.keys(tour.prices).length > 0 ? selectedPriceKey : undefined;
+    onConfirm(tour.id, selectedMembers, finalCustomDate, finalSelectedPriceKey);
     onClose();
   };
 
   const allSelected = selectedMembers.length === totalGroupMembers;
-  const totalPrice = selectedMembers.length * tour.price;
+  
+  // Calcular preço total baseado no tipo de ingresso selecionado
+  const calculateTotalPrice = () => {
+    if (!selectedMembers.length) return 0;
+    
+    // Se houver preços dinâmicos e um tipo selecionado, usar esse preço
+    if (tour.prices && selectedPriceKey && tour.prices[selectedPriceKey as keyof typeof tour.prices]) {
+      const selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+      if (selectedPrice && selectedPrice.value !== undefined) {
+        return selectedMembers.length * selectedPrice.value;
+      }
+    }
+    
+    // Caso contrário, usar preço padrão
+    return selectedMembers.length * tour.price;
+  };
+  
+  const totalPrice = calculateTotalPrice();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -210,6 +239,54 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
               </label>
             </div>
           </div>
+
+          {/* Seção: Tipo de Ingresso (apenas se houver múltiplos preços) */}
+          {tour.prices && Object.keys(tour.prices).length > 1 && (
+            <div className="bg-surface/50 rounded-xl p-4 border border-border">
+              <h4 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
+                <DollarSign size={16} />
+                Tipo de Ingresso
+              </h4>
+              
+              <div className="space-y-2">
+                {Object.entries(tour.prices).map(([key, priceData]) => {
+                  if (!priceData || priceData.value === undefined) return null;
+                  const isSelected = selectedPriceKey === key;
+                  return (
+                    <label 
+                      key={key}
+                      className={`
+                        flex items-center justify-between gap-3 p-3 rounded-lg border cursor-pointer transition-all
+                        ${isSelected 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-border hover:border-primary/30 hover:bg-white'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <input
+                          type="radio"
+                          name="priceOption"
+                          value={key}
+                          checked={isSelected}
+                          onChange={() => setSelectedPriceKey(key)}
+                          className="w-4 h-4 text-primary border-border focus:ring-primary focus:ring-2"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-text-primary">
+                            {priceData.description || key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-base font-bold text-primary">
+                        R$ {priceData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Seção: Quem vai participar */}
           <div>

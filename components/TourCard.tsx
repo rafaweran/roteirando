@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CalendarDays, Check, Plus, Edit2, ListChecks, X } from 'lucide-react';
+import { Clock, CalendarDays, Check, Plus, Edit2, ListChecks, X, Eye } from 'lucide-react';
 import { Tour, Group } from '../types';
 import Button from './Button';
 
@@ -164,27 +164,67 @@ const TourCard: React.FC<TourCardProps> = ({
           {isUserView ? (
              <>
                {isSelected ? (
-                 <button
-                   onClick={() => onCancelTour && onCancelTour(tour)}
-                   className="w-full h-10 sm:h-11 rounded-lg font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-white text-status-error border border-status-error/30 hover:bg-status-error/5 hover:border-status-error active:transform active:scale-[0.98]"
-                 >
-                   <X size={14} className="sm:w-4 sm:h-4" />
-                   <span className="hidden sm:inline">Cancelar Passeio</span>
-                   <span className="sm:hidden">Cancelar</span>
-                 </button>
+                 <>
+                   <Button
+                     variant="outline"
+                     className="h-10 sm:h-11 text-xs sm:text-sm flex-1"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       onViewTourDetail?.(tour);
+                     }}
+                   >
+                     <Eye size={14} className="sm:w-4 sm:h-4 mr-1.5" />
+                     <span className="hidden sm:inline">Ver Detalhes</span>
+                     <span className="sm:hidden">Detalhes</span>
+                   </Button>
+                   <button
+                     onClick={() => onCancelTour && onCancelTour(tour)}
+                     className="flex-1 h-10 sm:h-11 rounded-lg font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-white text-status-error border border-status-error/30 hover:bg-status-error/5 hover:border-status-error active:transform active:scale-[0.98]"
+                   >
+                     <X size={14} className="sm:w-4 sm:h-4" />
+                     <span className="hidden sm:inline">Cancelar</span>
+                     <span className="sm:hidden">Cancelar</span>
+                   </button>
+                 </>
                ) : (
-                 <button
-                   onClick={() => onOpenAttendance && onOpenAttendance(tour)}
-                   className="w-full h-10 sm:h-11 rounded-lg font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-primary text-white hover:bg-primary-hover shadow-sm active:transform active:scale-[0.98]"
-                 >
-                   <Plus size={16} className="sm:w-5 sm:h-5" />
-                   Confirmar Presença
-                 </button>
+                 <>
+                   <Button
+                     variant="outline"
+                     className="h-10 sm:h-11 text-xs sm:text-sm flex-1"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       onViewTourDetail?.(tour);
+                     }}
+                   >
+                     <Eye size={14} className="sm:w-4 sm:h-4 mr-1.5" />
+                     <span className="hidden sm:inline">Ver Detalhes</span>
+                     <span className="sm:hidden">Detalhes</span>
+                   </Button>
+                   <button
+                     onClick={() => onOpenAttendance && onOpenAttendance(tour)}
+                     className="flex-1 h-10 sm:h-11 rounded-lg font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-primary text-white hover:bg-primary-hover shadow-sm active:transform active:scale-[0.98]"
+                   >
+                     <Plus size={16} className="sm:w-5 sm:h-5" />
+                     <span className="hidden sm:inline">Confirmar</span>
+                     <span className="sm:hidden">Confirmar</span>
+                   </button>
+                 </>
                )}
              </>
           ) : (
              // Admin Actions
              <>
+               <Button 
+                 variant="outline" 
+                 className="h-9 sm:h-10 text-xs flex-1"
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   onViewTourDetail?.(tour);
+                 }}
+               >
+                 <Eye size={14} className="mr-1.5" />
+                 Detalhes
+               </Button>
                <Button 
                  variant="outline" 
                  className="h-9 sm:h-10 text-xs flex-1"

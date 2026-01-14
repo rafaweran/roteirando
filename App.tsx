@@ -600,13 +600,13 @@ const AppContent: React.FC = () => {
   };
 
   // User Selection Logic (Granular Attendance)
-  const handleSaveAttendance = async (tourId: string, members: string[], customDate?: string | null, cancelReason?: string) => {
+  const handleSaveAttendance = async (tourId: string, members: string[], customDate?: string | null, cancelReason?: string, selectedPriceKey?: string) => {
     if (userRole !== 'user' || !currentUserGroup) return;
 
     try {
       // Salvar no banco de dados
       const { tourAttendanceApi } = await import('./lib/database');
-      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate);
+      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate, selectedPriceKey);
 
       // Log do motivo se for cancelamento
       if (members.length === 0 && cancelReason) {
@@ -620,7 +620,8 @@ const AppContent: React.FC = () => {
           ...currentUserGroup.tourAttendance,
           [tourId]: {
             members: members,
-            customDate: customDate || null
+            customDate: customDate || null,
+            selectedPriceKey: selectedPriceKey || undefined
           }
       };
 
