@@ -288,19 +288,50 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <DollarSign size={20} className="text-primary" />
+              {/* Valores dos Ingressos */}
+              {tour.prices && Object.keys(tour.prices).length > 0 ? (
+                <div className="flex items-start gap-3 sm:col-span-2">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <DollarSign size={20} className="text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3">
+                      Valores dos Ingressos
+                    </p>
+                    <div className="space-y-2">
+                      {Object.entries(tour.prices).map(([key, priceData]) => {
+                        if (!priceData || priceData.value === undefined) return null;
+                        return (
+                          <div key={key} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-text-primary">
+                                {priceData.description || key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}
+                              </p>
+                            </div>
+                            <p className="text-base font-bold text-primary ml-4">
+                              R$ {priceData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
-                    Preço por pessoa
-                  </p>
-                  <p className="text-lg font-bold text-primary">
-                    R$ {tour.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </p>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <DollarSign size={20} className="text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
+                      Preço por pessoa
+                    </p>
+                    <p className="text-lg font-bold text-primary">
+                      R$ {tour.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {tour.address && (
                 <div className="flex items-start gap-3 sm:col-span-2">
@@ -344,6 +375,25 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                 <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-line">
                   {tour.description}
                 </p>
+              </div>
+            )}
+
+            {/* Observações - Campo em Destaque */}
+            {tour.observations && (
+              <div className="mt-6 pt-6 border-t border-border">
+                <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-primary/10 rounded-xl p-5 sm:p-6 border-2 border-primary/30 shadow-md">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                      <span className="text-primary text-lg font-bold">!</span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-bold text-text-primary">
+                      Observações
+                    </h3>
+                  </div>
+                  <p className="text-sm sm:text-base text-text-primary leading-relaxed whitespace-pre-line font-medium">
+                    {tour.observations}
+                  </p>
+                </div>
               </div>
             )}
 
