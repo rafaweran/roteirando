@@ -49,28 +49,6 @@ const VIEW_URL_MAP: Record<string, string> = {
   'custom-tours': 'meus-passeios'
 };
 
-// Mapeamento de views para nomes de URL amigáveis (Português e sem IDs)
-const VIEW_URL_MAP: Record<string, string> = {
-  'login': 'login',
-  'dashboard': 'inicio',
-  'trip-details': 'viagem',
-  'new-tour': 'novo-passeio',
-  'edit-tour': 'editar-passeio',
-  'new-trip': 'nova-viagem',
-  'new-group': 'novo-grupo',
-  'edit-group': 'editar-grupo',
-  'all-tours': 'todos-passeios',
-  'all-groups': 'todos-grupos',
-  'tour-attendance': 'confirmacao',
-  'tour-detail': 'passeio',
-  'financial': 'financeiro',
-  'agenda': 'agenda',
-  'city-guide': 'guia-cidade',
-  'destinos-guide': 'guia-destinos',
-  'my-trip': 'minha-viagem',
-  'custom-tours': 'meus-passeios'
-};
-
 const AppContent: React.FC = () => {
   const { showSuccess, showError, showWarning } = useToast();
   const [currentView, setCurrentView] = useState<View>('login');
