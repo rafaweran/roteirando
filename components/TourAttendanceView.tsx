@@ -61,7 +61,45 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
 
   // Statistics
   const totalPeople = attendingGroups.reduce((acc, curr) => acc + curr.attendingCount, 0);
-  const totalRevenue = totalPeople * tour.price;
+  
+  // Calcular receita real baseada no tipo de ingresso selecionado por cada grupo
+  const calculateTotalRevenue = () => {
+    return attendingGroups.reduce((total, group) => {
+      const attendance = group.tourAttendance?.[tour.id];
+      const attendingCount = group.attendingCount;
+      
+      if (!attendance || attendingCount === 0) return total;
+      
+      // Obter selectedPriceKey
+      let selectedPriceKey: string | undefined = undefined;
+      if (attendance && typeof attendance === 'object' && 'selectedPriceKey' in attendance) {
+        selectedPriceKey = attendance.selectedPriceKey || undefined;
+      }
+      
+      // Se houver preços dinâmicos e um tipo selecionado, usar esse preço
+      if (tour.prices && selectedPriceKey) {
+        let selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+        
+        // Correspondência case-insensitive
+        if (!selectedPrice && tour.prices) {
+          const priceEntries = Object.entries(tour.prices);
+          const matched = priceEntries.find(([key]) => key.toLowerCase() === selectedPriceKey?.toLowerCase());
+          if (matched) {
+            selectedPrice = matched[1] as any;
+          }
+        }
+        
+        if (selectedPrice && selectedPrice.value !== undefined) {
+          return total + (attendingCount * selectedPrice.value);
+        }
+      }
+      
+      // Caso contrário, usar preço padrão
+      return total + (attendingCount * tour.price);
+    }, 0);
+  };
+
+  const totalRevenue = calculateTotalRevenue();
   
   // Filter logic
   const filteredGroups = attendingGroups.filter(g => 
