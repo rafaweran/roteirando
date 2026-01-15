@@ -26,6 +26,28 @@ import Button from './components/Button';
 
 type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'tour-detail' | 'financial' | 'agenda' | 'city-guide' | 'destinos-guide' | 'my-trip' | 'custom-tours';
 
+// Mapeamento de views para nomes de URL amigáveis (Português e sem IDs)
+const VIEW_URL_MAP: Record<string, string> = {
+  'login': 'login',
+  'dashboard': 'inicio',
+  'trip-details': 'viagem',
+  'new-tour': 'novo-passeio',
+  'edit-tour': 'editar-passeio',
+  'new-trip': 'nova-viagem',
+  'new-group': 'novo-grupo',
+  'edit-group': 'editar-grupo',
+  'all-tours': 'todos-passeios',
+  'all-groups': 'todos-grupos',
+  'tour-attendance': 'confirmacao',
+  'tour-detail': 'passeio',
+  'financial': 'financeiro',
+  'agenda': 'agenda',
+  'city-guide': 'guia-cidade',
+  'destinos-guide': 'guia-destinos',
+  'my-trip': 'minha-viagem',
+  'custom-tours': 'meus-passeios'
+};
+
 const AppContent: React.FC = () => {
   const { showSuccess, showError, showWarning } = useToast();
   const [currentView, setCurrentView] = useState<View>('login');
@@ -97,6 +119,16 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     // Sempre limpar sessão antiga e exigir login real
     localStorage.removeItem('roteirando_session');
+    
+    // Armazenar a view alvo do hash (se existir) para redirecionar após login
+    const hash = window.location.hash.replace('#', '');
+    if (hash && hash !== 'login' && hash !== 'inicio') {
+      const view = Object.keys(VIEW_URL_MAP).find(v => VIEW_URL_MAP[v] === hash) as View;
+      if (view) {
+        sessionStorage.setItem('roteirando_pending_view', view);
+      }
+    }
+
     setCurrentView('login');
     console.log('🔒 Sistema de login: sessão antiga removida, login obrigatório');
     
@@ -145,10 +177,11 @@ const AppContent: React.FC = () => {
       });
       
       // Adicionar ao histórico do navegador
+      const urlFragment = VIEW_URL_MAP[view] || view;
       window.history.pushState(
         { view, tripId, tourId },
         '',
-        `#${view}${tripId ? `-${tripId}` : ''}${tourId ? `-${tourId}` : ''}`
+        `#${urlFragment}`
       );
     }
     
@@ -184,7 +217,22 @@ const AppContent: React.FC = () => {
           }
         }
       } else {
-        // Se não houver state, usar window.history.back() ou voltar para login
+        // Se não houver state, tentar recuperar do hash amigável (bookmark ou link externo)
+        const hash = window.location.hash.replace('#', '');
+        if (hash) {
+          const view = Object.keys(VIEW_URL_MAP).find(v => VIEW_URL_MAP[v] === hash) as View;
+          if (view) {
+            setIsNavigatingBack(true);
+            setCurrentView(view);
+            // Se for usuário, o tripId geralmente é o da sua própria viagem
+            if (userRole === 'user' && currentUserGroup) {
+              setSelectedTripId(currentUserGroup.tripId);
+            }
+            return;
+          }
+        }
+
+        // Se não houver state nem hash mapeado, usar o histórico interno como último recurso
         setNavigationHistory(prev => {
           if (prev.length > 1) {
             const previousState = prev[prev.length - 2];
@@ -213,7 +261,7 @@ const AppContent: React.FC = () => {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [tours]);
+  }, [tours, userRole, currentUserGroup]);
 
   // Load all data when user logs in (apenas se ainda não foram carregados)
   useEffect(() => {
@@ -251,7 +299,14 @@ const AppContent: React.FC = () => {
           }
         }
         
-        if (group.tripId) {
+        const pendingView = sessionStorage.getItem('roteirando_pending_view');
+        sessionStorage.removeItem('roteirando_pending_view');
+        
+        // Se houver uma view pendente amigável que faça sentido para o usuário, ir para ela
+        const userViews: View[] = ['trip-details', 'agenda', 'my-trip', 'custom-tours', 'city-guide', 'destinos-guide'];
+        if (pendingView && userViews.includes(pendingView as View)) {
+          navigateToView(pendingView as View, group.tripId);
+        } else if (group.tripId) {
           navigateToView('trip-details', group.tripId);
         } else {
           navigateToView('trip-details', null);
@@ -274,7 +329,16 @@ const AppContent: React.FC = () => {
           setShowChangePasswordModalAdmin(true);
         }
         
-        navigateToView('dashboard', null);
+        const pendingView = sessionStorage.getItem('roteirando_pending_view');
+        sessionStorage.removeItem('roteirando_pending_view');
+        
+        // Se houver uma view pendente amigável (e não exigir IDs específicos que não temos), ir para ela
+        const adminGenericViews: View[] = ['dashboard', 'all-tours', 'all-groups', 'financial', 'city-guide', 'destinos-guide'];
+        if (pendingView && adminGenericViews.includes(pendingView as View)) {
+          navigateToView(pendingView as View, null);
+        } else {
+          navigateToView('dashboard', null);
+        }
       }
     } catch (err) {
       console.error('Erro no handleLoginSuccess:', err);
