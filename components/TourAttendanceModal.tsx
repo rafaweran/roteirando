@@ -71,9 +71,12 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
         // Restaurar tipo de ingresso selecionado se existir
         if (attendanceInfo.selectedPriceKey) {
           setSelectedPriceKey(attendanceInfo.selectedPriceKey);
+          console.log('✅ TourAttendanceModal - Restaurando selectedPriceKey do attendance:', attendanceInfo.selectedPriceKey);
         } else {
           // Se não houver tipo selecionado, usar o primeiro disponível ou vazio
-          setSelectedPriceKey(tour.prices ? Object.keys(tour.prices)[0] || '' : '');
+          const firstKey = tour.prices ? Object.keys(tour.prices)[0] || '' : '';
+          setSelectedPriceKey(firstKey);
+          console.log('⚠️ TourAttendanceModal - Usando primeiro preço disponível como padrão:', firstKey);
         }
       } else {
         // Default: Select all members (including leader) initially for easier UX
@@ -81,8 +84,16 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
         setDateOption('group');
         setCustomDate('');
         // Selecionar o primeiro tipo de ingresso disponível por padrão
-        setSelectedPriceKey(tour.prices ? Object.keys(tour.prices)[0] || '' : '');
+        const firstKey = tour.prices ? Object.keys(tour.prices)[0] || '' : '';
+        setSelectedPriceKey(firstKey);
+        console.log('✅ TourAttendanceModal - Inicializando com primeiro preço disponível:', firstKey);
       }
+      
+      console.log('🔄 TourAttendanceModal - Estado inicializado:', {
+        selectedMembersCount: attendanceInfo?.members?.length || allGroupMembers.length,
+        selectedPriceKey: attendanceInfo?.selectedPriceKey || (tour.prices ? Object.keys(tour.prices)[0] : ''),
+        availablePriceKeys: tour.prices ? Object.keys(tour.prices) : []
+      });
     }
   }, [isOpen, group, tour, allGroupMembers]);
 
@@ -303,7 +314,10 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
                           name="priceOption"
                           value={key}
                           checked={isSelected}
-                          onChange={() => setSelectedPriceKey(key)}
+                          onChange={() => {
+                            console.log('🔄 TourAttendanceModal - Preço selecionado:', key);
+                            setSelectedPriceKey(key);
+                          }}
                           className="w-4 h-4 text-primary border-border focus:ring-primary focus:ring-2"
                         />
                         <div className="flex-1">

@@ -625,7 +625,13 @@ const AppContent: React.FC = () => {
   };
 
   // User Selection Logic (Granular Attendance)
-  const handleSaveAttendance = async (tourId: string, members: string[], customDate?: string | null, cancelReason?: string, selectedPriceKey?: string) => {
+  const handleSaveAttendance = async (
+    tourId: string,
+    members: string[],
+    customDate?: string | null,
+    selectedPriceKey?: string,
+    cancelReason?: string
+  ) => {
     if (userRole !== 'user' || !currentUserGroup) return;
 
     console.log('💾 App.tsx - handleSaveAttendance chamado:', {
@@ -633,6 +639,7 @@ const AppContent: React.FC = () => {
       membersCount: members.length,
       customDate,
       selectedPriceKey,
+      cancelReason,
       hasSelectedPriceKey: !!selectedPriceKey
     });
 
