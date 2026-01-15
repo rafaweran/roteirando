@@ -1,4 +1,7 @@
 // User Custom Tours API
+import { supabase } from './supabase';
+import { UserCustomTour } from '../types';
+
 interface DBUserCustomTour {
   id: string;
   group_id: string;

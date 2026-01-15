@@ -59,7 +59,7 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
         attendanceInfo = existingAttendance as TourAttendanceInfo;
       }
       
-      if (attendanceInfo && attendanceInfo.members && attendanceInfo.members.length > 0) {
+      if (attendanceInfo && !Array.isArray(attendanceInfo) && attendanceInfo.members && attendanceInfo.members.length > 0) {
         setSelectedMembers(attendanceInfo.members);
         if (attendanceInfo.customDate) {
           setDateOption('custom');
@@ -90,8 +90,8 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
       }
       
       console.log('🔄 TourAttendanceModal - Estado inicializado:', {
-        selectedMembersCount: attendanceInfo?.members?.length || allGroupMembers.length,
-        selectedPriceKey: attendanceInfo?.selectedPriceKey || (tour.prices ? Object.keys(tour.prices)[0] : ''),
+        selectedMembersCount: (attendanceInfo && !Array.isArray(attendanceInfo) && attendanceInfo.members) ? attendanceInfo.members.length : allGroupMembers.length,
+        selectedPriceKey: (attendanceInfo && !Array.isArray(attendanceInfo) && attendanceInfo.selectedPriceKey) ? attendanceInfo.selectedPriceKey : (tour.prices ? Object.keys(tour.prices)[0] : ''),
         availablePriceKeys: tour.prices ? Object.keys(tour.prices) : []
       });
     }

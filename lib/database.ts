@@ -116,7 +116,7 @@ function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, { members: 
   const passwordChanged = dbGroup.password_changed === true;
   
   // Debug: log do grupo do banco (apenas em desenvolvimento)
-  if (typeof window !== 'undefined' && import.meta.env.DEV) {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     console.log('dbGroupToGroup - Dados do banco:', {
       id: dbGroup.id,
       name: dbGroup.name,

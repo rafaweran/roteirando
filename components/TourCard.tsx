@@ -110,8 +110,6 @@ const TourCard: React.FC<TourCardProps> = ({
     return `R$ ${tour.price.toFixed(2)}`;
   };
 
-  const totalValue = tour.price * attendanceCount;
-
   const handleCardClick = () => {
     if (onViewTourDetail) {
       onViewTourDetail(tour);

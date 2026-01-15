@@ -363,6 +363,13 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handlePasswordChangeSuccessAdmin = async () => {
+    setShowChangePasswordModalAdmin(false);
+    setCurrentAdminEmail(null);
+    setCurrentAdminPasswordHash(null);
+    showSuccess('Senha alterada com sucesso!');
+  };
+
   const handleLogout = () => {
     // Limpar sessão do localStorage
     localStorage.removeItem('roteirando_session');

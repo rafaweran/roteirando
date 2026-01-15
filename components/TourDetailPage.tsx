@@ -57,12 +57,16 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
           if (!attendance) return false;
           const members = Array.isArray(attendance) ? attendance : (attendance.members || []);
           return members.length > 0;
-        }).map(g => ({
-          name: g.name,
-          count: Array.isArray(g.tourAttendance?.[tour.id]) 
-            ? g.tourAttendance[tour.id].length 
-            : (g.tourAttendance?.[tour.id]?.members?.length || 0)
-        })));
+        }).map(g => {
+          const attendance = g.tourAttendance?.[tour.id];
+          const count = Array.isArray(attendance) 
+            ? attendance.length 
+            : (attendance && typeof attendance === 'object' && 'members' in attendance ? attendance.members?.length || 0 : 0);
+          return {
+            name: g.name,
+            count
+          };
+        }));
         setGroups(tripGroups);
       } catch (error) {
         console.error('❌ Erro ao carregar grupos:', error);
