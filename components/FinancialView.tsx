@@ -65,7 +65,34 @@ const FinancialView: React.FC = () => {
           if (members.length > 0) {
             tourConfirmedGroups++;
             tourConfirmedPeople += members.length;
-            totalRevenue += tour.price * members.length;
+            
+            // Obter selectedPriceKey
+            let selectedPriceKey: string | undefined = undefined;
+            if (attendance && typeof attendance === 'object' && 'selectedPriceKey' in attendance) {
+              selectedPriceKey = attendance.selectedPriceKey || undefined;
+            }
+            
+            let pricePerPerson = tour.price;
+            
+            // Se houver preços dinâmicos e um tipo selecionado, usar esse preço
+            if (tour.prices && selectedPriceKey) {
+              let selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+              
+              // Correspondência case-insensitive
+              if (!selectedPrice && tour.prices) {
+                const priceEntries = Object.entries(tour.prices);
+                const matched = priceEntries.find(([key]) => key.toLowerCase() === selectedPriceKey?.toLowerCase());
+                if (matched) {
+                  selectedPrice = matched[1] as any;
+                }
+              }
+              
+              if (selectedPrice && selectedPrice.value !== undefined) {
+                pricePerPerson = selectedPrice.value;
+              }
+            }
+            
+            totalRevenue += pricePerPerson * members.length;
           }
         }
       });
@@ -126,7 +153,34 @@ const FinancialView: React.FC = () => {
           if (members.length > 0) {
             confirmedGroups++;
             confirmedPeople += members.length;
-            revenue += tour.price * members.length;
+            
+            // Obter selectedPriceKey
+            let selectedPriceKey: string | undefined = undefined;
+            if (attendance && typeof attendance === 'object' && 'selectedPriceKey' in attendance) {
+              selectedPriceKey = attendance.selectedPriceKey || undefined;
+            }
+            
+            let pricePerPerson = tour.price;
+            
+            // Se houver preços dinâmicos e um tipo selecionado, usar esse preço
+            if (tour.prices && selectedPriceKey) {
+              let selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+              
+              // Correspondência case-insensitive
+              if (!selectedPrice && tour.prices) {
+                const priceEntries = Object.entries(tour.prices);
+                const matched = priceEntries.find(([key]) => key.toLowerCase() === selectedPriceKey?.toLowerCase());
+                if (matched) {
+                  selectedPrice = matched[1] as any;
+                }
+              }
+              
+              if (selectedPrice && selectedPrice.value !== undefined) {
+                pricePerPerson = selectedPrice.value;
+              }
+            }
+            
+            revenue += pricePerPerson * members.length;
           }
         }
       });
@@ -366,7 +420,34 @@ const FinancialView: React.FC = () => {
                       
                       if (members.length > 0) {
                         tripConfirmedPeople += members.length;
-                        tripRevenue += tour.price * members.length;
+                        
+                        // Obter selectedPriceKey
+                        let selectedPriceKey: string | undefined = undefined;
+                        if (attendance && typeof attendance === 'object' && 'selectedPriceKey' in attendance) {
+                          selectedPriceKey = attendance.selectedPriceKey || undefined;
+                        }
+                        
+                        let pricePerPerson = tour.price;
+                        
+                        // Se houver preços dinâmicos e um tipo selecionado, usar esse preço
+                        if (tour.prices && selectedPriceKey) {
+                          let selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+                          
+                          // Correspondência case-insensitive
+                          if (!selectedPrice && tour.prices) {
+                            const priceEntries = Object.entries(tour.prices);
+                            const matched = priceEntries.find(([key]) => key.toLowerCase() === selectedPriceKey?.toLowerCase());
+                            if (matched) {
+                              selectedPrice = matched[1] as any;
+                            }
+                          }
+                          
+                          if (selectedPrice && selectedPrice.value !== undefined) {
+                            pricePerPerson = selectedPrice.value;
+                          }
+                        }
+                        
+                        tripRevenue += pricePerPerson * members.length;
                       }
                     }
                   });

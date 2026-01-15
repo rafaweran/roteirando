@@ -34,7 +34,64 @@ const TourCard: React.FC<TourCardProps> = ({
   const isSelected = attendanceCount > 0;
   const isPartial = attendanceCount > 0 && attendanceCount < totalMembers;
   
-  // Calcular valor total baseado nos preços múltiplos ou preço padrão
+  // Obter a chave do preço selecionado se houver
+  const attendance = userGroup?.tourAttendance?.[tour.id];
+  let selectedPriceKey: string | undefined = undefined;
+  if (attendance && typeof attendance === 'object' && 'selectedPriceKey' in attendance) {
+    selectedPriceKey = attendance.selectedPriceKey || undefined;
+  }
+
+  // Calcular valor total baseado no tipo de ingresso selecionado
+  const calculateTotalValue = () => {
+    if (attendanceCount === 0) return 0;
+    
+    // Se houver preços dinâmicos e um tipo selecionado, usar esse preço
+    if (tour.prices && selectedPriceKey) {
+      let selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+      
+      // Se não encontrar pela chave exata, tentar correspondência case-insensitive
+      if (!selectedPrice && tour.prices) {
+        const priceEntries = Object.entries(tour.prices);
+        const matched = priceEntries.find(([key]) => key.toLowerCase() === selectedPriceKey?.toLowerCase());
+        if (matched) {
+          selectedPrice = matched[1] as any;
+        }
+      }
+      
+      if (selectedPrice && selectedPrice.value !== undefined) {
+        return attendanceCount * selectedPrice.value;
+      }
+    }
+    
+    // Caso contrário, usar preço padrão
+    return attendanceCount * tour.price;
+  };
+
+  const totalValue = calculateTotalValue();
+
+  // Obter descrição do tipo de ingresso selecionado
+  const getSelectedPriceDescription = () => {
+    if (tour.prices && selectedPriceKey) {
+      let selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
+      
+      if (!selectedPrice && tour.prices) {
+        const priceEntries = Object.entries(tour.prices);
+        const matched = priceEntries.find(([key]) => key.toLowerCase() === selectedPriceKey?.toLowerCase());
+        if (matched) {
+          selectedPrice = matched[1] as any;
+        }
+      }
+      
+      if (selectedPrice) {
+        return selectedPrice.description || selectedPriceKey.charAt(0).toUpperCase() + selectedPriceKey.slice(1).replace(/_/g, ' ');
+      }
+    }
+    return null;
+  };
+
+  const selectedPriceDescription = getSelectedPriceDescription();
+
+  // Calcular valor para exibição (menor e maior preço disponível)
   const getDisplayPrice = () => {
     if (tour.prices) {
       // Se houver preços múltiplos, mostrar o menor e maior
@@ -145,14 +202,22 @@ const TourCard: React.FC<TourCardProps> = ({
         
         {/* Total Confirmado (apenas para usuários que confirmaram) */}
         {isSelected && isUserView && (
-          <div className="mt-auto mb-3 p-2.5 sm:p-3 bg-primary/5 rounded-lg border border-primary/20 flex items-center justify-between">
-             <div className="flex flex-col">
-               <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Confirmado</span>
-               <span className="text-xs font-medium text-text-primary">{attendanceCount} pessoa{attendanceCount !== 1 ? 's' : ''}</span>
+          <div className="mt-auto mb-3 p-2.5 sm:p-3 bg-primary/5 rounded-lg border border-primary/20">
+             <div className="flex items-center justify-between mb-1.5">
+               <div className="flex flex-col">
+                 <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Confirmado</span>
+                 <span className="text-xs font-medium text-text-primary">{attendanceCount} pessoa{attendanceCount !== 1 ? 's' : ''}</span>
+               </div>
+               <span className="font-bold text-primary text-base sm:text-lg">
+                 R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+               </span>
              </div>
-             <span className="font-bold text-primary text-base sm:text-lg">
-               R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-             </span>
+             {selectedPriceDescription && (
+               <div className="pt-1.5 border-t border-primary/10">
+                 <span className="text-[9px] uppercase tracking-wider font-bold text-text-secondary block mb-0.5">Ingresso Selecionado:</span>
+                 <span className="text-[11px] font-medium text-text-primary leading-tight line-clamp-1">{selectedPriceDescription}</span>
+               </div>
+             )}
           </div>
         )}
         

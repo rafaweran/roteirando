@@ -6,25 +6,26 @@ import DatePicker from './DatePicker';
 import { TourLink } from '../types';
 
 interface NewTripFormProps {
+  initialData?: any;
   onSave: (data: any) => void;
   onCancel: () => void;
 }
 
-const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
+const NewTripForm: React.FC<NewTripFormProps> = ({ initialData, onSave, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    name: '',
-    destination: '',
-    startDate: '',
-    endDate: '',
-    description: ''
+    name: initialData?.name || '',
+    destination: initialData?.destination || '',
+    startDate: initialData?.startDate || '',
+    endDate: initialData?.endDate || '',
+    description: initialData?.description || ''
   });
 
-  const [links, setLinks] = useState<TourLink[]>([]);
+  const [links, setLinks] = useState<TourLink[]>(initialData?.links || []);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -132,7 +133,9 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ onSave, onCancel }) => {
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Nova Viagem</h1>
+          <h1 className="text-2xl font-bold text-text-primary">
+            {initialData ? 'Editar Viagem' : 'Nova Viagem'}
+          </h1>
         </div>
       </div>
 
