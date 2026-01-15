@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Trip, Tour, Group, UserRole } from '../types';
-import { Calendar, MapPin, Map as MapIcon, Users, ArrowLeft, Plus, Camera, ExternalLink, Info, ChevronDown, ChevronUp, Filter, X } from 'lucide-react';
+import { Calendar, MapPin, Map as MapIcon, Users, ArrowLeft, Plus, Camera, ExternalLink, Info, ChevronDown, ChevronUp, Filter, X, Edit } from 'lucide-react';
 import TourCard from './TourCard';
 import GroupCard from './GroupCard';
 import Button from './Button';
@@ -15,6 +15,7 @@ interface TripDetailsProps {
   onBack: () => void;
   onAddTour: () => void;
   onAddGroup: () => void;
+  onEditTrip?: (trip: Trip) => void; // Admin: Edit trip
   onEditTour?: (tour: Tour) => void; // Admin: Edit tour
   initialTab?: 'tours' | 'groups';
   userRole?: UserRole;
@@ -34,6 +35,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   onBack, 
   onAddTour, 
   onAddGroup,
+  onEditTrip,
   onEditTour,
   initialTab = 'tours',
   userRole = 'admin',
@@ -203,6 +205,16 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
                 {trip.status === 'active' ? 'Em andamento' : trip.status === 'upcoming' ? 'Confirmada' : 'Finalizada'}
               </span>
+              {userRole === 'admin' && onEditTrip && (
+                <button 
+                  onClick={() => onEditTrip(trip)}
+                  className="p-1.5 text-text-secondary hover:text-primary transition-colors bg-surface rounded-lg flex items-center gap-1.5 border border-border"
+                  title="Editar Viagem"
+                >
+                  <Edit size={14} />
+                  <span className="text-[10px] font-bold uppercase">Editar</span>
+                </button>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-3 sm:mb-4 break-words">{trip.name}</h1>
             

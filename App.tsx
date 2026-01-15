@@ -24,7 +24,30 @@ import { tripsApi, toursApi, groupsApi, adminsApi } from './lib/database';
 import { Plus } from 'lucide-react';
 import Button from './components/Button';
 
-type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'tour-detail' | 'financial' | 'agenda' | 'city-guide' | 'destinos-guide' | 'my-trip' | 'custom-tours';
+type View = 'login' | 'dashboard' | 'trip-details' | 'new-tour' | 'edit-tour' | 'new-trip' | 'edit-trip' | 'new-group' | 'edit-group' | 'all-tours' | 'all-groups' | 'tour-attendance' | 'tour-detail' | 'financial' | 'agenda' | 'city-guide' | 'destinos-guide' | 'my-trip' | 'custom-tours';
+
+// Mapeamento de views para nomes de URL amigáveis (Português e sem IDs)
+const VIEW_URL_MAP: Record<string, string> = {
+  'login': 'login',
+  'dashboard': 'inicio',
+  'trip-details': 'viagem',
+  'new-tour': 'novo-passeio',
+  'edit-tour': 'editar-passeio',
+  'new-trip': 'nova-viagem',
+  'edit-trip': 'editar-viagem',
+  'new-group': 'novo-grupo',
+  'edit-group': 'editar-grupo',
+  'all-tours': 'todos-passeios',
+  'all-groups': 'todos-grupos',
+  'tour-attendance': 'confirmacao',
+  'tour-detail': 'passeio',
+  'financial': 'financeiro',
+  'agenda': 'agenda',
+  'city-guide': 'guia-cidade',
+  'destinos-guide': 'guia-destinos',
+  'my-trip': 'minha-viagem',
+  'custom-tours': 'meus-passeios'
+};
 
 // Mapeamento de views para nomes de URL amigáveis (Português e sem IDs)
 const VIEW_URL_MAP: Record<string, string> = {
@@ -63,6 +86,7 @@ const AppContent: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [editingTour, setEditingTour] = useState<Tour | null>(null);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
@@ -622,7 +646,10 @@ const AppContent: React.FC = () => {
   const handleSaveTrip = async (tripData: any) => {
     try {
       setLoading(true);
-      console.log('🔄 handleSaveTrip: Iniciando salvamento...', tripData);
+      console.log('🔄 handleSaveTrip: Iniciando salvamento...', {
+        ...tripData,
+        isEditing: !!editingTrip
+      });
       
       // Validação básica
       if (!tripData.name || !tripData.destination || !tripData.startDate || !tripData.endDate) {
@@ -658,22 +685,28 @@ const AppContent: React.FC = () => {
         links: tripData.links || []
       };
       
-      console.log('📤 Salvando viagem no banco:', {
-        ...tripToSave,
-        linksCount: tripToSave.links.length
-      });
-      
-      const savedTrip = await tripsApi.create(tripToSave);
-      console.log('✅ Viagem salva com sucesso!', savedTrip);
+      if (editingTrip) {
+        console.log('📤 Atualizando viagem no banco:', editingTrip.id);
+        const updatedTrip = await tripsApi.update(editingTrip.id, tripToSave);
+        console.log('✅ Viagem atualizada com sucesso!', updatedTrip);
+        showSuccess('Viagem atualizada com sucesso!');
+        setEditingTrip(null);
+      } else {
+        console.log('📤 Criando nova viagem no banco');
+        const savedTrip = await tripsApi.create(tripToSave);
+        console.log('✅ Viagem criada com sucesso!', savedTrip);
+        showSuccess('Viagem criada com sucesso!');
+      }
       
       // Recarregar viagens após salvar
       await loadTrips();
       
-      // Navegar para dashboard
-      navigateToView('dashboard', null);
-      
-      // Mostrar feedback de sucesso
-      showSuccess('Viagem criada com sucesso!');
+      // Navegar para dashboard ou para a própria viagem se for edição
+      if (editingTrip) {
+        navigateToView('trip-details', editingTrip.id);
+      } else {
+        navigateToView('dashboard', null);
+      }
       
     } catch (err: any) {
       console.error('❌ Erro ao salvar viagem:', err);
@@ -684,7 +717,13 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handleEditTrip = (trip: Trip) => {
+    setEditingTrip(trip);
+    navigateToView('new-trip', trip.id);
+  };
+
   const handleCancelNewTrip = () => {
+    setEditingTrip(null);
     window.history.back();
   };
 
@@ -903,6 +942,7 @@ const AppContent: React.FC = () => {
             onBack={handleNavigateHome}
             onAddTour={handleNewTourClick}
             onAddGroup={handleNewGroupClick}
+            onEditTrip={userRole === 'admin' ? handleEditTrip : undefined}
             onEditTour={userRole === 'admin' ? handleEditTour : undefined}
             initialTab={tripDetailsInitialTab}
             userRole={userRole} // Pass Role
@@ -1001,8 +1041,9 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      {currentView === 'new-trip' && userRole === 'admin' && (
+      {(currentView === 'new-trip' || currentView === 'edit-trip') && userRole === 'admin' && (
         <NewTripForm 
+          initialData={editingTrip}
           onSave={handleSaveTrip}
           onCancel={handleCancelNewTrip}
         />
