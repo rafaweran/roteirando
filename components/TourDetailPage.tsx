@@ -13,7 +13,13 @@ interface TourDetailPageProps {
   userGroup?: Group;
   groups?: Group[]; // Lista de grupos para mostrar os que confirmaram presença
   onBack: () => void;
-  onConfirmAttendance?: (tourId: string, members: string[], customDate?: string | null, selectedPriceKey?: string) => void;
+  onConfirmAttendance?: (
+    tourId: string,
+    members: string[],
+    customDate?: string | null,
+    selectedPriceKey?: string,
+    cancelReason?: string
+  ) => void;
 }
 
 const TourDetailPage: React.FC<TourDetailPageProps> = ({
@@ -354,7 +360,12 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
     });
   };
 
-  const handleConfirmAttendance = (tourId: string, members: string[], customDate?: string | null, selectedPriceKey?: string) => {
+  const handleConfirmAttendance = (
+    tourId: string,
+    members: string[],
+    customDate?: string | null,
+    selectedPriceKey?: string
+  ) => {
     if (onConfirmAttendance) {
       onConfirmAttendance(tourId, members, customDate, selectedPriceKey);
     }
@@ -364,7 +375,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   const handleCancelTour = (reason: string) => {
     // Cancelar presença (salvar array vazio)
     if (onConfirmAttendance && tour.id) {
-      onConfirmAttendance(tour.id, [], null);
+      onConfirmAttendance(tour.id, [], null, undefined, reason);
     }
     setCancelModalOpen(false);
   };

@@ -10,6 +10,11 @@ interface TourAttendanceViewProps {
   onBack: () => void;
 }
 
+// Helper function to parse date string without timezone issues
+const parseLocalDate = (dateStr: string): Date => {
+  return new Date(dateStr + 'T12:00:00');
+};
+
 const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
   tour,
   trip,
@@ -108,7 +113,7 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
             <div className="flex flex-wrap gap-4 text-sm text-text-secondary">
                <div className="flex items-center gap-1.5">
                   <Calendar size={16} className="text-primary" />
-                  {new Date(tour.date).toLocaleDateString()}
+                  {parseLocalDate(tour.date).toLocaleDateString()}
                </div>
                <div className="flex items-center gap-1.5">
                   <Clock size={16} className="text-primary" />

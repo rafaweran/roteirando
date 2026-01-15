@@ -520,7 +520,14 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
 
       // Preparar dados no formato esperado pela API
       // Se não houver data informada, usar a data de início da viagem como padrão
-      const defaultDate = formData.date || (activeTrip?.startDate ? activeTrip.startDate.split('T')[0] : new Date().toISOString().split('T')[0]);
+      const getTodayDate = () => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      const defaultDate = formData.date || (activeTrip?.startDate ? activeTrip.startDate.split('T')[0] : getTodayDate());
       
       // Preparar preços múltiplos - converter array dinâmico para objeto JSON
       const tourPrices: any = {};

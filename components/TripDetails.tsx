@@ -6,6 +6,7 @@ import GroupCard from './GroupCard';
 import Button from './Button';
 import TourAttendanceModal from './TourAttendanceModal';
 import CancelTourModal from './CancelTourModal';
+import DatePicker from './DatePicker';
 import { useToast } from '../hooks/useToast';
 
 interface TripDetailsProps {
@@ -23,9 +24,16 @@ interface TripDetailsProps {
   onViewTourAttendance?: (tour: Tour) => void;
   onViewTourDetail?: (tour: Tour) => void;
   selectedTourId?: string | null; // Tour ID para filtrar grupos quando na aba de grupos
+  onUpdateTripDates?: (tripId: string, startDate: string, endDate: string) => Promise<void>;
 }
 
 type Tab = 'tours' | 'groups';
+
+// Helper function to parse date string without timezone issues
+const parseLocalDate = (dateStr: string): Date => {
+  // Add T12:00:00 to avoid timezone conversion issues
+  return new Date(dateStr + 'T12:00:00');
+};
 
 const TripDetails: React.FC<TripDetailsProps> = ({ 
   trip, 
@@ -41,7 +49,8 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   onSaveAttendance,
   onViewTourAttendance,
   onViewTourDetail,
-  selectedTourId = null
+  selectedTourId = null,
+  onUpdateTripDates
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
@@ -51,7 +60,11 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [clearTourFilter, setClearTourFilter] = useState(false);
-  const { showSuccess } = useToast();
+  const { showSuccess, showError, showWarning } = useToast();
+  const [isEditingDates, setIsEditingDates] = useState(false);
+  const [editedStartDate, setEditedStartDate] = useState(trip.startDate);
+  const [editedEndDate, setEditedEndDate] = useState(trip.endDate);
+  const [isSavingDates, setIsSavingDates] = useState(false);
 
   const isUser = userRole === 'user';
 
@@ -91,6 +104,44 @@ const TripDetails: React.FC<TripDetailsProps> = ({
     }
   };
 
+  const handleSaveDates = async () => {
+    if (!editedStartDate || !editedEndDate) {
+      showWarning('Preencha as datas de início e fim.');
+      return;
+    }
+
+    const start = new Date(editedStartDate);
+    const end = new Date(editedEndDate);
+
+    if (end < start) {
+      showWarning('A data final precisa ser igual ou posterior à data de início.');
+      return;
+    }
+
+    if (!onUpdateTripDates) {
+      showWarning('Atualização de datas indisponível no momento.');
+      return;
+    }
+
+    setIsSavingDates(true);
+
+    try {
+      await onUpdateTripDates(trip.id, editedStartDate, editedEndDate);
+      setIsEditingDates(false);
+    } catch (error: any) {
+      console.error('Erro ao atualizar datas da viagem:', error);
+      showError('Não foi possível atualizar as datas. Tente novamente.');
+    } finally {
+      setIsSavingDates(false);
+    }
+  };
+
+  const handleCancelDateEdit = () => {
+    setEditedStartDate(trip.startDate);
+    setEditedEndDate(trip.endDate);
+    setIsEditingDates(false);
+  };
+
   // Agrupar tours por categoria/tag
   const toursByCategory = useMemo(() => {
     const grouped: Record<string, Tour[]> = {};
@@ -113,9 +164,9 @@ const TripDetails: React.FC<TripDetailsProps> = ({
 
     // Ordenar por data dentro de cada categoria
     Object.keys(grouped).forEach(key => {
-      grouped[key].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      grouped[key].sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
     });
-    withoutCategory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    withoutCategory.sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
 
     if (withoutCategory.length > 0) {
       grouped['Sem categoria'] = withoutCategory;
@@ -183,6 +234,12 @@ const TripDetails: React.FC<TripDetailsProps> = ({
     });
   }, [groups, selectedTourId, activeTab, clearTourFilter]);
 
+  useEffect(() => {
+    setEditedStartDate(trip.startDate);
+    setEditedEndDate(trip.endDate);
+    setIsEditingDates(false);
+  }, [trip.startDate, trip.endDate]);
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Navigation Back */}
@@ -211,9 +268,22 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 <MapPin size={16} className="sm:w-[18px] sm:h-[18px] mr-1.5 sm:mr-2 text-primary flex-shrink-0" />
                 <span className="truncate max-w-[200px] sm:max-w-none">{trip.destination}</span>
               </div>
-              <div className="flex items-center bg-surface px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm">
-                <Calendar size={16} className="sm:w-[18px] sm:h-[18px] mr-1.5 sm:mr-2 text-primary flex-shrink-0" />
-                <span className="whitespace-nowrap">{new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}</span>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center bg-surface px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm">
+                  <Calendar size={16} className="sm:w-[18px] sm:h-[18px] mr-1.5 sm:mr-2 text-primary flex-shrink-0" />
+                  <span className="whitespace-nowrap">
+                    {parseLocalDate(trip.startDate).toLocaleDateString()} - {parseLocalDate(trip.endDate).toLocaleDateString()}
+                  </span>
+                </div>
+                {!isUser && !isEditingDates && onUpdateTripDates && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingDates(true)}
+                    className="text-[11px] tracking-wide uppercase text-primary font-semibold hover:text-primary-hover transition-colors"
+                  >
+                    Editar datas
+                  </button>
+                )}
               </div>
             </div>
 
@@ -253,6 +323,50 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           </div>
         </div>
       </div>
+      {!isUser && onUpdateTripDates && isEditingDates && (
+        <div className="bg-white rounded-xl border border-border p-4 sm:p-6 mb-6 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-text-primary">Atualizar datas da viagem</h3>
+              <p className="text-xs text-text-secondary mt-1">
+                As mudanças entram em vigor imediatamente para todas as informações da viagem.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <DatePicker
+              id="trip-start-date-edit"
+              label="Data início"
+              value={editedStartDate}
+              onChange={(date) => setEditedStartDate(date)}
+            />
+            <DatePicker
+              id="trip-end-date-edit"
+              label="Data fim"
+              value={editedEndDate}
+              onChange={(date) => setEditedEndDate(date)}
+            />
+          </div>
+          <div className="flex flex-wrap justify-end gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="px-4 text-sm"
+              onClick={handleCancelDateEdit}
+              type="button"
+            >
+              Cancelar
+            </Button>
+            <Button
+              className="px-4 text-sm"
+              onClick={handleSaveDates}
+              isLoading={isSavingDates}
+              type="button"
+            >
+              Salvar datas
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex flex-col gap-6">

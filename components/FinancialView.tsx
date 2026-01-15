@@ -3,6 +3,11 @@ import { DollarSign, TrendingUp, CreditCard, Calendar, Users, Map, Trophy, Clock
 import { tripsApi, toursApi, groupsApi } from '../lib/database';
 import { Trip, Tour, Group } from '../types';
 
+// Helper function to parse date string without timezone issues
+const parseLocalDate = (dateStr: string): Date => {
+  return new Date(dateStr + 'T12:00:00');
+};
+
 const FinancialView: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tours, setTours] = useState<Tour[]>([]);
@@ -261,7 +266,7 @@ const FinancialView: React.FC = () => {
                           <div className="flex items-center gap-3 mt-2 text-xs text-text-secondary">
                             <span className="flex items-center gap-1">
                               <Calendar size={12} />
-                              {new Date(stat.tour.date).toLocaleDateString('pt-BR')}
+                              {parseLocalDate(stat.tour.date).toLocaleDateString('pt-BR')}
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock size={12} />

@@ -7,6 +7,12 @@ interface TripCardProps {
   onClick: (trip: Trip) => void;
 }
 
+// Helper function to parse date string without timezone issues
+const parseLocalDate = (dateStr: string): Date => {
+  // Add T12:00:00 to avoid timezone conversion issues
+  return new Date(dateStr + 'T12:00:00');
+};
+
 const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   const getStatusColor = (status: Trip['status']) => {
     switch (status) {
@@ -52,7 +58,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
           </div>
           <div className="flex items-center text-sm text-text-secondary">
             <Calendar size={16} className="mr-2 text-primary" />
-            <span>{new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}</span>
+            <span>{parseLocalDate(trip.startDate).toLocaleDateString()} - {parseLocalDate(trip.endDate).toLocaleDateString()}</span>
           </div>
         </div>
 

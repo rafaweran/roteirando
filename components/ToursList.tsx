@@ -15,6 +15,11 @@ interface ToursListProps {
   trips?: Trip[]; // Dados já carregados (opcional)
 }
 
+// Helper function to parse date string without timezone issues
+const parseLocalDate = (dateStr: string): Date => {
+  return new Date(dateStr + 'T12:00:00');
+};
+
 const ToursList: React.FC<ToursListProps> = ({ 
   onEdit, 
   onViewGroup, 
@@ -473,7 +478,7 @@ const ToursList: React.FC<ToursListProps> = ({
                         Data & Hora
                       </span>
                       <span className="text-sm font-medium text-text-primary">
-                        {new Date(tour.date).toLocaleDateString()} às {tour.time}
+                        {parseLocalDate(tour.date).toLocaleDateString()} às {tour.time}
                       </span>
                     </div>
 
@@ -582,7 +587,7 @@ const ToursList: React.FC<ToursListProps> = ({
                           <div className="flex flex-col text-sm text-text-secondary">
                             <div className="flex items-center gap-1.5 font-medium text-text-primary">
                               <Calendar size={14} className="text-primary/70" />
-                              {new Date(tour.date).toLocaleDateString()}
+                              {parseLocalDate(tour.date).toLocaleDateString()}
                             </div>
                             <div className="flex items-center gap-1.5 mt-1 text-xs">
                               <Clock size={14} className="text-text-disabled" />

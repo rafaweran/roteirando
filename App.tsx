@@ -567,20 +567,7 @@ const AppContent: React.FC = () => {
         return;
       }
       
-      // Determinar status baseado na data
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const startDate = new Date(tripData.startDate);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(tripData.endDate);
-      endDate.setHours(0, 0, 0, 0);
-      
-      let status: 'active' | 'upcoming' | 'completed' = 'upcoming';
-      if (endDate < today) {
-        status = 'completed';
-      } else if (startDate <= today && today <= endDate) {
-        status = 'active';
-      }
+      const status = deriveTripStatus(tripData.startDate, tripData.endDate);
       
       // Preparar dados para o banco
       const tripToSave = {
@@ -620,12 +607,52 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const deriveTripStatus = (startDate: string, endDate: string): Trip['status'] => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+
+    if (end < today) {
+      return 'completed';
+    }
+
+    if (start <= today && today <= end) {
+      return 'active';
+    }
+
+    return 'upcoming';
+  };
+
+  const handleUpdateTripDates = async (tripId: string, startDate: string, endDate: string) => {
+    try {
+      setLoading(true);
+      const status = deriveTripStatus(startDate, endDate);
+      await tripsApi.update(tripId, { startDate, endDate, status });
+      await loadTrips();
+      showSuccess('Datas da viagem atualizadas com sucesso!');
+    } catch (err: any) {
+      console.error('❌ Erro ao atualizar datas da viagem:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCancelNewTrip = () => {
     window.history.back();
   };
 
   // User Selection Logic (Granular Attendance)
-  const handleSaveAttendance = async (tourId: string, members: string[], customDate?: string | null, cancelReason?: string, selectedPriceKey?: string) => {
+  const handleSaveAttendance = async (
+    tourId: string,
+    members: string[],
+    customDate?: string | null,
+    selectedPriceKey?: string,
+    cancelReason?: string
+  ) => {
     if (userRole !== 'user' || !currentUserGroup) return;
 
     console.log('💾 App.tsx - handleSaveAttendance chamado:', {
@@ -633,6 +660,7 @@ const AppContent: React.FC = () => {
       membersCount: members.length,
       customDate,
       selectedPriceKey,
+      cancelReason,
       hasSelectedPriceKey: !!selectedPriceKey
     });
 
@@ -840,6 +868,7 @@ const AppContent: React.FC = () => {
             onViewTourAttendance={handleViewTourAttendance}
             onViewTourDetail={handleViewTourDetail}
             selectedTourId={selectedTourForGroups} // Pass selected tour ID for filtering groups
+            onUpdateTripDates={userRole === 'admin' ? handleUpdateTripDates : undefined}
           />
         );
       })()}
