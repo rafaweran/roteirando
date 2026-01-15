@@ -27,6 +27,8 @@ interface DBTour {
   image_url: string | null;
   tags: string[] | null;
   address: string | null;
+  payment_method: 'guide' | 'website' | null;
+  payment_website_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -107,6 +109,8 @@ function dbTourToTour(dbTour: DBTour, links: TourLink[] = []): Tour {
     links: links.length > 0 ? links : undefined,
     tags: dbTour.tags && dbTour.tags.length > 0 ? dbTour.tags : undefined,
     address: dbTour.address || undefined,
+    paymentMethod: dbTour.payment_method || undefined,
+    paymentWebsiteUrl: dbTour.payment_website_url || undefined,
   };
 }
 
@@ -431,7 +435,17 @@ export const toursApi = {
     if (tour.observations) {
       insertData.observations = tour.observations;
     }
-    
+
+    // Adiciona forma de pagamento
+    if (tour.paymentMethod) {
+      insertData.payment_method = tour.paymentMethod;
+    }
+
+    // Adiciona URL do site de pagamento se existir
+    if (tour.paymentWebsiteUrl) {
+      insertData.payment_website_url = tour.paymentWebsiteUrl;
+    }
+
     console.log('📋 Dados para insert:', {
       ...insertData,
       image_url: insertData.image_url ? `[base64: ${insertData.image_url.length} chars]` : 'null',
@@ -543,6 +557,16 @@ export const toursApi = {
     // Adiciona preços múltiplos se existirem
     if (tour.prices !== undefined) {
       updateData.prices = tour.prices ? JSON.stringify(tour.prices) : null;
+    }
+
+    // Adiciona forma de pagamento se definida
+    if (tour.paymentMethod !== undefined) {
+      updateData.payment_method = tour.paymentMethod || null;
+    }
+
+    // Adiciona URL do site de pagamento se definida
+    if (tour.paymentWebsiteUrl !== undefined) {
+      updateData.payment_website_url = tour.paymentWebsiteUrl || null;
     }
 
     let { data, error } = await supabase

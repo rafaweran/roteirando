@@ -35,6 +35,8 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     currency: 'BRL',
     location: '',
     address: '',
+    paymentMethod: 'guide' as 'guide' | 'website',
+    paymentWebsiteUrl: '',
   });
 
   // Estado para endereço estruturado do passeio
@@ -339,6 +341,8 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
         currency: 'BRL',
         location: '', // Not in mock data
         address: initialData.address || '',
+        paymentMethod: initialData.paymentMethod || 'guide',
+        paymentWebsiteUrl: initialData.paymentWebsiteUrl || '',
       });
       
       // Parsear endereço existente se houver
@@ -564,6 +568,8 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
         links: links.filter(l => l.title && l.url), // Filter out empty links
         tags: selectedTags.length > 0 ? selectedTags : undefined, // Tags selecionadas
         address: formData.address || undefined, // Endereço do passeio
+        paymentMethod: formData.paymentMethod || 'guide', // Forma de pagamento
+        paymentWebsiteUrl: formData.paymentMethod === 'website' ? formData.paymentWebsiteUrl : undefined, // URL do site (apenas se for website)
       };
 
       console.log('📝 NewTourForm: Enviando dados do passeio:', tourData);
@@ -1023,8 +1029,99 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
             )}
           </div>
 
+          {/* Payment Method */}
+          <div className="space-y-4 bg-gradient-to-br from-primary/5 to-transparent rounded-2xl border border-primary/20 p-6">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-text-primary flex items-center gap-2">
+                <DollarSign size={18} className="text-primary" />
+                Forma de Pagamento
+              </label>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => handleChange('paymentMethod', 'guide')}
+                className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                  formData.paymentMethod === 'guide'
+                    ? 'border-primary bg-primary/10 shadow-md'
+                    : 'border-border bg-white hover:border-primary/50'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 transition-all ${
+                    formData.paymentMethod === 'guide'
+                      ? 'border-primary bg-primary'
+                      : 'border-border'
+                  }`}>
+                    {formData.paymentMethod === 'guide' && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-text-primary mb-1">
+                      Pagar à Guia Paula
+                    </div>
+                    <p className="text-xs text-text-secondary">
+                      Pagamento direto no local com a guia
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleChange('paymentMethod', 'website')}
+                className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                  formData.paymentMethod === 'website'
+                    ? 'border-primary bg-primary/10 shadow-md'
+                    : 'border-border bg-white hover:border-primary/50'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 transition-all ${
+                    formData.paymentMethod === 'website'
+                      ? 'border-primary bg-primary'
+                      : 'border-border'
+                  }`}>
+                    {formData.paymentMethod === 'website' && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-text-primary mb-1">
+                      Pagar no Site
+                    </div>
+                    <p className="text-xs text-text-secondary">
+                      Pagamento online através de site externo
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Website URL field - shown only when 'website' is selected */}
+            {formData.paymentMethod === 'website' && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <Input
+                  id="paymentWebsiteUrl"
+                  label="Link do Site de Pagamento"
+                  placeholder="https://..."
+                  icon={LinkIcon}
+                  type="url"
+                  value={formData.paymentWebsiteUrl}
+                  onChange={(e) => handleChange('paymentWebsiteUrl', e.target.value)}
+                  required={formData.paymentMethod === 'website'}
+                />
+                <p className="text-xs text-text-disabled mt-2">
+                  Cole o link completo do site onde os participantes devem fazer o pagamento
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Location */}
-          <Input 
+          <Input
             id="location"
             label="Local / Ponto de encontro"
             placeholder="Ex: Saída do hotel"

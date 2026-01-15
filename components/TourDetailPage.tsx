@@ -523,6 +523,41 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                 </div>
               )}
 
+              {tour.paymentMethod && (
+                <div className="flex items-start gap-3 sm:col-span-2">
+                  <div className="w-10 h-10 rounded-lg bg-status-success/10 flex items-center justify-center flex-shrink-0">
+                    <DollarSign size={20} className="text-status-success" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
+                      Forma de Pagamento
+                    </p>
+                    {tour.paymentMethod === 'guide' ? (
+                      <p className="text-sm font-medium text-text-primary">
+                        💵 Pagar direto à Guia Paula no local
+                      </p>
+                    ) : tour.paymentMethod === 'website' ? (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-text-primary">
+                          💳 Pagamento online através do site
+                        </p>
+                        {tour.paymentWebsiteUrl && (
+                          <a
+                            href={tour.paymentWebsiteUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-hover transition-all shadow-sm hover:shadow-md"
+                          >
+                            Acessar site de pagamento
+                            <ExternalLink size={14} />
+                          </a>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
               {userRole === 'user' && isSelected && (
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
