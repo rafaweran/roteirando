@@ -58,7 +58,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
           </div>
           <div className="flex items-center text-sm text-text-secondary">
             <Calendar size={16} className="mr-2 text-primary" />
-            <span>{parseLocalDate(trip.startDate).toLocaleDateString()} - {parseLocalDate(trip.endDate).toLocaleDateString()}</span>
+            <span>{parseLocalDate(trip.startDate).toLocaleDateString('pt-BR')} - {parseLocalDate(trip.endDate).toLocaleDateString('pt-BR')}</span>
           </div>
         </div>
 

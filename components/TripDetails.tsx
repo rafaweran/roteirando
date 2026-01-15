@@ -284,7 +284,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 <div className="flex items-center bg-surface px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm">
                   <Calendar size={16} className="sm:w-[18px] sm:h-[18px] mr-1.5 sm:mr-2 text-primary flex-shrink-0" />
                   <span className="whitespace-nowrap">
-                    {parseLocalDate(trip.startDate).toLocaleDateString()} - {parseLocalDate(trip.endDate).toLocaleDateString()}
+                    {parseLocalDate(trip.startDate).toLocaleDateString('pt-BR')} - {parseLocalDate(trip.endDate).toLocaleDateString('pt-BR')}
                   </span>
                 </div>
                 {!isUser && !isEditingDates && onUpdateTripDates && (

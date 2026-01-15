@@ -151,7 +151,7 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
             <div className="flex flex-wrap gap-4 text-sm text-text-secondary">
                <div className="flex items-center gap-1.5">
                   <Calendar size={16} className="text-primary" />
-                  {parseLocalDate(tour.date).toLocaleDateString()}
+                  {parseLocalDate(tour.date).toLocaleDateString('pt-BR')}
                </div>
                <div className="flex items-center gap-1.5">
                   <Clock size={16} className="text-primary" />
