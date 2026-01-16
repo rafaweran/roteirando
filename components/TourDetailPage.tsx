@@ -534,7 +534,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                     </p>
                     {tour.paymentMethod === 'guide' ? (
                       <p className="text-sm font-medium text-text-primary">
-                        💵 Pagar direto à Guia Paula no local
+                        💵 Pagar à Guia Paula - Pagamento no Pix
                       </p>
                     ) : tour.paymentMethod === 'website' ? (
                       <div className="space-y-2">

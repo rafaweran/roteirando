@@ -356,7 +356,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
         setSelectedTags(initialData.tags);
       }
       // Carregar preços múltiplos se existirem
-      if (initialData.prices) {
+      if (initialData.prices && Object.keys(initialData.prices).length > 0) {
         const pricesArray: Array<{id: string; description: string; value: string}> = [];
         // Converter objeto de preços para array dinâmico
         Object.entries(initialData.prices).forEach(([key, priceData]) => {
@@ -369,6 +369,13 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
           }
         });
         setPrices(pricesArray);
+      } else if (initialData.price && initialData.price > 0) {
+        // Se não houver prices mas houver um price padrão, criar um campo editável com esse valor
+        setPrices([{
+          id: `price_default_${Date.now()}`,
+          description: 'Valor Padrão',
+          value: initialData.price.toString()
+        }]);
       }
     }
   }, [initialData]);
@@ -1063,7 +1070,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                       Pagar à Guia Paula
                     </div>
                     <p className="text-xs text-text-secondary">
-                      Pagamento direto no local com a guia
+                      Pagamento no Pix
                     </p>
                   </div>
                 </div>
