@@ -330,6 +330,15 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
 
   useEffect(() => {
     if (initialData) {
+      console.log('🔍 NewTourForm - Carregando dados do passeio para edição:', {
+        tourId: initialData.id,
+        tourName: initialData.name,
+        price: initialData.price,
+        hasPrices: !!initialData.prices,
+        pricesKeys: initialData.prices ? Object.keys(initialData.prices) : [],
+        pricesData: initialData.prices
+      });
+      
       setFormData({
         name: initialData.name,
         description: initialData.description,
@@ -355,28 +364,37 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       if (initialData.tags) {
         setSelectedTags(initialData.tags);
       }
+      
       // Carregar preços múltiplos se existirem
-      if (initialData.prices && Object.keys(initialData.prices).length > 0) {
-        const pricesArray: Array<{id: string; description: string; value: string}> = [];
+      const pricesArray: Array<{id: string; description: string; value: string}> = [];
+      
+      if (initialData.prices && typeof initialData.prices === 'object' && Object.keys(initialData.prices).length > 0) {
+        console.log('📊 NewTourForm - Carregando múltiplos preços:', initialData.prices);
         // Converter objeto de preços para array dinâmico
-        Object.entries(initialData.prices).forEach(([key, priceData]) => {
-          if (priceData && priceData.value !== undefined) {
+        Object.entries(initialData.prices).forEach(([key, priceData], index) => {
+          console.log(`  - Preço ${index + 1}:`, { key, priceData });
+          if (priceData && typeof priceData === 'object' && priceData.value !== undefined) {
             pricesArray.push({
-              id: `price_${key}_${Date.now()}`,
-              description: priceData.description || '',
+              id: `price_${key}_${Date.now()}_${index}`,
+              description: priceData.description || key,
               value: priceData.value.toString()
             });
           }
         });
-        setPrices(pricesArray);
-      } else if (initialData.price && initialData.price > 0) {
-        // Se não houver prices mas houver um price padrão, criar um campo editável com esse valor
-        setPrices([{
+      }
+      
+      // Se não houver preços dinâmicos mas houver um preço padrão, adicionar
+      if (pricesArray.length === 0 && initialData.price && initialData.price > 0) {
+        console.log('💰 NewTourForm - Usando preço padrão:', initialData.price);
+        pricesArray.push({
           id: `price_default_${Date.now()}`,
           description: 'Valor Padrão',
           value: initialData.price.toString()
-        }]);
+        });
       }
+      
+      console.log('✅ NewTourForm - Preços carregados para edição:', pricesArray);
+      setPrices(pricesArray);
     }
   }, [initialData]);
 
