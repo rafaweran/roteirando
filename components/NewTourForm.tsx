@@ -50,8 +50,15 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     zipCode: '',
   });
 
-  // Array dinâmico de preços: [{id, description, value}]
-  const [prices, setPrices] = useState<Array<{id: string; description: string; value: string}>>([]);
+  // Array dinâmico de preços: [{id, description, value, hasDiscount, originalValue, discountPercent}]
+  const [prices, setPrices] = useState<Array<{
+    id: string; 
+    description: string; 
+    value: string;
+    hasDiscount: boolean;
+    originalValue: string;
+    discountPercent: string;
+  }>>([]);
 
   const [links, setLinks] = useState<TourLink[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -141,9 +148,75 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     setPrices(prev => prev.map(p => p.id === id ? { ...p, description } : p));
   };
 
+  const handleToggleDiscount = (id: string) => {
+    setPrices(prev => prev.map(p => {
+      if (p.id === id) {
+        const hasDiscount = !p.hasDiscount;
+        // Se ativou desconto, usar o value atual como originalValue
+        if (hasDiscount && p.value) {
+          return { ...p, hasDiscount, originalValue: p.value, discountPercent: '' };
+        }
+        // Se desativou desconto, limpar campos de desconto
+        return { ...p, hasDiscount, originalValue: '', discountPercent: '' };
+      }
+      return p;
+    }));
+  };
+
+  const handleOriginalValueChange = (id: string, value: string) => {
+    const parsed = parseCurrency(value);
+    setPrices(prev => prev.map(p => {
+      if (p.id === id) {
+        // Recalcular valor final se houver desconto
+        if (p.discountPercent && parsed) {
+          const original = parseFloat(parsed);
+          const discount = parseFloat(p.discountPercent);
+          if (!isNaN(original) && !isNaN(discount)) {
+            const finalValue = original * (1 - discount / 100);
+            return { ...p, originalValue: parsed, value: finalValue.toFixed(2) };
+          }
+        }
+        return { ...p, originalValue: parsed };
+      }
+      return p;
+    }));
+  };
+
+  const handleDiscountPercentChange = (id: string, percent: string) => {
+    // Permitir apenas números e ponto/vírgula
+    const cleaned = percent.replace(/[^\d.,]/g, '');
+    
+    setPrices(prev => prev.map(p => {
+      if (p.id === id) {
+        const discountPercent = cleaned;
+        
+        // Recalcular valor final se houver valor original
+        if (p.originalValue && cleaned) {
+          const original = parseFloat(p.originalValue);
+          const discount = parseFloat(cleaned.replace(',', '.'));
+          
+          if (!isNaN(original) && !isNaN(discount) && discount >= 0 && discount <= 100) {
+            const finalValue = original * (1 - discount / 100);
+            return { ...p, discountPercent, value: finalValue.toFixed(2) };
+          }
+        }
+        
+        return { ...p, discountPercent };
+      }
+      return p;
+    }));
+  };
+
   const handleAddPrice = () => {
     const newId = `price_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    setPrices(prev => [...prev, { id: newId, description: '', value: '' }]);
+    setPrices(prev => [...prev, { 
+      id: newId, 
+      description: '', 
+      value: '',
+      hasDiscount: false,
+      originalValue: '',
+      discountPercent: ''
+    }]);
   };
 
   const handleRemovePrice = (id: string) => {
@@ -366,7 +439,14 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
       }
       
       // Carregar preços múltiplos se existirem
-      const pricesArray: Array<{id: string; description: string; value: string}> = [];
+      const pricesArray: Array<{
+        id: string; 
+        description: string; 
+        value: string;
+        hasDiscount: boolean;
+        originalValue: string;
+        discountPercent: string;
+      }> = [];
       
       if (initialData.prices && typeof initialData.prices === 'object' && Object.keys(initialData.prices).length > 0) {
         console.log('📊 NewTourForm - Carregando múltiplos preços:', initialData.prices);
@@ -377,7 +457,10 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
             pricesArray.push({
               id: `price_${key}_${Date.now()}_${index}`,
               description: priceData.description || key,
-              value: priceData.value.toString()
+              value: priceData.value.toString(),
+              hasDiscount: priceData.hasDiscount || false,
+              originalValue: priceData.originalValue?.toString() || '',
+              discountPercent: priceData.discountPercent?.toString() || ''
             });
           }
         });
@@ -389,7 +472,10 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
         pricesArray.push({
           id: `price_default_${Date.now()}`,
           description: 'Valor Padrão',
-          value: initialData.price.toString()
+          value: initialData.price.toString(),
+          hasDiscount: false,
+          originalValue: '',
+          discountPercent: ''
         });
       }
       
@@ -566,10 +652,24 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
           const key = price.description 
             ? price.description.toLowerCase().replace(/[^a-z0-9]+/g, '_').substring(0, 30) || `price_${index}`
             : `price_${index}`;
-          tourPrices[key] = {
+          
+          const priceData: any = {
             value: parseFloat(price.value),
             description: price.description || ''
           };
+          
+          // Adicionar campos de desconto se aplicável
+          if (price.hasDiscount) {
+            priceData.hasDiscount = true;
+            if (price.originalValue) {
+              priceData.originalValue = parseFloat(price.originalValue);
+            }
+            if (price.discountPercent) {
+              priceData.discountPercent = parseFloat(price.discountPercent.replace(',', '.'));
+            }
+          }
+          
+          tourPrices[key] = priceData;
         }
       });
 
@@ -1001,7 +1101,9 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                     <Trash2 size={16} />
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div className="space-y-4">
+                  {/* Descrição */}
                   <div className="relative">
                     <label className="text-xs text-text-secondary mb-1.5 block">Descrição</label>
                     <input
@@ -1012,25 +1114,104 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                       className="w-full h-12 px-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     />
                   </div>
-                  <div className="relative">
-                    <label className="text-xs text-text-secondary mb-1.5 block">Valor (R$)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">R$</span>
-                      <input
-                        type="text"
-                        placeholder="0,00"
-                        value={getDisplayValue(price.value)}
-                        onChange={(e) => handlePriceChange(price.id, e.target.value)}
-                        onBlur={(e) => {
-                          const parsed = parseCurrency(e.target.value);
-                          if (parsed) {
-                            handlePriceChange(price.id, parsed);
-                          }
-                        }}
-                        className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+
+                  {/* Toggle de Desconto */}
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-border">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleDiscount(price.id)}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${
+                        price.hasDiscount ? 'bg-primary' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                          price.hasDiscount ? 'translate-x-6' : 'translate-x-0'
+                        }`}
                       />
-                    </div>
+                    </button>
+                    <label className="text-sm font-medium text-text-primary cursor-pointer" onClick={() => handleToggleDiscount(price.id)}>
+                      Aplicar desconto
+                    </label>
                   </div>
+
+                  {/* Campos com/sem desconto */}
+                  {price.hasDiscount ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="relative">
+                          <label className="text-xs text-text-secondary mb-1.5 block">Valor Original (R$)</label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">R$</span>
+                            <input
+                              type="text"
+                              placeholder="0,00"
+                              value={getDisplayValue(price.originalValue)}
+                              onChange={(e) => handleOriginalValueChange(price.id, e.target.value)}
+                              onBlur={(e) => {
+                                const parsed = parseCurrency(e.target.value);
+                                if (parsed) {
+                                  handleOriginalValueChange(price.id, parsed);
+                                }
+                              }}
+                              className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                            />
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <label className="text-xs text-text-secondary mb-1.5 block">Desconto (%)</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="0"
+                              value={price.discountPercent}
+                              onChange={(e) => handleDiscountPercentChange(price.id, e.target.value)}
+                              className="w-full h-12 px-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                              maxLength={5}
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">%</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Valor Final Calculado */}
+                      {price.value && parseFloat(price.value) > 0 && (
+                        <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-text-secondary">Valor Final:</span>
+                            <span className="text-lg font-bold text-primary">
+                              R$ {getDisplayValue(price.value)}
+                            </span>
+                          </div>
+                          {price.originalValue && price.discountPercent && (
+                            <p className="text-xs text-text-secondary mt-1">
+                              De R$ {getDisplayValue(price.originalValue)} por R$ {getDisplayValue(price.value)} ({price.discountPercent}% OFF)
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="relative">
+                      <label className="text-xs text-text-secondary mb-1.5 block">Valor (R$)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none font-medium">R$</span>
+                        <input
+                          type="text"
+                          placeholder="0,00"
+                          value={getDisplayValue(price.value)}
+                          onChange={(e) => handlePriceChange(price.id, e.target.value)}
+                          onBlur={(e) => {
+                            const parsed = parseCurrency(e.target.value);
+                            if (parsed) {
+                              handlePriceChange(price.id, parsed);
+                            }
+                          }}
+                          className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

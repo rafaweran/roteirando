@@ -475,16 +475,30 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                     <div className="space-y-2">
                       {Object.entries(tour.prices).map(([key, priceData]) => {
                         if (!priceData || priceData.value === undefined) return null;
+                        const hasDiscount = priceData.hasDiscount && priceData.originalValue && priceData.discountPercent;
+                        
                         return (
-                          <div key={key} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-text-primary">
-                                {priceData.description || key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}
+                          <div key={key} className={`p-3 bg-surface rounded-lg border ${hasDiscount ? 'border-status-success' : 'border-border'}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-text-primary">
+                                  {priceData.description || key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}
+                                </p>
+                                {hasDiscount && (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-xs text-text-secondary line-through">
+                                      R$ {priceData.originalValue!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </span>
+                                    <span className="text-xs font-bold text-status-success bg-status-success/10 px-2 py-0.5 rounded">
+                                      {priceData.discountPercent}% OFF
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              <p className={`text-base font-bold ml-4 ${hasDiscount ? 'text-status-success' : 'text-primary'}`}>
+                                R$ {priceData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </p>
                             </div>
-                            <p className="text-base font-bold text-primary ml-4">
-                              R$ {priceData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
                           </div>
                         );
                       })}

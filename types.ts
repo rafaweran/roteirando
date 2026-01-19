@@ -18,6 +18,9 @@ export interface TourLink {
 export interface TourPrice {
   value: number;
   description?: string; // Descrição sobre idade, condições, etc.
+  originalValue?: number; // Valor original antes do desconto
+  discountPercent?: number; // Porcentagem de desconto (0-100)
+  hasDiscount?: boolean; // Se tem desconto aplicado
 }
 
 export interface TourPrices {
