@@ -273,7 +273,7 @@ const AppContent: React.FC = () => {
   }, [currentView, userRole]);
 
 
-  const handleLoginSuccess = async (role: UserRole, group?: Group, adminData?: { email: string; password: string | null; passwordChanged?: boolean | null }) => {
+  const handleLoginSuccess = async (role: UserRole, group?: Group, adminData?: { email: string; password: string | null; passwordChanged?: boolean | null }, weakPassword?: boolean) => {
     try {
       setUserRole(role);
       
@@ -294,10 +294,17 @@ const AppContent: React.FC = () => {
         
         if (updatedGroup) {
           setCurrentUserGroup(updatedGroup);
-          
-          // Verificar se precisa alterar senha (primeiro acesso)
-          if (!updatedGroup.passwordChanged) {
+
+          // Verificar se precisa alterar senha (primeiro acesso OU senha fraca)
+          if (!updatedGroup.passwordChanged || weakPassword) {
             setShowChangePasswordModal(true);
+            
+            // Mostrar mensagem explicativa se for senha fraca
+            if (weakPassword) {
+              setTimeout(() => {
+                alert('⚠️ Sua senha não atende aos requisitos de segurança.\n\nPor favor, altere para uma senha mais segura com:\n• Mínimo 8 caracteres\n• Pelo menos uma letra\n• Pelo menos um número\n• Não pode ser apenas números');
+              }, 300);
+            }
           }
         }
         

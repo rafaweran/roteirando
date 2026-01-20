@@ -4,11 +4,11 @@ import Input from './Input';
 import Button from './Button';
 import ForgotPasswordModal from './ForgotPasswordModal';
 import { groupsApi, adminsApi } from '../lib/database';
-import { verifyPassword } from '../lib/password';
+import { verifyPassword, validatePassword } from '../lib/password';
 import { UserRole, Group } from '../types';
 
 interface LoginFormProps {
-  onSuccess: (role: UserRole, group?: Group, adminData?: { email: string; password: string | null; passwordChanged?: boolean | null }) => void;
+  onSuccess: (role: UserRole, group?: Group, adminData?: { email: string; password: string | null; passwordChanged?: boolean | null }, weakPassword?: boolean) => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
@@ -138,8 +138,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           }
         }
         
+        // Verificar se a senha usada é fraca (não atende aos requisitos de segurança)
+        const passwordValidation = validatePassword(inputPassword);
+        const hasWeakPassword = !passwordValidation.isValid;
+        
         // Login como usuário
-        onSuccess('user', userGroup);
+        onSuccess('user', userGroup, undefined, hasWeakPassword);
         setIsLoading(false);
         return;
       }
