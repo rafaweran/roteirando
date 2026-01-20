@@ -20,7 +20,7 @@ import MyTripPage from './components/MyTripPage';
 import UserCustomToursPage from './components/UserCustomToursPage';
 import { ToastProvider, useToast } from './hooks/useToast';
 import { Trip, Tour, UserRole, Group } from './types';
-import { tripsApi, toursApi, groupsApi, adminsApi } from './lib/database';
+import { tripsApi, toursApi, groupsApi, adminsApi, userCustomToursApi } from './lib/database';
 import { Plus } from 'lucide-react';
 import Button from './components/Button';
 
@@ -464,6 +464,40 @@ const AppContent: React.FC = () => {
   const handleBackFromTourDetail = () => {
     // Usar histórico do navegador para voltar
     window.history.back();
+  };
+
+  const handleCancelAttendance = async (tourId: string, isCustomTour: boolean) => {
+    if (!currentUserGroup) return;
+
+    try {
+      if (isCustomTour) {
+        // Excluir passeio personalizado
+        await userCustomToursApi.delete(tourId);
+        showSuccess('Passeio excluído com sucesso!');
+      } else {
+        // Cancelar confirmação de presença em passeio oficial
+        const updatedAttendance = { ...currentUserGroup.tourAttendance };
+        delete updatedAttendance[tourId];
+
+        await groupsApi.update(currentUserGroup.id, {
+          tourAttendance: updatedAttendance
+        });
+
+        // Atualizar estado local
+        setCurrentUserGroup({
+          ...currentUserGroup,
+          tourAttendance: updatedAttendance
+        });
+
+        showSuccess('Presença cancelada com sucesso!');
+      }
+
+      // Recarregar dados
+      await Promise.all([loadTours(), loadGroups()]);
+    } catch (error: any) {
+      console.error('Erro ao cancelar:', error);
+      showError(isCustomTour ? 'Erro ao excluir passeio' : 'Erro ao cancelar presença');
+    }
   };
 
   const handleDeleteTour = (tourId: string) => {
@@ -1072,12 +1106,13 @@ const AppContent: React.FC = () => {
       )}
 
       {currentView === 'agenda' && userRole === 'user' && currentUserGroup && (
-        <TourAgenda 
+        <TourAgenda
           tours={tours}
           trips={trips}
           userGroup={currentUserGroup}
           onViewTourDetail={handleViewTourDetail}
           onAddCustomTour={handleNavigateCustomTours}
+          onCancelAttendance={handleCancelAttendance}
         />
       )}
 

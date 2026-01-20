@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import Button from './Button';
+import Modal from './Modal';
 import { Tour, Trip, Group, TourAttendanceInfo, UserCustomTour } from '../types';
 import { userCustomToursApi } from '../lib/database';
 
@@ -10,6 +11,7 @@ interface TourAgendaProps {
   userGroup: Group;
   onViewTourDetail?: (tour: Tour) => void;
   onAddCustomTour?: () => void;
+  onCancelAttendance?: (tourId: string, isCustomTour: boolean) => void;
 }
 
 const DAYS_OF_WEEK = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -18,10 +20,12 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onViewTourDetail, onAddCustomTour }) => {
+const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onViewTourDetail, onAddCustomTour, onCancelAttendance }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [customTours, setCustomTours] = useState<UserCustomTour[]>([]);
   const [loadingCustomTours, setLoadingCustomTours] = useState(true);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [tourToCancel, setTourToCancel] = useState<{ id: string; name: string; isCustomTour: boolean } | null>(null);
 
   // Carregar passeios personalizados
   useEffect(() => {
@@ -163,6 +167,24 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
   // Calcular total de passeios e valor
   const totalTours = allTours.length;
   const totalValue = allTours.reduce((sum, tour) => sum + (tour.price * tour.attendanceCount), 0);
+
+  const handleCancelClick = (tour: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTourToCancel({
+      id: tour.id,
+      name: tour.name,
+      isCustomTour: tour.isCustomTour || false
+    });
+    setCancelModalOpen(true);
+  };
+
+  const handleConfirmCancel = () => {
+    if (tourToCancel && onCancelAttendance) {
+      onCancelAttendance(tourToCancel.id, tourToCancel.isCustomTour);
+      setCancelModalOpen(false);
+      setTourToCancel(null);
+    }
+  };
 
   if (allTours.length === 0 && !loadingCustomTours) {
     return (
@@ -343,6 +365,15 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                               <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                                 <CheckCircle2 size={18} className="sm:w-5 sm:h-5 text-status-success flex-shrink-0" />
                                 <h3 className="text-base sm:text-xl font-bold text-text-primary break-words">{tour.name}</h3>
+                                {onCancelAttendance && (
+                                  <button
+                                    onClick={(e) => handleCancelClick(tour, e)}
+                                    className="ml-auto p-2 rounded-lg text-status-error hover:bg-status-error/10 transition-colors flex-shrink-0"
+                                    title="Cancelar presença"
+                                  >
+                                    <X size={20} />
+                                  </button>
+                                )}
                               </div>
                               {tour.trip && (
                                 <p className="text-xs sm:text-sm text-text-secondary mb-2 break-words">
@@ -445,6 +476,25 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
           </div>
         </div>
       </div>
+
+      {/* Modal de Confirmação de Cancelamento */}
+      <Modal
+        isOpen={cancelModalOpen}
+        onClose={() => {
+          setCancelModalOpen(false);
+          setTourToCancel(null);
+        }}
+        onConfirm={handleConfirmCancel}
+        title={tourToCancel?.isCustomTour ? "Excluir Passeio" : "Cancelar Presença"}
+        description={
+          tourToCancel?.isCustomTour 
+            ? `Tem certeza que deseja excluir o passeio "${tourToCancel?.name}"? Esta ação não pode ser desfeita.`
+            : `Tem certeza que deseja cancelar sua presença no passeio "${tourToCancel?.name}"?`
+        }
+        variant="danger"
+        confirmLabel={tourToCancel?.isCustomTour ? "Excluir" : "Cancelar Presença"}
+        cancelLabel="Voltar"
+      />
     </div>
   );
 };
