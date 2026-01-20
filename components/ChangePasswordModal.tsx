@@ -165,9 +165,14 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               {!group.passwordChanged && (
                 <div className="bg-status-warning/10 border border-status-warning/20 rounded-lg p-3 flex items-start gap-2 mt-3">
                   <AlertCircle size={16} className="text-status-warning flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-text-secondary">
-                    Por segurança, você deve alterar sua senha inicial antes de continuar.
-                  </p>
+                  <div className="text-sm text-text-secondary">
+                    <p className="font-medium mb-1">🔒 Por segurança, crie uma senha forte com:</p>
+                    <ul className="space-y-0.5 ml-4">
+                      <li>• Mínimo de 8 caracteres</li>
+                      <li>• Letras e números combinados</li>
+                      <li>• Não pode ser só números</li>
+                    </ul>
+                  </div>
                 </div>
               )}
             </div>

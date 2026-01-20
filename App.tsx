@@ -302,7 +302,7 @@ const AppContent: React.FC = () => {
             // Mostrar mensagem explicativa se for senha fraca
             if (weakPassword) {
               setTimeout(() => {
-                alert('⚠️ Sua senha não atende aos requisitos de segurança.\n\nPor favor, altere para uma senha mais segura com:\n• Mínimo 8 caracteres\n• Pelo menos uma letra\n• Pelo menos um número\n• Não pode ser apenas números');
+                alert('🔒 Sua senha precisa ser mais segura!\n\nPor favor, crie uma nova senha seguindo estas regras:\n\n✓ Mínimo de 8 caracteres\n✓ Pelo menos uma letra (A-Z ou a-z)\n✓ Pelo menos um número (0-9)\n✓ Não pode ser apenas números\n\nExemplos de senhas válidas:\n• Maria2024\n• Viagem123\n• Paula2026');
               }, 300);
             }
           }
