@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Users, User, Phone, Mail, Baby, Plus, X, Check, Map, Lock, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { Trip, Group } from '../types';
 import { tripsApi } from '../lib/database';
-import { generatePassword, hashPassword, validatePassword } from '../lib/password';
+import { generatePassword, hashPassword } from '../lib/password';
 import Input from './Input';
 import Button from './Button';
 
@@ -106,13 +106,11 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, initialData, onSave, 
       return;
     }
 
-    // Validar senha se foi fornecida (criar ou editar)
-    if (formData.initialPassword) {
-      const validation = validatePassword(formData.initialPassword);
-      if (!validation.isValid) {
-        alert("Senha inválida:\n\n" + validation.errors.join('\n'));
-        return;
-      }
+    // Ao criar grupo, aceitar qualquer senha (admin define senha inicial simples)
+    // A validação rigorosa será aplicada quando o usuário trocar a senha
+    if (formData.initialPassword && formData.initialPassword.length < 4) {
+      alert("A senha inicial deve ter pelo menos 4 caracteres.");
+      return;
     }
 
     setIsLoading(true);
