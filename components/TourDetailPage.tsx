@@ -18,7 +18,8 @@ interface TourDetailPageProps {
     members: string[],
     customDate?: string | null,
     selectedPriceKey?: string,
-    cancelReason?: string
+    cancelReason?: string,
+    priceQuantities?: Record<string, number>
   ) => void;
 }
 
@@ -368,10 +369,11 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
     tourId: string,
     members: string[],
     customDate?: string | null,
-    selectedPriceKey?: string
+    selectedPriceKey?: string,
+    priceQuantities?: Record<string, number>
   ) => {
     if (onConfirmAttendance) {
-      onConfirmAttendance(tourId, members, customDate, selectedPriceKey);
+      onConfirmAttendance(tourId, members, customDate, selectedPriceKey, undefined, priceQuantities);
     }
     setAttendanceModalOpen(false);
   };

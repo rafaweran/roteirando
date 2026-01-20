@@ -7,7 +7,7 @@ import { Tour, Group, TourAttendanceInfo } from '../types';
 interface TourAttendanceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (tourId: string, selectedMembers: string[], customDate?: string | null, selectedPriceKey?: string) => void;
+  onConfirm: (tourId: string, selectedMembers: string[], customDate?: string | null, selectedPriceKey?: string, priceQuantities?: Record<string, number>) => void;
   tour: Tour;
   group: Group;
 }
@@ -22,7 +22,8 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [dateOption, setDateOption] = useState<'group' | 'custom'>('group'); // 'group' = data original, 'custom' = data personalizada
   const [customDate, setCustomDate] = useState<string>('');
-  const [selectedPriceKey, setSelectedPriceKey] = useState<string>(''); // Chave do tipo de ingresso selecionado
+  const [selectedPriceKey, setSelectedPriceKey] = useState<string>(''); // Chave do tipo de ingresso selecionado (DEPRECATED - manter para compatibilidade)
+  const [priceQuantities, setPriceQuantities] = useState<Record<string, number>>({}); // Quantidade de cada tipo de ingresso
 
   // Criar lista completa incluindo líder + membros
   const allGroupMembers = React.useMemo(() => {
@@ -68,25 +69,27 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
           setDateOption('group');
           setCustomDate('');
         }
-        // Restaurar tipo de ingresso selecionado se existir
-        if (attendanceInfo.selectedPriceKey) {
+        
+        // Restaurar quantidades de tipos de ingresso se existir (nova versão)
+        if (attendanceInfo.priceQuantities) {
+          setPriceQuantities(attendanceInfo.priceQuantities);
+          console.log('✅ TourAttendanceModal - Restaurando priceQuantities do attendance:', attendanceInfo.priceQuantities);
+        } else if (attendanceInfo.selectedPriceKey) {
+          // Compatibilidade com versão antiga (apenas um tipo de ingresso)
+          setPriceQuantities({ [attendanceInfo.selectedPriceKey]: attendanceInfo.members.length });
           setSelectedPriceKey(attendanceInfo.selectedPriceKey);
-          console.log('✅ TourAttendanceModal - Restaurando selectedPriceKey do attendance:', attendanceInfo.selectedPriceKey);
+          console.log('✅ TourAttendanceModal - Convertendo selectedPriceKey antigo para priceQuantities:', attendanceInfo.selectedPriceKey);
         } else {
-          // Se não houver tipo selecionado, usar o primeiro disponível ou vazio
-          const firstKey = tour.prices ? Object.keys(tour.prices)[0] || '' : '';
-          setSelectedPriceKey(firstKey);
-          console.log('⚠️ TourAttendanceModal - Usando primeiro preço disponível como padrão:', firstKey);
+          // Se não houver nada, inicializar vazio
+          setPriceQuantities({});
         }
       } else {
         // Default: Select all members (including leader) initially for easier UX
         setSelectedMembers([...allGroupMembers]);
         setDateOption('group');
         setCustomDate('');
-        // Selecionar o primeiro tipo de ingresso disponível por padrão
-        const firstKey = tour.prices ? Object.keys(tour.prices)[0] || '' : '';
-        setSelectedPriceKey(firstKey);
-        console.log('✅ TourAttendanceModal - Inicializando com primeiro preço disponível:', firstKey);
+        // Inicializar quantidades vazias
+        setPriceQuantities({});
       }
       
       console.log('🔄 TourAttendanceModal - Estado inicializado:', {
@@ -118,65 +121,53 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   const handleSave = () => {
     // Se escolheu data personalizada, usar customDate, senão null (data original)
     const finalCustomDate = dateOption === 'custom' && customDate ? customDate : null;
-    // Passar o tipo de ingresso selecionado
-    // IMPORTANTE: Só passar se houver preços dinâmicos E se selectedPriceKey não estiver vazio
-    let finalSelectedPriceKey: string | undefined = undefined;
-    if (tour.prices && Object.keys(tour.prices).length > 0) {
-      if (selectedPriceKey && selectedPriceKey.trim() !== '') {
-        finalSelectedPriceKey = selectedPriceKey.trim();
-      } else {
-        // Se selectedPriceKey está vazio mas há preços, usar o primeiro disponível como fallback
-        const firstKey = Object.keys(tour.prices)[0];
-        if (firstKey) {
-          finalSelectedPriceKey = firstKey;
-          console.warn('⚠️ TourAttendanceModal - selectedPriceKey estava vazio, usando primeiro disponível:', firstKey);
-        } else {
-          console.warn('⚠️ TourAttendanceModal - selectedPriceKey está vazio e não há chaves disponíveis');
-        }
-      }
-    }
+    
+    // Filtrar apenas quantidades maiores que zero
+    const validPriceQuantities = Object.fromEntries(
+      Object.entries(priceQuantities).filter(([_, qty]) => qty > 0)
+    );
     
     console.log('💾 TourAttendanceModal - Salvando confirmação:', {
       tourId: tour.id,
       tourName: tour.name,
       selectedMembers: selectedMembers.length,
       finalCustomDate,
-      selectedPriceKey,
-      selectedPriceKeyType: typeof selectedPriceKey,
-      selectedPriceKeyLength: selectedPriceKey?.length,
-      finalSelectedPriceKey,
-      finalSelectedPriceKeyType: typeof finalSelectedPriceKey,
-      hasTourPrices: !!tour.prices,
-      availablePriceKeys: tour.prices ? Object.keys(tour.prices) : [],
-      availablePriceKeysCount: tour.prices ? Object.keys(tour.prices).length : 0,
-      selectedPrice: finalSelectedPriceKey && tour.prices ? tour.prices[finalSelectedPriceKey as keyof typeof tour.prices] : null,
-      willPassSelectedPriceKey: !!finalSelectedPriceKey,
+      priceQuantities: validPriceQuantities,
+      totalPeople: totalPeopleFromPrices,
       totalPrice: calculateTotalPrice()
     });
     
-    onConfirm(tour.id, selectedMembers, finalCustomDate, finalSelectedPriceKey);
+    // Passar quantidades de tipos de ingresso
+    onConfirm(tour.id, selectedMembers, finalCustomDate, undefined, validPriceQuantities);
     onClose();
   };
 
   const allSelected = selectedMembers.length === totalGroupMembers;
   
-  // Calcular preço total baseado no tipo de ingresso selecionado
+  // Calcular preço total baseado nas quantidades de cada tipo de ingresso
   const calculateTotalPrice = () => {
-    if (!selectedMembers.length) return 0;
-    
-    // Se houver preços dinâmicos e um tipo selecionado, usar esse preço
-    if (tour.prices && selectedPriceKey && tour.prices[selectedPriceKey as keyof typeof tour.prices]) {
-      const selectedPrice = tour.prices[selectedPriceKey as keyof typeof tour.prices];
-      if (selectedPrice && selectedPrice.value !== undefined) {
-        return selectedMembers.length * selectedPrice.value;
-      }
+    if (!tour.prices || Object.keys(tour.prices).length === 0) {
+      // Se não houver preços dinâmicos, usar preço padrão
+      return selectedMembers.length * tour.price;
     }
     
-    // Caso contrário, usar preço padrão
-    return selectedMembers.length * tour.price;
+    let total = 0;
+    Object.entries(priceQuantities).forEach(([key, quantity]) => {
+      if (quantity > 0 && tour.prices && tour.prices[key as keyof typeof tour.prices]) {
+        const priceData = tour.prices[key as keyof typeof tour.prices];
+        if (priceData && priceData.value !== undefined) {
+          total += quantity * priceData.value;
+        }
+      }
+    });
+    
+    return total;
   };
   
   const totalPrice = calculateTotalPrice();
+  
+  // Calcular total de pessoas selecionadas via quantidades de ingresso
+  const totalPeopleFromPrices = Object.values(priceQuantities).reduce((sum, qty) => sum + qty, 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -285,54 +276,101 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
             </div>
           </div>
 
-          {/* Seção: Tipo de Ingresso (apenas se houver múltiplos preços) */}
-          {tour.prices && Object.keys(tour.prices).length > 1 && (
+          {/* Seção: Tipos de Ingresso (se houver múltiplos preços) */}
+          {tour.prices && Object.keys(tour.prices).length > 0 && (
             <div className="bg-surface/50 rounded-xl p-4 border border-border">
               <h4 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
                 <DollarSign size={16} />
-                Tipo de Ingresso
+                Tipos de Ingresso
               </h4>
+              <p className="text-xs text-text-secondary mb-4">
+                Informe quantas pessoas de cada tipo irão participar
+              </p>
               
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {Object.entries(tour.prices).map(([key, priceData]) => {
                   if (!priceData || priceData.value === undefined) return null;
-                  const isSelected = selectedPriceKey === key;
+                  const quantity = priceQuantities[key] || 0;
+                  const hasDiscount = priceData.hasDiscount && priceData.originalValue && priceData.discountPercent;
+                  
                   return (
-                    <label 
+                    <div 
                       key={key}
-                      className={`
-                        flex items-center justify-between gap-3 p-3 rounded-lg border cursor-pointer transition-all
-                        ${isSelected 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-border hover:border-primary/30 hover:bg-white'
-                        }
-                      `}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border bg-white"
                     >
-                      <div className="flex items-center gap-3 flex-1">
-                        <input
-                          type="radio"
-                          name="priceOption"
-                          value={key}
-                          checked={isSelected}
-                          onChange={() => {
-                            console.log('🔄 TourAttendanceModal - Preço selecionado:', key);
-                            setSelectedPriceKey(key);
-                          }}
-                          className="w-4 h-4 text-primary border-border focus:ring-primary focus:ring-2"
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium text-sm text-text-primary">
-                            {priceData.description || key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}
-                          </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-sm text-text-primary">
+                          {priceData.description || key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {hasDiscount ? (
+                            <>
+                              <span className="text-xs text-text-secondary line-through">
+                                R$ {priceData.originalValue!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                              <span className="text-sm font-bold text-status-success">
+                                R$ {priceData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                              <span className="text-xs font-bold text-status-success bg-status-success/10 px-2 py-0.5 rounded">
+                                {priceData.discountPercent}% OFF
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-bold text-primary">
+                              R$ {priceData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="text-base font-bold text-primary">
-                        R$ {priceData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newQty = Math.max(0, quantity - 1);
+                            setPriceQuantities(prev => ({ ...prev, [key]: newQty }));
+                          }}
+                          className="w-8 h-8 rounded-lg border border-border bg-white hover:bg-surface text-text-primary font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+                          disabled={quantity === 0}
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="0"
+                          max={totalGroupMembers}
+                          value={quantity}
+                          onChange={(e) => {
+                            const newQty = Math.max(0, Math.min(totalGroupMembers, parseInt(e.target.value) || 0));
+                            setPriceQuantities(prev => ({ ...prev, [key]: newQty }));
+                          }}
+                          className="w-14 h-8 text-center border border-border rounded-lg text-sm font-semibold text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newQty = Math.min(totalGroupMembers, quantity + 1);
+                            setPriceQuantities(prev => ({ ...prev, [key]: newQty }));
+                          }}
+                          className="w-8 h-8 rounded-lg border border-border bg-white hover:bg-surface text-text-primary font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+                          disabled={totalPeopleFromPrices >= totalGroupMembers}
+                        >
+                          +
+                        </button>
                       </div>
-                    </label>
+                    </div>
                   );
                 })}
               </div>
+              
+              {totalPeopleFromPrices > 0 && (
+                <div className="mt-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-text-secondary">Total de pessoas:</span>
+                    <span className="font-bold text-primary">{totalPeopleFromPrices}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -395,15 +433,23 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
           <div className="flex justify-between items-center mb-4 text-sm">
              <span className="text-text-secondary">Total estimado:</span>
              <span className="font-bold text-lg text-text-primary">
-               R$ {totalPrice.toFixed(2)} <span className="text-xs font-normal text-text-secondary">({selectedMembers.length}x)</span>
+               R$ {totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} 
+               {totalPeopleFromPrices > 0 && (
+                 <span className="text-xs font-normal text-text-secondary ml-1">
+                   ({totalPeopleFromPrices}x)
+                 </span>
+               )}
              </span>
           </div>
           <Button 
             fullWidth
             onClick={handleSave}
-            disabled={selectedMembers.length === 0}
+            disabled={tour.prices && Object.keys(tour.prices).length > 0 ? totalPeopleFromPrices === 0 : selectedMembers.length === 0}
           >
-            Confirmar {selectedMembers.length} Pessoa{selectedMembers.length !== 1 ? 's' : ''}
+            {tour.prices && Object.keys(tour.prices).length > 0 
+              ? `Confirmar ${totalPeopleFromPrices} Pessoa${totalPeopleFromPrices !== 1 ? 's' : ''}`
+              : `Confirmar ${selectedMembers.length} Pessoa${selectedMembers.length !== 1 ? 's' : ''}`
+            }
           </Button>
         </div>
       </div>

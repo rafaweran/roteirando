@@ -739,7 +739,8 @@ const AppContent: React.FC = () => {
     members: string[],
     customDate?: string | null,
     selectedPriceKey?: string,
-    cancelReason?: string
+    cancelReason?: string,
+    priceQuantities?: Record<string, number>
   ) => {
     if (userRole !== 'user' || !currentUserGroup) return;
 
@@ -748,16 +749,18 @@ const AppContent: React.FC = () => {
       membersCount: members.length,
       customDate,
       selectedPriceKey,
+      priceQuantities,
       cancelReason,
-      hasSelectedPriceKey: !!selectedPriceKey
+      hasSelectedPriceKey: !!selectedPriceKey,
+      hasPriceQuantities: !!priceQuantities
     });
 
     try {
       // Salvar no banco de dados
       const { tourAttendanceApi } = await import('./lib/database');
-      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate, selectedPriceKey);
+      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate, selectedPriceKey, priceQuantities);
 
-      console.log('✅ App.tsx - Presença salva no banco com selectedPriceKey:', selectedPriceKey);
+      console.log('✅ App.tsx - Presença salva no banco:', { selectedPriceKey, priceQuantities });
 
       // Log do motivo se for cancelamento
       if (members.length === 0 && cancelReason) {
@@ -772,7 +775,8 @@ const AppContent: React.FC = () => {
           [tourId]: {
             members: members,
             customDate: customDate || null,
-            selectedPriceKey: selectedPriceKey || undefined
+            selectedPriceKey: selectedPriceKey || undefined,
+            priceQuantities: priceQuantities || undefined
           }
       };
       

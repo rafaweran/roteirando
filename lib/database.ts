@@ -852,11 +852,12 @@ export const groupsApi = {
 // Tour Attendance API
 export const tourAttendanceApi = {
   async saveAttendance(
-    groupId: string, 
-    tourId: string, 
-    members: string[], 
+    groupId: string,
+    tourId: string,
+    members: string[],
     customDate?: string | null,
-    selectedPriceKey?: string
+    selectedPriceKey?: string,
+    priceQuantities?: Record<string, number>
   ): Promise<void> {
     if (members.length === 0) {
       // Delete attendance if no members
@@ -875,13 +876,17 @@ export const tourAttendanceApi = {
         members: members,
         custom_date: customDate || null, // NULL = data original do tour
       };
-      
-      // Só adicionar selected_price_key se for fornecido e não for vazio
-      if (selectedPriceKey && selectedPriceKey.trim() !== '') {
+
+      // Priorizar priceQuantities (nova versão) sobre selectedPriceKey (versão antiga)
+      if (priceQuantities && Object.keys(priceQuantities).length > 0) {
+        insertData.price_quantities = priceQuantities;
+        console.log('💾 tourAttendanceApi.saveAttendance - Adicionando price_quantities:', priceQuantities);
+      } else if (selectedPriceKey && selectedPriceKey.trim() !== '') {
+        // Compatibilidade com versão antiga
         insertData.selected_price_key = selectedPriceKey;
-        console.log('💾 tourAttendanceApi.saveAttendance - Adicionando selected_price_key:', selectedPriceKey);
+        console.log('💾 tourAttendanceApi.saveAttendance - Adicionando selected_price_key (compatibilidade):', selectedPriceKey);
       } else {
-        console.warn('⚠️ tourAttendanceApi.saveAttendance - selectedPriceKey não fornecido ou vazio:', selectedPriceKey);
+        console.warn('⚠️ tourAttendanceApi.saveAttendance - Nem priceQuantities nem selectedPriceKey fornecidos');
       }
       
       console.log('💾 tourAttendanceApi.saveAttendance - Dados para salvar:', {
@@ -939,7 +944,7 @@ export const tourAttendanceApi = {
     }
   },
 
-  async getAttendanceByGroup(groupId: string): Promise<Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }>> {
+  async getAttendanceByGroup(groupId: string): Promise<Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string; priceQuantities?: Record<string, number> }>> {
     const { data, error } = await supabase
       .from('tour_attendance')
       .select('*')
@@ -948,21 +953,28 @@ export const tourAttendanceApi = {
     if (error) throw error;
     if (!data) return {};
 
-    const attendance: Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }> = {};
-    data.forEach((att: DBTourAttendance) => {
-      const attendanceInfo = {
+    const attendance: Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string; priceQuantities?: Record<string, number> }> = {};
+    data.forEach((att: any) => {
+      const attendanceInfo: any = {
         members: att.members,
         customDate: att.custom_date || null,
         selectedPriceKey: att.selected_price_key || undefined
       };
       
+      // Adicionar priceQuantities se existir
+      if (att.price_quantities) {
+        attendanceInfo.priceQuantities = att.price_quantities;
+      }
+
       console.log('📥 tourAttendanceApi.getAttendanceByGroup - Recuperando:', {
         tourId: att.tour_id,
         membersCount: att.members.length,
         selectedPriceKey: attendanceInfo.selectedPriceKey,
-        rawSelectedPriceKey: att.selected_price_key
+        priceQuantities: attendanceInfo.priceQuantities,
+        rawSelectedPriceKey: att.selected_price_key,
+        rawPriceQuantities: att.price_quantities
       });
-      
+
       attendance[att.tour_id] = attendanceInfo;
     });
 
