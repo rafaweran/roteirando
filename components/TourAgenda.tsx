@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import Button from './Button';
-import { Tour, Trip, Group, TourAttendanceInfo } from '../types';
+import { Tour, Trip, Group, TourAttendanceInfo, UserCustomTour } from '../types';
+import { userCustomToursApi } from '../lib/database';
 
 interface TourAgendaProps {
   tours: Tour[];
@@ -19,6 +20,27 @@ const MONTHS = [
 
 const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onViewTourDetail, onAddCustomTour }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [customTours, setCustomTours] = useState<UserCustomTour[]>([]);
+  const [loadingCustomTours, setLoadingCustomTours] = useState(true);
+
+  // Carregar passeios personalizados
+  useEffect(() => {
+    const loadCustomTours = async () => {
+      try {
+        setLoadingCustomTours(true);
+        const data = await userCustomToursApi.getByGroupId(userGroup.id);
+        setCustomTours(data);
+        console.log('✅ TourAgenda - Passeios personalizados carregados:', data.length);
+      } catch (error) {
+        console.error('❌ Erro ao carregar passeios personalizados:', error);
+        setCustomTours([]);
+      } finally {
+        setLoadingCustomTours(false);
+      }
+    };
+    
+    loadCustomTours();
+  }, [userGroup.id]);
 
   // Filtrar apenas passeios confirmados pelo grupo
   const confirmedTours = useMemo(() => {
@@ -57,15 +79,48 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
           attendanceCount: members.length,
           attendingMembers: members,
           customDate: customDate,
-          displayDate: displayDate // Data que será exibida/agrupada
+          displayDate: displayDate, // Data que será exibida/agrupada
+          isCustomTour: false
         };
       });
   }, [tours, trips, userGroup]);
 
+  // Converter passeios personalizados para o formato de Tour
+  const customToursAsTours = useMemo(() => {
+    return customTours.map(customTour => {
+      const tour: any = {
+        id: customTour.id,
+        tripId: userGroup.tripId || '', // Usar tripId do grupo
+        name: customTour.name,
+        date: customTour.date,
+        time: customTour.time,
+        price: customTour.price || 0,
+        description: customTour.description || '',
+        address: customTour.address,
+        imageUrl: customTour.imageUrl,
+        trip: trips.find(t => t.id === userGroup.tripId),
+        attendanceCount: 1, // Passeios personalizados são sempre confirmados
+        attendingMembers: [userGroup.leaderName],
+        customDate: null,
+        displayDate: customTour.date,
+        isCustomTour: true // Marcar como passeio personalizado
+      };
+      return tour;
+    });
+  }, [customTours, userGroup, trips]);
+
+  // Mesclar passeios confirmados oficiais com passeios personalizados
+  const allTours = useMemo(() => {
+    return [...confirmedTours, ...customToursAsTours].sort((a, b) => {
+      // Ordenar por data
+      return new Date(a.displayDate).getTime() - new Date(b.displayDate).getTime();
+    });
+  }, [confirmedTours, customToursAsTours]);
+
   // Obter ano e mês do mês atual (ou do primeiro passeio se houver)
   const getCalendarMonthYear = () => {
-    if (confirmedTours.length > 0) {
-      const firstTourDate = new Date(confirmedTours[0].displayDate + 'T12:00:00');
+    if (allTours.length > 0) {
+      const firstTourDate = new Date(allTours[0].displayDate + 'T12:00:00');
       return {
         year: firstTourDate.getFullYear(),
         month: firstTourDate.getMonth()
@@ -87,7 +142,7 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       
       // Buscar passeios para este dia
-      const toursForDay = confirmedTours.filter(tour => {
+      const toursForDay = allTours.filter(tour => {
         const tourDate = new Date(tour.displayDate + 'T12:00:00');
         return tourDate.getDate() === day && 
                tourDate.getMonth() === month && 
@@ -103,13 +158,13 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
       });
     }
     return days;
-  }, [year, month, confirmedTours]);
+  }, [year, month, allTours]);
 
   // Calcular total de passeios e valor
-  const totalTours = confirmedTours.length;
-  const totalValue = confirmedTours.reduce((sum, tour) => sum + (tour.price * tour.attendanceCount), 0);
+  const totalTours = allTours.length;
+  const totalValue = allTours.reduce((sum, tour) => sum + (tour.price * tour.attendanceCount), 0);
 
-  if (confirmedTours.length === 0) {
+  if (allTours.length === 0 && !loadingCustomTours) {
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="bg-white rounded-[24px] border border-border p-12 text-center">
