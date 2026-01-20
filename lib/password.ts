@@ -1,4 +1,41 @@
 /**
+ * Validar se a senha atende aos requisitos de segurança
+ */
+export interface PasswordValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+export function validatePassword(password: string): PasswordValidationResult {
+  const errors: string[] = [];
+  
+  // Verificar comprimento mínimo
+  if (password.length < 8) {
+    errors.push('A senha deve ter no mínimo 8 caracteres');
+  }
+  
+  // Verificar se contém pelo menos uma letra
+  if (!/[a-zA-Z]/.test(password)) {
+    errors.push('A senha deve conter pelo menos uma letra');
+  }
+  
+  // Verificar se contém pelo menos um número
+  if (!/[0-9]/.test(password)) {
+    errors.push('A senha deve conter pelo menos um número');
+  }
+  
+  // Verificar se não é apenas números
+  if (/^[0-9]+$/.test(password)) {
+    errors.push('A senha não pode ser apenas números');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
  * Função para gerar senha aleatória segura
  */
 export function generatePassword(length: number = 12): string {

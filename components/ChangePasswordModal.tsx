@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Group } from '../types';
-import { hashPassword } from '../lib/password';
+import { hashPassword, validatePassword } from '../lib/password';
 import { groupsApi } from '../lib/database';
 import Button from './Button';
 
@@ -71,10 +71,14 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 
     if (!formData.newPassword) {
       newErrors.newPassword = 'Nova senha é obrigatória';
-    } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = 'A senha deve ter pelo menos 8 caracteres';
-    } else if (formData.newPassword === formData.currentPassword) {
-      newErrors.newPassword = 'A nova senha deve ser diferente da senha atual';
+    } else {
+      // Validar requisitos de segurança da senha
+      const validation = validatePassword(formData.newPassword);
+      if (!validation.isValid) {
+        newErrors.newPassword = validation.errors[0]; // Mostrar o primeiro erro
+      } else if (formData.newPassword === formData.currentPassword) {
+        newErrors.newPassword = 'A nova senha deve ser diferente da senha atual';
+      }
     }
 
     if (!formData.confirmPassword) {

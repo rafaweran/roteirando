@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Mail, ArrowRight, Info, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { groupsApi } from '../lib/database';
 import { sendPasswordResetEmail } from '../lib/email';
-import { hashPassword } from '../lib/password';
+import { hashPassword, validatePassword } from '../lib/password';
 import Input from './Input';
 import Button from './Button';
 
@@ -163,8 +163,15 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
       return;
     }
 
-    if (!newPassword || newPassword.length < 8) {
-      setErrors({ password: 'A senha deve ter no mínimo 8 caracteres.' });
+    if (!newPassword) {
+      setErrors({ password: 'Nova senha é obrigatória.' });
+      return;
+    }
+    
+    // Validar requisitos de segurança da senha
+    const validation = validatePassword(newPassword);
+    if (!validation.isValid) {
+      setErrors({ password: validation.errors.join(', ') });
       return;
     }
 

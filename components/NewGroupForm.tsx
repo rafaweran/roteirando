@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Users, User, Phone, Mail, Baby, Plus, X, Check, Map, Lock, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { Trip, Group } from '../types';
 import { tripsApi } from '../lib/database';
-import { generatePassword, hashPassword } from '../lib/password';
+import { generatePassword, hashPassword, validatePassword } from '../lib/password';
 import Input from './Input';
 import Button from './Button';
 
@@ -101,15 +101,18 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, initialData, onSave, 
 
     // Senha só é obrigatória ao criar novo grupo
     // Ao editar, só precisa se for alterada
-    if (!isEditing && (!formData.initialPassword || formData.initialPassword.length < 8)) {
-      alert("Por favor, defina uma senha inicial com no mínimo 8 caracteres.");
+    if (!isEditing && !formData.initialPassword) {
+      alert("Por favor, defina uma senha inicial.");
       return;
     }
 
-    // Se estiver editando e senha foi preenchida, validar
-    if (isEditing && formData.initialPassword && formData.initialPassword.length < 8) {
-      alert("A senha deve ter no mínimo 8 caracteres.");
-      return;
+    // Validar senha se foi fornecida (criar ou editar)
+    if (formData.initialPassword) {
+      const validation = validatePassword(formData.initialPassword);
+      if (!validation.isValid) {
+        alert("Senha inválida:\n\n" + validation.errors.join('\n'));
+        return;
+      }
     }
 
     setIsLoading(true);

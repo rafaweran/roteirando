@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { hashPassword, verifyPassword } from '../lib/password';
+import { hashPassword, verifyPassword, validatePassword } from '../lib/password';
 import { adminsApi } from '../lib/database';
 import Button from './Button';
 
@@ -51,8 +51,12 @@ const ChangePasswordModalAdmin: React.FC<ChangePasswordModalAdminProps> = ({
     // Validar nova senha
     if (!formData.newPassword) {
       newErrors.newPassword = 'Nova senha é obrigatória';
-    } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = 'A senha deve ter no mínimo 8 caracteres';
+    } else {
+      // Validar requisitos de segurança da senha
+      const validation = validatePassword(formData.newPassword);
+      if (!validation.isValid) {
+        newErrors.newPassword = validation.errors[0]; // Mostrar o primeiro erro
+      }
     }
 
     // Validar confirmação
