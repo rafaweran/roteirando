@@ -43,7 +43,7 @@ export interface Tour {
   links?: TourLink[];
   tags?: string[]; // Tags/categorias do passeio (ex: Restaurante, Passeios, Shows, etc.)
   address?: string; // Endereço completo do passeio
-  paymentMethod?: 'guide' | 'website'; // Forma de pagamento: direto à guia ou no site
+  paymentMethod?: 'guide' | 'website' | 'free'; // Forma de pagamento: direto à guia, no site ou gratuito
   paymentWebsiteUrl?: string; // URL do site de pagamento (quando paymentMethod = 'website')
 }
 

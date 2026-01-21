@@ -35,7 +35,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
     currency: 'BRL',
     location: '',
     address: '',
-    paymentMethod: 'guide' as 'guide' | 'website',
+    paymentMethod: 'guide' as 'guide' | 'website' | 'free',
     paymentWebsiteUrl: '',
   });
 
@@ -1244,7 +1244,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
               </label>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button
                 type="button"
                 onClick={() => handleChange('paymentMethod', 'guide')}
@@ -1300,6 +1300,36 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                     </div>
                     <p className="text-xs text-text-secondary">
                       Pagamento online através de site externo
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleChange('paymentMethod', 'free')}
+                className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                  formData.paymentMethod === 'free'
+                    ? 'border-status-success bg-status-success/10 shadow-md'
+                    : 'border-border bg-white hover:border-status-success/50'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 transition-all ${
+                    formData.paymentMethod === 'free'
+                      ? 'border-status-success bg-status-success'
+                      : 'border-border'
+                  }`}>
+                    {formData.paymentMethod === 'free' && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-text-primary mb-1">
+                      Gratuito
+                    </div>
+                    <p className="text-xs text-text-secondary">
+                      Passeio sem custo
                     </p>
                   </div>
                 </div>

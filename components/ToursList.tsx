@@ -519,7 +519,9 @@ const ToursList: React.FC<ToursListProps> = ({
                         Preço
                       </span>
                       <span className="text-lg font-bold text-text-primary">
-                        {tour.prices ? (
+                        {tour.paymentMethod === 'free' ? (
+                          <span className="text-status-success">GRATUITO</span>
+                        ) : tour.prices ? (
                           (() => {
                             const prices = [
                               tour.prices.inteira?.value,
@@ -625,8 +627,14 @@ const ToursList: React.FC<ToursListProps> = ({
                           </div>
                         </td>
                         <td className="py-4 px-6">
-                          <span className="text-sm font-bold text-text-primary bg-surface px-2 py-1 rounded-md border border-border/50">
-                            {tour.prices ? (
+                          <span className={`text-sm font-bold px-2 py-1 rounded-md border ${
+                            tour.paymentMethod === 'free' 
+                              ? 'text-status-success bg-status-success/10 border-status-success/20' 
+                              : 'text-text-primary bg-surface border-border/50'
+                          }`}>
+                            {tour.paymentMethod === 'free' ? (
+                              'GRATUITO'
+                            ) : tour.prices ? (
                               (() => {
                                 const prices = [
                                   tour.prices.inteira?.value,

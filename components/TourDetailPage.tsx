@@ -509,15 +509,17 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                 </div>
               ) : (
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <DollarSign size={20} className="text-primary" />
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    tour.paymentMethod === 'free' ? 'bg-status-success/10' : 'bg-primary/10'
+                  }`}>
+                    <DollarSign size={20} className={tour.paymentMethod === 'free' ? 'text-status-success' : 'text-primary'} />
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
-                      Preço por pessoa
+                      {tour.paymentMethod === 'free' ? 'Entrada' : 'Preço por pessoa'}
                     </p>
-                    <p className="text-lg font-bold text-primary">
-                      R$ {tour.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    <p className={`text-lg font-bold ${tour.paymentMethod === 'free' ? 'text-status-success' : 'text-primary'}`}>
+                      {tour.paymentMethod === 'free' ? 'GRATUITO' : `R$ ${tour.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                     </p>
                   </div>
                 </div>

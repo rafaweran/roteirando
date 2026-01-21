@@ -166,7 +166,11 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
 
   // Calcular total de passeios e valor
   const totalTours = allTours.length;
-  const totalValue = allTours.reduce((sum, tour) => sum + (tour.price * tour.attendanceCount), 0);
+  const totalValue = allTours.reduce((sum, tour) => {
+    // Não incluir passeios gratuitos no valor total
+    if (tour.paymentMethod === 'free') return sum;
+    return sum + (tour.price * tour.attendanceCount);
+  }, 0);
 
   const handleCancelClick = (tour: any, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -382,12 +386,14 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                               )}
                             </div>
                             <div className="text-left sm:text-right flex-shrink-0">
-                              <div className="text-base sm:text-lg font-bold text-primary">
-                                R$ {tour.price.toFixed(2)}
+                              <div className={`text-base sm:text-lg font-bold ${tour.paymentMethod === 'free' ? 'text-status-success' : 'text-primary'}`}>
+                                {tour.paymentMethod === 'free' ? 'GRATUITO' : `R$ ${tour.price.toFixed(2)}`}
                               </div>
-                              <div className="text-[10px] sm:text-xs text-text-secondary">
-                                por pessoa
-                              </div>
+                              {tour.paymentMethod !== 'free' && (
+                                <div className="text-[10px] sm:text-xs text-text-secondary">
+                                  por pessoa
+                                </div>
+                              )}
                             </div>
                           </div>
 
