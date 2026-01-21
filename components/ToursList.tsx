@@ -37,6 +37,10 @@ const ToursList: React.FC<ToursListProps> = ({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [tourToDelete, setTourToDelete] = useState<Tour | null>(null);
   
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  
   // Filter States
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -199,6 +203,31 @@ const ToursList: React.FC<ToursListProps> = ({
     filters.maxPrice,
     filters.selectedTags.length > 0
   ].filter(Boolean).length;
+
+  // Calcular paginação
+  const totalPages = Math.ceil(filteredTours.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTours = filteredTours.slice(startIndex, endIndex);
+
+  // Resetar para página 1 quando filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filters]);
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const STATUS_OPTIONS = [
     { value: 'all', label: 'Todos', colorClass: 'bg-text-primary text-white' },
@@ -428,7 +457,7 @@ const ToursList: React.FC<ToursListProps> = ({
           <>
             {/* MOBILE VIEW: Cards */}
             <div className="md:hidden flex flex-col gap-4">
-              {filteredTours.map((tour) => (
+              {paginatedTours.map((tour) => (
                 <div key={tour.id} className="bg-white rounded-[20px] border border-border p-5 shadow-sm relative overflow-visible">
                   {/* Card Header */}
                   <div className="flex gap-4 mb-4">
@@ -542,7 +571,7 @@ const ToursList: React.FC<ToursListProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {filteredTours.map((tour) => (
+                    {paginatedTours.map((tour) => (
                       <tr key={tour.id} className="hover:bg-surface/50 transition-colors group">
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
@@ -635,11 +664,36 @@ const ToursList: React.FC<ToursListProps> = ({
             {/* Pagination (Common) */}
             <div className="mt-4 md:mt-0 md:border-t md:border-border px-0 md:px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
               <span className="text-sm text-text-secondary">
-                Mostrando <span className="font-semibold text-text-primary">{filteredTours.length}</span> resultados
+                Mostrando <span className="font-semibold text-text-primary">{startIndex + 1}-{Math.min(endIndex, filteredTours.length)}</span> de <span className="font-semibold text-text-primary">{filteredTours.length}</span> resultados
               </span>
-              <div className="flex gap-2 w-full md:w-auto">
-                <button className="flex-1 md:flex-none px-4 py-2 text-sm border border-border rounded-lg text-text-disabled cursor-not-allowed bg-surface/50">Anterior</button>
-                <button className="flex-1 md:flex-none px-4 py-2 text-sm border border-border rounded-lg text-text-secondary hover:bg-surface hover:text-primary transition-colors shadow-sm">Próximo</button>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <button 
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                  className={`flex-1 md:flex-none px-4 py-2 text-sm border border-border rounded-lg transition-colors ${
+                    currentPage === 1 
+                      ? 'text-text-disabled cursor-not-allowed bg-surface/50' 
+                      : 'text-text-secondary hover:bg-surface hover:text-primary hover:border-primary shadow-sm'
+                  }`}
+                >
+                  Anterior
+                </button>
+                
+                <span className="text-sm text-text-secondary hidden md:inline">
+                  Página <span className="font-semibold text-text-primary">{currentPage}</span> de <span className="font-semibold text-text-primary">{totalPages}</span>
+                </span>
+                
+                <button 
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className={`flex-1 md:flex-none px-4 py-2 text-sm border border-border rounded-lg transition-colors ${
+                    currentPage === totalPages 
+                      ? 'text-text-disabled cursor-not-allowed bg-surface/50' 
+                      : 'text-text-secondary hover:bg-surface hover:text-primary hover:border-primary shadow-sm'
+                  }`}
+                >
+                  Próximo
+                </button>
               </div>
             </div>
           </>
