@@ -20,6 +20,12 @@ const UserCustomToursPage: React.FC<UserCustomToursPageProps> = ({ userGroup, on
   const [editingTour, setEditingTour] = useState<UserCustomTour | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [tourToDelete, setTourToDelete] = useState<UserCustomTour | null>(null);
+  
+  // Estados para modal de edição rápida de data/hora
+  const [quickEditModalOpen, setQuickEditModalOpen] = useState(false);
+  const [tourToQuickEdit, setTourToQuickEdit] = useState<UserCustomTour | null>(null);
+  const [quickEditData, setQuickEditData] = useState({ date: '', time: '' });
+  const [isQuickEditing, setIsQuickEditing] = useState(false);
 
   // Carregar passeios
   useEffect(() => {
@@ -78,6 +84,39 @@ const UserCustomToursPage: React.FC<UserCustomToursPageProps> = ({ userGroup, on
   const handleFormCancel = () => {
     setShowForm(false);
     setEditingTour(null);
+  };
+
+  const handleQuickEditClick = (tour: UserCustomTour) => {
+    setTourToQuickEdit(tour);
+    setQuickEditData({ date: tour.date, time: tour.time });
+    setQuickEditModalOpen(true);
+  };
+
+  const handleQuickEditSave = async () => {
+    if (!tourToQuickEdit) return;
+
+    // Validação
+    if (!quickEditData.date || !quickEditData.time) {
+      showError('Data e horário são obrigatórios');
+      return;
+    }
+
+    try {
+      setIsQuickEditing(true);
+      await userCustomToursApi.update(tourToQuickEdit.id, {
+        date: quickEditData.date,
+        time: quickEditData.time
+      });
+      showSuccess('Data e horário atualizados com sucesso!');
+      setQuickEditModalOpen(false);
+      setTourToQuickEdit(null);
+      loadTours();
+    } catch (error: any) {
+      console.error('Erro ao atualizar data/hora:', error);
+      showError('Erro ao atualizar data e horário');
+    } finally {
+      setIsQuickEditing(false);
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -214,6 +253,14 @@ const UserCustomToursPage: React.FC<UserCustomToursPageProps> = ({ userGroup, on
                   <Button
                     variant="outline"
                     className="flex-1 min-h-[44px] text-sm font-semibold"
+                    onClick={() => handleQuickEditClick(tour)}
+                  >
+                    <Clock size={16} className="mr-2" />
+                    Data/Hora
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 min-h-[44px] text-sm font-semibold"
                     onClick={() => handleEdit(tour)}
                   >
                     <Edit2 size={16} className="mr-2" />
@@ -247,6 +294,88 @@ const UserCustomToursPage: React.FC<UserCustomToursPageProps> = ({ userGroup, on
         confirmLabel="Deletar"
         cancelLabel="Cancelar"
       />
+
+      {/* Modal de Edição Rápida de Data/Hora */}
+      {quickEditModalOpen && tourToQuickEdit && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl sm:rounded-[24px] shadow-2xl w-full max-w-md mx-4 sm:mx-auto relative z-10 animate-in zoom-in-95 duration-200">
+            <div className="p-6 sm:p-8">
+              {/* Header */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Clock className="text-primary" size={24} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-text-primary mb-2">
+                    Alterar Data e Horário
+                  </h3>
+                  <p className="text-sm text-text-secondary">
+                    {tourToQuickEdit.name}
+                  </p>
+                </div>
+              </div>
+
+              {/* Form */}
+              <div className="space-y-4">
+                {/* Data */}
+                <div>
+                  <label className="text-sm font-medium text-text-primary mb-2 block">
+                    Data
+                  </label>
+                  <div className="relative">
+                    <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                    <input
+                      type="date"
+                      value={quickEditData.date}
+                      onChange={(e) => setQuickEditData({ ...quickEditData, date: e.target.value })}
+                      className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Horário */}
+                <div>
+                  <label className="text-sm font-medium text-text-primary mb-2 block">
+                    Horário
+                  </label>
+                  <div className="relative">
+                    <Clock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                    <input
+                      type="time"
+                      value={quickEditData.time}
+                      onChange={(e) => setQuickEditData({ ...quickEditData, time: e.target.value })}
+                      className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 mt-6 pt-6 border-t border-border">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setQuickEditModalOpen(false);
+                    setTourToQuickEdit(null);
+                  }}
+                  disabled={isQuickEditing}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleQuickEditSave}
+                  isLoading={isQuickEditing}
+                  disabled={isQuickEditing}
+                >
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
