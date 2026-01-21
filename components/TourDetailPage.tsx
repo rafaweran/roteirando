@@ -534,8 +534,16 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                     <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
                       Endereço
                     </p>
-                    <p className="text-sm font-medium text-text-primary break-words">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tour.address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-primary hover:text-primary-hover break-words underline decoration-primary/30 hover:decoration-primary transition-colors cursor-pointer"
+                    >
                       {tour.address}
+                    </a>
+                    <p className="text-xs text-text-secondary mt-1">
+                      Clique para abrir no Google Maps
                     </p>
                   </div>
                 </div>
