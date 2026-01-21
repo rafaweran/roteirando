@@ -1266,7 +1266,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                   </div>
                   <div className="flex-1">
                     <div className="font-semibold text-text-primary mb-1">
-                      Pagar à Guia Paula
+                      Pagamento \ Paula
                     </div>
                     <p className="text-xs text-text-secondary">
                       Pagamento no Pix
@@ -1296,7 +1296,7 @@ const NewTourForm: React.FC<NewTourFormProps> = ({ trip, initialData, onSave, on
                   </div>
                   <div className="flex-1">
                     <div className="font-semibold text-text-primary mb-1">
-                      Pagar no Site
+                      Link do Pagamento
                     </div>
                     <p className="text-xs text-text-secondary">
                       Pagamento online através de site externo
