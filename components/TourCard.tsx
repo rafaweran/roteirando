@@ -93,6 +93,11 @@ const TourCard: React.FC<TourCardProps> = ({
 
   // Calcular valor para exibição (menor e maior preço disponível)
   const getDisplayPrice = () => {
+    // Se for gratuito, mostrar "Gratuito"
+    if (tour.paymentMethod === 'free') {
+      return 'Gratuito';
+    }
+    
     if (tour.prices) {
       // Se houver preços múltiplos, mostrar o menor e maior
       const prices = [
@@ -134,7 +139,11 @@ const TourCard: React.FC<TourCardProps> = ({
             alt={tour.name} 
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-lg text-sm font-bold text-primary shadow-sm border border-border/50">
+          <div className={`absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm border ${
+            tour.paymentMethod === 'free' 
+              ? 'text-status-success border-status-success/30' 
+              : 'text-primary border-border/50'
+          }`}>
             {getDisplayPrice()}
           </div>
           {isSelected && (
@@ -147,7 +156,11 @@ const TourCard: React.FC<TourCardProps> = ({
       ) : (
         <div className="w-full h-48 bg-surface flex items-center justify-center border-b border-border relative">
           <span className="text-text-disabled">Sem imagem</span>
-           <div className="absolute top-3 right-3 bg-white px-3 py-1.5 rounded-lg text-sm font-bold text-primary shadow-sm border border-border">
+           <div className={`absolute top-3 right-3 bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm border ${
+            tour.paymentMethod === 'free' 
+              ? 'text-status-success border-status-success/30' 
+              : 'text-primary border-border'
+          }`}>
             {getDisplayPrice()}
           </div>
         </div>
@@ -206,8 +219,10 @@ const TourCard: React.FC<TourCardProps> = ({
                  <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Confirmado</span>
                  <span className="text-xs font-medium text-text-primary">{attendanceCount} pessoa{attendanceCount !== 1 ? 's' : ''}</span>
                </div>
-               <span className="font-bold text-primary text-base sm:text-lg">
-                 R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+               <span className={`font-bold text-base sm:text-lg ${
+                 tour.paymentMethod === 'free' ? 'text-status-success' : 'text-primary'
+               }`}>
+                 {tour.paymentMethod === 'free' ? 'Gratuito' : `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                </span>
              </div>
              {selectedPriceDescription && (
