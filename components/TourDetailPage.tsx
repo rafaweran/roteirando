@@ -4,7 +4,7 @@ import Button from './Button';
 import TourAttendanceModal from './TourAttendanceModal';
 import CancelTourModal from './CancelTourModal';
 import { Tour, Trip, Group, UserRole } from '../types';
-import { groupsApi } from './lib/database';
+import { groupsApi } from '../lib/database';
 
 interface TourDetailPageProps {
   tour: Tour;
