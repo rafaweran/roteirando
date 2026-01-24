@@ -13,7 +13,8 @@ import {
   TentTree,
   Calendar,
   BookOpen,
-  Luggage
+  Luggage,
+  CalendarPlus
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -28,6 +29,7 @@ interface LayoutProps {
   onNavigateCityGuide?: () => void;
   onNavigateDestinosGuide?: () => void;
   onNavigateMyTrip?: () => void;
+  onNavigateCustomTours?: () => void;
   title?: string;
   userRole?: UserRole;
   userName?: string;
@@ -45,6 +47,7 @@ const Layout: React.FC<LayoutProps> = ({
   onNavigateCityGuide,
   onNavigateDestinosGuide,
   onNavigateMyTrip,
+  onNavigateCustomTours,
   userRole = 'admin',
   userName = 'Admin User',
   userEmail = 'admin@travel.com'
@@ -160,8 +163,13 @@ const Layout: React.FC<LayoutProps> = ({
                 />
                 <NavItem 
                   icon={Calendar} 
-                  label="Meus passeios" 
+                  label="Minha Agenda" 
                   onClick={onNavigateAgenda || onNavigateHome} 
+                />
+                <NavItem 
+                  icon={CalendarPlus} 
+                  label="Meus Passeios" 
+                  onClick={onNavigateCustomTours || onNavigateHome} 
                 />
                 <NavItem 
                   icon={Luggage} 
@@ -292,9 +300,17 @@ const Layout: React.FC<LayoutProps> = ({
                   />
                   <MobileNavItem 
                     icon={Calendar} 
-                    label="Meus passeios" 
+                    label="Minha Agenda" 
                     onClick={() => {
                       onNavigateAgenda?.();
+                      setIsMobileMenuOpen(false);
+                    }} 
+                  />
+                  <MobileNavItem 
+                    icon={CalendarPlus} 
+                    label="Meus Passeios" 
+                    onClick={() => {
+                      onNavigateCustomTours?.();
                       setIsMobileMenuOpen(false);
                     }} 
                   />
