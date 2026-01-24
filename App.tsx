@@ -850,38 +850,6 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleCancelAttendance = async (tourId: string, isCustomTour?: boolean) => {
-    if (userRole !== 'user' || !currentUserGroup) return;
-
-    try {
-      if (isCustomTour) {
-        // Se for passeio personalizado, deletar
-        const { userCustomToursApi } = await import('./lib/database_user_custom_tours_api');
-        await userCustomToursApi.delete(tourId);
-      } else {
-        // Se for passeio oficial, remover da lista de presença
-        const updatedAttendance = { ...currentUserGroup.tourAttendance };
-        delete updatedAttendance[tourId];
-
-        const updatedGroup = {
-          ...currentUserGroup,
-          tourAttendance: updatedAttendance
-        };
-
-        const { groupsApi } = await import('./lib/database');
-        await groupsApi.update(updatedGroup.id, updatedGroup);
-      }
-
-      // Recarregar dados
-      await Promise.all([loadTours(), loadGroups()]);
-      
-      showSuccess(isCustomTour ? 'Passeio personalizado excluído com sucesso!' : 'Presença cancelada com sucesso!');
-    } catch (error: any) {
-      console.error('❌ Erro ao cancelar presença:', error);
-      showError('Erro ao cancelar presença');
-    }
-  };
-
   // Legacy handler - mantido por compatibilidade
   const handleLegacySaveAttendance = async (
     tourId: string,
