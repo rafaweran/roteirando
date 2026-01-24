@@ -849,6 +849,61 @@ const AppContent: React.FC = () => {
       showError('Erro ao atualizar data');
     }
   };
+
+  const handleCancelAttendance = async (tourId: string, isCustomTour?: boolean) => {
+    if (userRole !== 'user' || !currentUserGroup) return;
+
+    try {
+      if (isCustomTour) {
+        // Se for passeio personalizado, deletar
+        const { userCustomToursApi } = await import('./lib/database_user_custom_tours_api');
+        await userCustomToursApi.delete(tourId);
+      } else {
+        // Se for passeio oficial, remover da lista de presença
+        const updatedAttendance = { ...currentUserGroup.tourAttendance };
+        delete updatedAttendance[tourId];
+
+        const updatedGroup = {
+          ...currentUserGroup,
+          tourAttendance: updatedAttendance
+        };
+
+        const { groupsApi } = await import('./lib/database');
+        await groupsApi.update(updatedGroup.id, updatedGroup);
+      }
+
+      // Recarregar dados
+      await Promise.all([loadTours(), loadGroups()]);
+      
+      showSuccess(isCustomTour ? 'Passeio personalizado excluído com sucesso!' : 'Presença cancelada com sucesso!');
+    } catch (error: any) {
+      console.error('❌ Erro ao cancelar presença:', error);
+      showError('Erro ao cancelar presença');
+    }
+  };
+
+  // Legacy handler - mantido por compatibilidade
+  const handleLegacySaveAttendance = async (
+    tourId: string,
+    members: string[],
+    customDate?: string | null,
+    selectedPriceKey?: string,
+    cancelReason?: string
+  ) => {
+    if (userRole !== 'user' || !currentUserGroup) return;
+
+    console.log('📝 handleLegacySaveAttendance chamado:', {
+      tourId,
+      members,
+      customDate,
+      selectedPriceKey,
+      cancelReason
+    });
+
+    try {
+      // Log do motivo se for cancelamento
+      if (members.length === 0 && cancelReason) {
+        console.log(`🚫 Cancelamento do passeio ${tourId} pelo grupo ${currentUserGroup.name}`);
         console.log(`📝 Motivo: ${cancelReason}`);
         // TODO: Em produção, salvar o motivo em uma tabela separada ou adicionar coluna cancellation_reason na tabela tour_attendance
       }
