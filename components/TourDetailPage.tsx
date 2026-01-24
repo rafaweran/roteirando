@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, Calendar, Clock, MapPin, DollarSign, ExternalLink, Users, Check, Plus, X, Phone, Mail } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, DollarSign, ExternalLink, Users, Check, Plus, X, Phone, Mail, Edit2 } from 'lucide-react';
 import Button from './Button';
 import TourAttendanceModal from './TourAttendanceModal';
 import CancelTourModal from './CancelTourModal';
 import { Tour, Trip, Group, UserRole } from '../types';
-import { groupsApi } from '../lib/database';
+import { groupsApi } from './lib/database';
 
 interface TourDetailPageProps {
   tour: Tour;
@@ -21,6 +21,7 @@ interface TourDetailPageProps {
     cancelReason?: string,
     priceQuantities?: Record<string, number>
   ) => void;
+  onUpdateCustomDateTime?: (tourId: string, customDate: string, customTime: string) => void;
 }
 
 const TourDetailPage: React.FC<TourDetailPageProps> = ({
@@ -30,12 +31,15 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   userGroup,
   groups: groupsProp = [],
   onBack,
-  onConfirmAttendance
+  onConfirmAttendance,
+  onUpdateCustomDateTime
 }) => {
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [groups, setGroups] = useState<Group[]>(groupsProp);
   const [loadingGroups, setLoadingGroups] = useState(false);
+  const [showEditDateTimeModal, setShowEditDateTimeModal] = useState(false);
+  const [editDateTime, setEditDateTime] = useState({ date: '', time: '' });
   
   // Carregar grupos da mesma viagem quando o componente montar
   useEffect(() => {
@@ -437,10 +441,24 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <Calendar size={20} className="text-primary" />
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
-                    Data
-                  </p>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                      Data
+                    </p>
+                    {isConfirmed && userRole === 'user' && (
+                      <button
+                        onClick={() => {
+                          setEditDateTime({ date: customDate || tour.date, time: tour.time });
+                          setShowEditDateTimeModal(true);
+                        }}
+                        className="p-1 hover:bg-primary/10 rounded transition-colors"
+                        title="Editar data e horário"
+                      >
+                        <Edit2 size={14} className="text-primary" />
+                      </button>
+                    )}
+                  </div>
                   <p className="text-sm font-medium text-text-primary">
                     {formatDate(tour.date)}
                   </p>
@@ -939,6 +957,74 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
             tour={tour}
           />
         </>
+      )}
+
+      {/* Modal de Edição de Data/Hora */}
+      {showEditDateTimeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl sm:rounded-[24px] shadow-2xl w-full max-w-md mx-4 sm:mx-auto relative z-10 animate-in zoom-in-95 duration-200">
+            <div className="p-6 sm:p-8">
+              {/* Header */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="text-primary" size={24} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-text-primary mb-2">
+                    Alterar Data do Passeio
+                  </h3>
+                  <p className="text-sm text-text-secondary">
+                    {tour.name}
+                  </p>
+                </div>
+              </div>
+
+              {/* Form */}
+              <div className="space-y-4">
+                {/* Data */}
+                <div>
+                  <label className="text-sm font-medium text-text-primary mb-2 block">
+                    Data Personalizada
+                  </label>
+                  <div className="relative">
+                    <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                    <input
+                      type="date"
+                      value={editDateTime.date}
+                      onChange={(e) => setEditDateTime({ ...editDateTime, date: e.target.value })}
+                      className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    />
+                  </div>
+                  <p className="text-xs text-text-disabled mt-1.5">
+                    Data original: {formatDate(tour.date)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 mt-6 pt-6 border-t border-border">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowEditDateTimeModal(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    if (onUpdateCustomDateTime && editDateTime.date) {
+                      onUpdateCustomDateTime(tour.id, editDateTime.date, editDateTime.time || tour.time);
+                      setShowEditDateTimeModal(false);
+                    }
+                  }}
+                >
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

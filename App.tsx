@@ -807,6 +807,49 @@ const AppContent: React.FC = () => {
       if (members.length === 0 && cancelReason) {
         console.log(`🚫 Cancelamento do passeio ${tourId} pelo grupo ${currentUserGroup.name}`);
         console.log(`📝 Motivo: ${cancelReason}`);
+      }
+
+      // Recarregar dados
+      await loadGroups();
+      
+      showSuccess(members.length > 0 ? 'Presença confirmada com sucesso!' : 'Presença cancelada com sucesso!');
+    } catch (error: any) {
+      console.error('❌ Erro ao salvar presença:', error);
+      showError('Erro ao salvar presença');
+    }
+  };
+
+  const handleUpdateCustomDateTime = async (tourId: string, customDate: string, customTime: string) => {
+    if (userRole !== 'user' || !currentUserGroup) return;
+
+    try {
+      const attendance = currentUserGroup.tourAttendance?.[tourId];
+      if (!attendance) {
+        showError('Você precisa confirmar presença primeiro');
+        return;
+      }
+
+      let members: string[] = [];
+      if (Array.isArray(attendance)) {
+        members = attendance;
+      } else if (typeof attendance === 'object' && 'members' in attendance) {
+        members = attendance.members || [];
+      }
+
+      // Salvar com nova data personalizada
+      const { tourAttendanceApi } = await import('./lib/database');
+      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate);
+
+      // Recarregar dados
+      await loadGroups();
+      
+      showSuccess('Data alterada com sucesso!');
+    } catch (error: any) {
+      console.error('❌ Erro ao atualizar data:', error);
+      showError('Erro ao atualizar data');
+    }
+  };
+        console.log(`📝 Motivo: ${cancelReason}`);
         // TODO: Em produção, salvar o motivo em uma tabela separada ou adicionar coluna cancellation_reason na tabela tour_attendance
       }
 
@@ -1056,6 +1099,7 @@ const AppContent: React.FC = () => {
             groups={tourGroups}
             onBack={handleBackFromTourDetail}
             onConfirmAttendance={userRole === 'user' ? handleSaveAttendance : undefined}
+            onUpdateCustomDateTime={userRole === 'user' ? handleUpdateCustomDateTime : undefined}
           />
         );
       })()}
