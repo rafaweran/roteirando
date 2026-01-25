@@ -782,7 +782,11 @@ const AppContent: React.FC = () => {
     customTime?: string | null,
     selectedPriceKey?: string,
     cancelReason?: string,
-    priceQuantities?: Record<string, number>
+    priceQuantities?: Record<string, number>,
+    isPaid?: boolean,
+    paymentDate?: string | null,
+    paymentMethod?: string | null,
+    documentUrl?: string | null
   ) => {
     if (userRole !== 'user' || !currentUserGroup) return;
 
@@ -794,6 +798,10 @@ const AppContent: React.FC = () => {
       selectedPriceKey,
       priceQuantities,
       cancelReason,
+      isPaid,
+      paymentDate,
+      paymentMethod,
+      documentUrl,
       hasSelectedPriceKey: !!selectedPriceKey,
       hasPriceQuantities: !!priceQuantities
     });
@@ -801,7 +809,19 @@ const AppContent: React.FC = () => {
     try {
       // Salvar no banco de dados
       const { tourAttendanceApi } = await import('./lib/database');
-      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate, customTime, selectedPriceKey, priceQuantities);
+      await tourAttendanceApi.saveAttendance(
+        currentUserGroup.id, 
+        tourId, 
+        members, 
+        customDate, 
+        customTime, 
+        selectedPriceKey, 
+        priceQuantities,
+        isPaid,
+        paymentDate,
+        paymentMethod,
+        documentUrl
+      );
 
       console.log('✅ App.tsx - Presença salva no banco:', { selectedPriceKey, priceQuantities });
 

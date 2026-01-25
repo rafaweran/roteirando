@@ -53,6 +53,10 @@ export interface TourAttendanceInfo {
   customTime?: string | null; // Horário personalizado (null = horário original do tour)
   selectedPriceKey?: string; // Chave do tipo de ingresso selecionado (ex: "inteira", "meia", "price_0", etc.) - DEPRECATED
   priceQuantities?: Record<string, number>; // Quantidade de cada tipo de ingresso (ex: { "adulto": 2, "crianca": 3 })
+  isPaid?: boolean;
+  paymentDate?: string | null;
+  paymentMethod?: string | null;
+  documentUrl?: string | null;
 }
 
 export interface Group {

@@ -64,6 +64,10 @@ interface DBTourAttendance {
   custom_date: string | null; // Data personalizada escolhida pelo grupo (NULL = data original do tour)
   custom_time: string | null; // Horário personalizado escolhido pelo grupo (NULL = horário original do tour)
   selected_price_key: string | null; // Chave do tipo de ingresso selecionado (ex: "inteira", "meia", "price_0", etc.)
+  is_paid: boolean;
+  payment_date: string | null;
+  payment_method: string | null;
+  document_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -651,7 +655,11 @@ export const groupsApi = {
         members: att.members,
         customDate: att.custom_date || null,
         customTime: att.custom_time || null,
-        selectedPriceKey: att.selected_price_key || undefined
+        selectedPriceKey: att.selected_price_key || undefined,
+        isPaid: att.is_paid || false,
+        paymentDate: att.payment_date || null,
+        paymentMethod: att.payment_method || null,
+        documentUrl: att.document_url || null
       };
       
       console.log('📥 groupsApi.getAll - Recuperando attendance:', {
@@ -696,7 +704,11 @@ export const groupsApi = {
         members: att.members,
         customDate: att.custom_date || null,
         customTime: att.custom_time || null,
-        selectedPriceKey: att.selected_price_key || undefined
+        selectedPriceKey: att.selected_price_key || undefined,
+        isPaid: att.is_paid || false,
+        paymentDate: att.payment_date || null,
+        paymentMethod: att.payment_method || null,
+        documentUrl: att.document_url || null
       };
       
       console.log('📥 groupsApi.getByTripId - Recuperando attendance:', {
@@ -737,7 +749,11 @@ export const groupsApi = {
         members: att.members,
         customDate: att.custom_date || null,
         customTime: att.custom_time || null,
-        selectedPriceKey: att.selected_price_key || undefined
+        selectedPriceKey: att.selected_price_key || undefined,
+        isPaid: att.is_paid || false,
+        paymentDate: att.payment_date || null,
+        paymentMethod: att.payment_method || null,
+        documentUrl: att.document_url || null
       };
       
       console.log('📥 groupsApi.getById - Recuperando attendance:', {
@@ -862,7 +878,11 @@ export const tourAttendanceApi = {
     customDate?: string | null,
     customTime?: string | null,
     selectedPriceKey?: string,
-    priceQuantities?: Record<string, number>
+    priceQuantities?: Record<string, number>,
+    isPaid?: boolean,
+    paymentDate?: string | null,
+    paymentMethod?: string | null,
+    documentUrl?: string | null
   ): Promise<void> {
     if (members.length === 0) {
       // Delete attendance if no members
@@ -882,6 +902,11 @@ export const tourAttendanceApi = {
         custom_date: customDate || null, // NULL = data original do tour
         custom_time: customTime || null, // NULL = horário original do tour
       };
+
+      if (isPaid !== undefined) insertData.is_paid = isPaid;
+      if (paymentDate !== undefined) insertData.payment_date = paymentDate;
+      if (paymentMethod !== undefined) insertData.payment_method = paymentMethod;
+      if (documentUrl !== undefined) insertData.document_url = documentUrl;
 
       // Priorizar priceQuantities (nova versão) sobre selectedPriceKey (versão antiga)
       if (priceQuantities && Object.keys(priceQuantities).length > 0) {
@@ -1484,4 +1509,25 @@ export const userCustomToursApi = {
 
     if (error) throw error;
   },
+};
+
+// Storage API
+export const storageApi = {
+  async uploadPaymentProof(file: File, groupId: string, tourId: string): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${groupId}/${tourId}_${Date.now()}.${fileExt}`;
+    const filePath = `payment_proofs/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  }
 };

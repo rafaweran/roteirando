@@ -66,7 +66,10 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
         attendingCount: members.length,
         attendingNames: members,
         customDate,
-        customTime
+        customTime,
+        isPaid: (attendance as any)?.isPaid || false,
+        paymentMethod: (attendance as any)?.paymentMethod || null,
+        documentUrl: (attendance as any)?.documentUrl || null
       };
     });
 
@@ -214,6 +217,7 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
                     <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider w-1/4">GRUPO / FAMÍLIA</th>
                     <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider w-1/4">LÍDER DO GRUPO</th>
                     <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider w-1/6 text-center">QTD.</th>
+                    <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider w-1/6 text-center">STATUS</th>
                     <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider w-1/3">NOMES CONFIRMADOS</th>
                  </tr>
               </thead>
@@ -261,6 +265,30 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
                              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
                                 {group.attendingCount}
                              </span>
+                          </td>
+                          <td className="py-4 px-6 align-top text-center">
+                             <div className="flex flex-col items-center gap-1">
+                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                   group.isPaid 
+                                      ? 'bg-status-success/10 text-status-success' 
+                                      : 'bg-status-error/10 text-status-error'
+                                }`}>
+                                   {group.isPaid ? 'Pago' : 'Pendente'}
+                                </span>
+                                {group.paymentMethod && (
+                                   <span className="text-[9px] text-text-secondary font-medium">{group.paymentMethod}</span>
+                                )}
+                                {group.documentUrl && (
+                                   <a 
+                                      href={group.documentUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-[9px] text-primary underline font-bold mt-1"
+                                   >
+                                      Doc.
+                                   </a>
+                                )}
+                             </div>
                           </td>
                           <td className="py-4 px-6 align-top">
                              <div className="flex flex-wrap gap-2">

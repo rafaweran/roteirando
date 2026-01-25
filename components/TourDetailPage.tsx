@@ -3,7 +3,8 @@ import { ArrowLeft, Calendar, Clock, MapPin, DollarSign, ExternalLink, Users, Ch
 import Button from './Button';
 import TourAttendanceModal from './TourAttendanceModal';
 import CancelTourModal from './CancelTourModal';
-import { Tour, Trip, Group, UserRole } from '../types';
+import PaymentModal from './PaymentModal';
+import { Tour, Trip, Group, UserRole, TourAttendanceInfo } from '../types';
 import { groupsApi } from '../lib/database';
 
 interface TourDetailPageProps {
@@ -20,7 +21,11 @@ interface TourDetailPageProps {
     customTime?: string | null,
     selectedPriceKey?: string,
     cancelReason?: string,
-    priceQuantities?: Record<string, number>
+    priceQuantities?: Record<string, number>,
+    isPaid?: boolean,
+    paymentDate?: string | null,
+    paymentMethod?: string | null,
+    documentUrl?: string | null
   ) => void;
   onUpdateCustomDateTime?: (tourId: string, customDate: string, customTime: string) => void;
 }
@@ -37,6 +42,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
 }) => {
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [groups, setGroups] = useState<Group[]>(groupsProp);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [showEditDateTimeModal, setShowEditDateTimeModal] = useState(false);
@@ -394,6 +400,32 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
       onConfirmAttendance(tour.id, [], null, null, undefined, reason);
     }
     setCancelModalOpen(false);
+  };
+
+  const handleConfirmPayment = (
+    tourId: string,
+    isPaid: boolean,
+    paymentDate?: string | null,
+    paymentMethod?: string | null,
+    documentUrl?: string | null
+  ) => {
+    if (onConfirmAttendance && userGroup) {
+      // Manter os membros e data atual e atualizar apenas campos de pagamento
+      onConfirmAttendance(
+        tourId, 
+        attendingMembers, 
+        customDate, 
+        customTime, 
+        selectedPriceKey, 
+        undefined, 
+        undefined, // priceQuantities
+        isPaid, 
+        paymentDate, 
+        paymentMethod, 
+        documentUrl
+      );
+    }
+    setPaymentModalOpen(false);
   };
 
   return (
@@ -797,6 +829,33 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                         </p>
                       </div>
                     )}
+
+                    {/* Status de Pagamento na Sidebar */}
+                    <div className={`p-4 rounded-xl border flex items-center justify-between ${
+                      (attendance as any)?.isPaid 
+                        ? 'bg-status-success/5 border-status-success/20' 
+                        : 'bg-status-error/5 border-status-error/20'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          (attendance as any)?.isPaid ? 'bg-status-success text-white' : 'bg-status-error text-white'
+                        }`}>
+                          <DollarSign size={16} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-text-primary uppercase tracking-wider">Pagamento</p>
+                          <p className={`text-sm font-medium ${(attendance as any)?.isPaid ? 'text-status-success' : 'text-status-error'}`}>
+                            {(attendance as any)?.isPaid ? 'Pago' : 'Pendente'}
+                          </p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setPaymentModalOpen(true)}
+                        className="text-xs font-bold text-primary hover:underline"
+                      >
+                        Alterar
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -966,6 +1025,15 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
             onClose={() => setCancelModalOpen(false)}
             onConfirm={handleCancelTour}
             tour={tour}
+          />
+
+          <PaymentModal
+            isOpen={paymentModalOpen}
+            onClose={() => setPaymentModalOpen(false)}
+            onConfirm={handleConfirmPayment}
+            tour={tour}
+            group={userGroup}
+            attendanceInfo={attendance as TourAttendanceInfo}
           />
         </>
       )}
