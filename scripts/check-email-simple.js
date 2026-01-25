@@ -12,7 +12,7 @@ if (supabaseUrl === 'SUA_URL_AQUI' || supabaseKey === 'SUA_CHAVE_AQUI') {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const email = 'elleafarnarew@gmail.com';
+const email = 'paulapgc@hotmail.com';
 
 async function checkEmail() {
   console.log(`🔍 Verificando email: ${email}\n`);
@@ -49,7 +49,7 @@ async function checkEmail() {
   const { data: allGroups, error: allError } = await supabase
     .from('groups')
     .select('id, name, leader_name, leader_email')
-    .ilike('leader_email', '%ellea%');
+    .ilike('leader_email', '%paula%');
 
   if (!allError && allGroups && allGroups.length > 0) {
     console.log(`✅ Encontrados ${allGroups.length} email(s) similar(es):`);

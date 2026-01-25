@@ -1005,19 +1005,19 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
               <div className="flex gap-3 mt-6 pt-6 border-t border-border">
                 <Button
                   variant="outline"
-                  className="flex-1"
                   onClick={() => setShowEditDateTimeModal(false)}
+                  style={{ flex: 1 }}
                 >
                   Cancelar
                 </Button>
                 <Button
-                  className="flex-1"
                   onClick={() => {
                     if (onUpdateCustomDateTime && editDateTime.date) {
                       onUpdateCustomDateTime(tour.id, editDateTime.date, editDateTime.time || tour.time);
                       setShowEditDateTimeModal(false);
                     }
                   }}
+                  style={{ flex: 1 }}
                 >
                   Salvar
                 </Button>
