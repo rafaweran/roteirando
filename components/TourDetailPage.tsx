@@ -468,6 +468,8 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
             </div>
           )}
 
+          {/* Informações Básicas */}
+          <div className="bg-white rounded-xl sm:rounded-[24px] border border-border p-4 sm:p-6">
             <div className="flex items-start justify-between gap-4 mb-3 sm:mb-4">
               <h2 className="text-lg sm:text-xl font-bold text-text-primary break-words">{tour.name}</h2>
               {isSelected && (attendance as any)?.isPaid && (
