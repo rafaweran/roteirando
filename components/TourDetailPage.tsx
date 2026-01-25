@@ -122,9 +122,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
       selectedPriceKey,
       hasSelectedPriceKey: !!selectedPriceKey
     });
-  }
-  
-  const isConfirmed = attendingMembers.length > 0; else {
+  } else {
     console.warn('⚠️ TourDetailPage - Attendance não está no formato esperado:', attendance);
   }
 
@@ -448,7 +446,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                     <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                       Data
                     </p>
-                    {isConfirmed && userRole === 'user' && (
+                    {isSelected && userRole === 'user' && (
                       <button
                         onClick={() => {
                           setEditDateTime({ date: customDate || tour.date, time: tour.time });
