@@ -56,7 +56,7 @@ export interface TourAttendanceInfo {
   isPaid?: boolean;
   paymentDate?: string | null;
   paymentMethod?: string | null;
-  documentUrl?: string | null;
+  documentUrls?: string[]; // Array de URLs dos comprovantes
 }
 
 export interface Group {

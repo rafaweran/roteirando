@@ -786,7 +786,7 @@ const AppContent: React.FC = () => {
     isPaid?: boolean,
     paymentDate?: string | null,
     paymentMethod?: string | null,
-    documentUrl?: string | null
+    documentUrls?: string[]
   ) => {
     if (userRole !== 'user' || !currentUserGroup) return;
 
@@ -801,7 +801,7 @@ const AppContent: React.FC = () => {
       isPaid,
       paymentDate,
       paymentMethod,
-      documentUrl,
+      documentUrls,
       hasSelectedPriceKey: !!selectedPriceKey,
       hasPriceQuantities: !!priceQuantities
     });
@@ -820,7 +820,7 @@ const AppContent: React.FC = () => {
         isPaid,
         paymentDate,
         paymentMethod,
-        documentUrl
+        documentUrls
       );
 
       console.log('✅ App.tsx - Presença salva no banco:', { selectedPriceKey, priceQuantities });

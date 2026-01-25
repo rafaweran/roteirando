@@ -12,7 +12,7 @@ interface PaymentModalProps {
     isPaid: boolean, 
     paymentDate?: string | null, 
     paymentMethod?: string | null, 
-    documentUrl?: string | null
+    documentUrls?: string[]
   ) => void;
   tour: Tour;
   group: Group;
@@ -39,7 +39,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isPaid, setIsPaid] = useState(attendanceInfo?.isPaid || false);
   const [paymentDate, setPaymentDate] = useState(attendanceInfo?.paymentDate || new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState(attendanceInfo?.paymentMethod || 'Pix');
-  const [documentUrl, setDocumentUrl] = useState(attendanceInfo?.documentUrl || null);
+  const [documentUrls, setDocumentUrls] = useState<string[]>(attendanceInfo?.documentUrls || []);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,16 +49,26 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (documentUrls.length >= 2) {
+      alert('Você só pode enviar até 2 comprovantes.');
+      return;
+    }
+
     try {
       setIsUploading(true);
       const url = await storageApi.uploadPaymentProof(file, group.id, tour.id);
-      setDocumentUrl(url);
-    } catch (error) {
+      setDocumentUrls(prev => [...prev, url]);
+    } catch (error: any) {
       console.error('Erro ao fazer upload:', error);
-      alert('Erro ao fazer upload do comprovante.');
+      const errorMsg = error?.message || error?.error_description || 'Erro desconhecido';
+      alert(`Erro ao fazer upload do comprovante: ${errorMsg}\n\nVerifique se o bucket "documents" foi criado no Supabase.`);
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleRemoveFile = (indexToRemove: number) => {
+    setDocumentUrls(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
   const handleSave = () => {
@@ -67,7 +77,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       isPaid,
       isPaid ? paymentDate : null,
       isPaid ? paymentMethod : null,
-      documentUrl
+      documentUrls
     );
     onClose();
   };
@@ -154,33 +164,42 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
           {/* Comprovante / Documento */}
           <div>
-            <label className="text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
-              <FileText size={16} className="text-primary" />
-              Comprovante / Documento
+            <label className="text-sm font-semibold text-text-primary mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <FileText size={16} className="text-primary" />
+                Comprovantes / Documentos
+              </span>
+              <span className="text-xs font-normal text-text-secondary">
+                {documentUrls.length}/2 arquivos
+              </span>
             </label>
             
-            {documentUrl ? (
-              <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText size={18} className="text-primary flex-shrink-0" />
-                  <a 
-                    href={documentUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary font-medium underline truncate"
+            <div className="space-y-2 mb-4">
+              {documentUrls.map((url, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText size={18} className="text-primary flex-shrink-0" />
+                    <a 
+                      href={url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary font-medium underline truncate"
+                    >
+                      Comprovante {idx + 1}
+                    </a>
+                  </div>
+                  <button 
+                    onClick={() => handleRemoveFile(idx)}
+                    className="p-1.5 text-status-error hover:bg-status-error/10 rounded-md transition-colors"
+                    title="Remover documento"
                   >
-                    Ver comprovante enviado
-                  </a>
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <button 
-                  onClick={() => setDocumentUrl(null)}
-                  className="p-1.5 text-status-error hover:bg-status-error/10 rounded-md transition-colors"
-                  title="Remover documento"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ) : (
+              ))}
+            </div>
+
+            {documentUrls.length < 2 && (
               <div 
                 onClick={() => !isUploading && fileInputRef.current?.click()}
                 className={`
@@ -198,7 +217,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-1">
                       <Upload size={20} />
                     </div>
-                    <p className="text-sm font-bold text-text-primary">Fazer upload do comprovante</p>
+                    <p className="text-sm font-bold text-text-primary">Fazer upload de comprovante</p>
                     <p className="text-xs text-text-secondary">PDF, JPG ou PNG (Máx. 5MB)</p>
                   </div>
                 )}

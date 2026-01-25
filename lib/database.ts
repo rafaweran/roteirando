@@ -67,7 +67,7 @@ interface DBTourAttendance {
   is_paid: boolean;
   payment_date: string | null;
   payment_method: string | null;
-  document_url: string | null;
+  document_urls: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -659,7 +659,7 @@ export const groupsApi = {
         isPaid: att.is_paid || false,
         paymentDate: att.payment_date || null,
         paymentMethod: att.payment_method || null,
-        documentUrl: att.document_url || null
+        documentUrls: att.document_urls || (att.document_url ? [att.document_url] : [])
       };
       
       console.log('📥 groupsApi.getAll - Recuperando attendance:', {
@@ -708,7 +708,7 @@ export const groupsApi = {
         isPaid: att.is_paid || false,
         paymentDate: att.payment_date || null,
         paymentMethod: att.payment_method || null,
-        documentUrl: att.document_url || null
+        documentUrls: att.document_urls || (att.document_url ? [att.document_url] : [])
       };
       
       console.log('📥 groupsApi.getByTripId - Recuperando attendance:', {
@@ -753,7 +753,7 @@ export const groupsApi = {
         isPaid: att.is_paid || false,
         paymentDate: att.payment_date || null,
         paymentMethod: att.payment_method || null,
-        documentUrl: att.document_url || null
+        documentUrls: att.document_urls || (att.document_url ? [att.document_url] : [])
       };
       
       console.log('📥 groupsApi.getById - Recuperando attendance:', {
@@ -882,7 +882,7 @@ export const tourAttendanceApi = {
     isPaid?: boolean,
     paymentDate?: string | null,
     paymentMethod?: string | null,
-    documentUrl?: string | null
+    documentUrls?: string[]
   ): Promise<void> {
     if (members.length === 0) {
       // Delete attendance if no members
@@ -906,7 +906,7 @@ export const tourAttendanceApi = {
       if (isPaid !== undefined) insertData.is_paid = isPaid;
       if (paymentDate !== undefined) insertData.payment_date = paymentDate;
       if (paymentMethod !== undefined) insertData.payment_method = paymentMethod;
-      if (documentUrl !== undefined) insertData.document_url = documentUrl;
+      if (documentUrls !== undefined) insertData.document_urls = documentUrls;
 
       // Priorizar priceQuantities (nova versão) sobre selectedPriceKey (versão antiga)
       if (priceQuantities && Object.keys(priceQuantities).length > 0) {

@@ -69,7 +69,7 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
         customTime,
         isPaid: (attendance as any)?.isPaid || false,
         paymentMethod: (attendance as any)?.paymentMethod || null,
-        documentUrl: (attendance as any)?.documentUrl || null
+        documentUrls: (attendance as any)?.documentUrls || ((attendance as any)?.documentUrl ? [(attendance as any).documentUrl] : [])
       };
     });
 
@@ -278,15 +278,20 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
                                 {group.paymentMethod && (
                                    <span className="text-[9px] text-text-secondary font-medium">{group.paymentMethod}</span>
                                 )}
-                                {group.documentUrl && (
-                                   <a 
-                                      href={group.documentUrl} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-[9px] text-primary underline font-bold mt-1"
-                                   >
-                                      Doc.
-                                   </a>
+                                {group.documentUrls && group.documentUrls.length > 0 && (
+                                   <div className="flex flex-wrap justify-center gap-1 mt-1">
+                                      {group.documentUrls.map((url, idx) => (
+                                         <a 
+                                            key={idx}
+                                            href={url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-[9px] text-primary underline font-bold"
+                                         >
+                                            Doc{idx + 1}
+                                         </a>
+                                      ))}
+                                   </div>
                                 )}
                              </div>
                           </td>

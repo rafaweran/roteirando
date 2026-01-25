@@ -25,7 +25,7 @@ interface TourDetailPageProps {
     isPaid?: boolean,
     paymentDate?: string | null,
     paymentMethod?: string | null,
-    documentUrl?: string | null
+    documentUrls?: string[]
   ) => void;
   onUpdateCustomDateTime?: (tourId: string, customDate: string, customTime: string) => void;
 }
@@ -407,7 +407,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
     isPaid: boolean,
     paymentDate?: string | null,
     paymentMethod?: string | null,
-    documentUrl?: string | null
+    documentUrls?: string[]
   ) => {
     if (onConfirmAttendance && userGroup) {
       // Manter os membros e data atual e atualizar apenas campos de pagamento
@@ -422,7 +422,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
         isPaid, 
         paymentDate, 
         paymentMethod, 
-        documentUrl
+        documentUrls
       );
     }
     setPaymentModalOpen(false);
