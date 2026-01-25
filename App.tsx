@@ -779,6 +779,7 @@ const AppContent: React.FC = () => {
     tourId: string,
     members: string[],
     customDate?: string | null,
+    customTime?: string | null,
     selectedPriceKey?: string,
     cancelReason?: string,
     priceQuantities?: Record<string, number>
@@ -789,6 +790,7 @@ const AppContent: React.FC = () => {
       tourId,
       membersCount: members.length,
       customDate,
+      customTime,
       selectedPriceKey,
       priceQuantities,
       cancelReason,
@@ -799,7 +801,7 @@ const AppContent: React.FC = () => {
     try {
       // Salvar no banco de dados
       const { tourAttendanceApi } = await import('./lib/database');
-      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate, selectedPriceKey, priceQuantities);
+      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate, customTime, selectedPriceKey, priceQuantities);
 
       console.log('✅ App.tsx - Presença salva no banco:', { selectedPriceKey, priceQuantities });
 
@@ -836,14 +838,14 @@ const AppContent: React.FC = () => {
         members = attendance.members || [];
       }
 
-      // Salvar com nova data personalizada
+      // Salvar com nova data e horário personalizados
       const { tourAttendanceApi } = await import('./lib/database');
-      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate);
+      await tourAttendanceApi.saveAttendance(currentUserGroup.id, tourId, members, customDate, customTime);
 
       // Recarregar dados
       await loadGroups();
       
-      showSuccess('Data alterada com sucesso!');
+      showSuccess('Data e horário alterados com sucesso!');
     } catch (error: any) {
       console.error('❌ Erro ao atualizar data:', error);
       showError('Erro ao atualizar data');

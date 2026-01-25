@@ -62,6 +62,7 @@ interface DBTourAttendance {
   tour_id: string;
   members: string[];
   custom_date: string | null; // Data personalizada escolhida pelo grupo (NULL = data original do tour)
+  custom_time: string | null; // Horário personalizado escolhido pelo grupo (NULL = horário original do tour)
   selected_price_key: string | null; // Chave do tipo de ingresso selecionado (ex: "inteira", "meia", "price_0", etc.)
   created_at: string;
   updated_at: string;
@@ -649,6 +650,7 @@ export const groupsApi = {
       const attendanceInfo = {
         members: att.members,
         customDate: att.custom_date || null,
+        customTime: att.custom_time || null,
         selectedPriceKey: att.selected_price_key || undefined
       };
       
@@ -693,6 +695,7 @@ export const groupsApi = {
       const attendanceInfo = {
         members: att.members,
         customDate: att.custom_date || null,
+        customTime: att.custom_time || null,
         selectedPriceKey: att.selected_price_key || undefined
       };
       
@@ -733,6 +736,7 @@ export const groupsApi = {
       const attendanceInfo = {
         members: att.members,
         customDate: att.custom_date || null,
+        customTime: att.custom_time || null,
         selectedPriceKey: att.selected_price_key || undefined
       };
       
@@ -856,6 +860,7 @@ export const tourAttendanceApi = {
     tourId: string,
     members: string[],
     customDate?: string | null,
+    customTime?: string | null,
     selectedPriceKey?: string,
     priceQuantities?: Record<string, number>
   ): Promise<void> {
@@ -875,6 +880,7 @@ export const tourAttendanceApi = {
         tour_id: tourId,
         members: members,
         custom_date: customDate || null, // NULL = data original do tour
+        custom_time: customTime || null, // NULL = horário original do tour
       };
 
       // Priorizar priceQuantities (nova versão) sobre selectedPriceKey (versão antiga)
@@ -933,6 +939,7 @@ export const tourAttendanceApi = {
             tour_id: tourId,
             members: members,
             custom_date: customDate || null,
+            custom_time: customTime || null,
           }, {
             onConflict: 'group_id,tour_id',
           });
@@ -958,6 +965,7 @@ export const tourAttendanceApi = {
       const attendanceInfo: any = {
         members: att.members,
         customDate: att.custom_date || null,
+        customTime: att.custom_time || null,
         selectedPriceKey: att.selected_price_key || undefined
       };
       

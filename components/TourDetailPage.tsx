@@ -17,6 +17,7 @@ interface TourDetailPageProps {
     tourId: string,
     members: string[],
     customDate?: string | null,
+    customTime?: string | null,
     selectedPriceKey?: string,
     cancelReason?: string,
     priceQuantities?: Record<string, number>
@@ -100,6 +101,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   const attendance = userGroup?.tourAttendance?.[tour.id];
   let attendingMembers: string[] = [];
   let customDate: string | null = null;
+  let customTime: string | null = null;
   let selectedPriceKey: string | undefined = undefined;
   
   console.log('🔍 TourDetailPage - Verificando attendance:', {
@@ -115,10 +117,12 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
     attendingMembers = attendance.members || [];
     customDate = attendance.customDate || null;
+    customTime = attendance.customTime || null;
     selectedPriceKey = attendance.selectedPriceKey || undefined;
     console.log('✅ TourDetailPage - Extraído do attendance:', {
       membersCount: attendingMembers.length,
       customDate,
+      customTime,
       selectedPriceKey,
       hasSelectedPriceKey: !!selectedPriceKey
     });
@@ -373,11 +377,12 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
     tourId: string,
     members: string[],
     customDate?: string | null,
+    customTime?: string | null,
     selectedPriceKey?: string,
     priceQuantities?: Record<string, number>
   ) => {
     if (onConfirmAttendance) {
-      onConfirmAttendance(tourId, members, customDate, selectedPriceKey, undefined, priceQuantities);
+      onConfirmAttendance(tourId, members, customDate, customTime, selectedPriceKey, undefined, priceQuantities);
     }
     setAttendanceModalOpen(false);
   };
@@ -385,7 +390,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   const handleCancelTour = (reason: string) => {
     // Cancelar presença (salvar array vazio)
     if (onConfirmAttendance && tour.id) {
-      onConfirmAttendance(tour.id, [], null, undefined, reason);
+      onConfirmAttendance(tour.id, [], null, null, undefined, reason);
     }
     setCancelModalOpen(false);
   };
@@ -449,7 +454,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                     {isSelected && userRole === 'user' && (
                       <button
                         onClick={() => {
-                          setEditDateTime({ date: customDate || tour.date, time: tour.time });
+                          setEditDateTime({ date: customDate || tour.date, time: customTime || tour.time });
                           setShowEditDateTimeModal(true);
                         }}
                         className="p-1 hover:bg-primary/10 rounded transition-colors"
@@ -479,6 +484,11 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                     Horário
                   </p>
                   <p className="text-sm font-medium text-text-primary">{tour.time}</p>
+                  {customTime && userRole === 'user' && (
+                    <p className="text-xs text-primary mt-1">
+                      🕒 Horário escolhido: {customTime}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -997,6 +1007,25 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                   </div>
                   <p className="text-xs text-text-disabled mt-1.5">
                     Data original: {formatDate(tour.date)}
+                  </p>
+                </div>
+
+                {/* Horário */}
+                <div>
+                  <label className="text-sm font-medium text-text-primary mb-2 block">
+                    Horário Personalizado
+                  </label>
+                  <div className="relative">
+                    <Clock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                    <input
+                      type="time"
+                      value={editDateTime.time}
+                      onChange={(e) => setEditDateTime({ ...editDateTime, time: e.target.value })}
+                      className="w-full h-12 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    />
+                  </div>
+                  <p className="text-xs text-text-disabled mt-1.5">
+                    Horário original: {tour.time}
                   </p>
                 </div>
               </div>

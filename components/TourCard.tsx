@@ -34,11 +34,16 @@ const TourCard: React.FC<TourCardProps> = ({
   const isSelected = attendanceCount > 0;
   const isPartial = attendanceCount > 0 && attendanceCount < totalMembers;
   
-  // Obter a chave do preço selecionado se houver
+  // Obter detalhes da confirmação se houver
   const attendance = userGroup?.tourAttendance?.[tour.id];
   let selectedPriceKey: string | undefined = undefined;
-  if (attendance && typeof attendance === 'object' && 'selectedPriceKey' in attendance) {
+  let customDate: string | null = null;
+  let customTime: string | null = null;
+
+  if (attendance && typeof attendance === 'object' && !Array.isArray(attendance)) {
     selectedPriceKey = attendance.selectedPriceKey || undefined;
+    customDate = attendance.customDate || null;
+    customTime = attendance.customTime || null;
   }
 
   // Calcular valor total baseado no tipo de ingresso selecionado
@@ -175,13 +180,13 @@ const TourCard: React.FC<TourCardProps> = ({
         
         {/* Data e Horário */}
         <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
-          <div className="inline-flex items-center text-[10px] sm:text-xs font-medium text-text-secondary bg-surface px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-border/50">
-            <CalendarDays size={12} className="sm:w-[14px] sm:h-[14px] mr-1 sm:mr-1.5 text-primary flex-shrink-0" />
-            <span className="whitespace-nowrap">{new Date(tour.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+          <div className={`inline-flex items-center text-[10px] sm:text-xs font-medium px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border ${customDate && isUserView ? 'bg-primary/10 text-primary border-primary/20' : 'bg-surface text-text-secondary border-border/50'}`}>
+            <CalendarDays size={12} className={`sm:w-[14px] sm:h-[14px] mr-1 sm:mr-1.5 flex-shrink-0 ${customDate && isUserView ? 'text-primary' : 'text-primary'}`} />
+            <span className="whitespace-nowrap">{(customDate && isUserView) ? new Date(customDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : new Date(tour.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
           </div>
-          <div className="inline-flex items-center text-[10px] sm:text-xs font-medium text-text-secondary bg-surface px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-border/50">
-            <Clock size={12} className="sm:w-[14px] sm:h-[14px] mr-1 sm:mr-1.5 text-primary flex-shrink-0" />
-            <span className="whitespace-nowrap">{tour.time}</span>
+          <div className={`inline-flex items-center text-[10px] sm:text-xs font-medium px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border ${customTime && isUserView ? 'bg-primary/10 text-primary border-primary/20' : 'bg-surface text-text-secondary border-border/50'}`}>
+            <Clock size={12} className={`sm:w-[14px] sm:h-[14px] mr-1 sm:mr-1.5 flex-shrink-0 ${customTime && isUserView ? 'text-primary' : 'text-primary'}`} />
+            <span className="whitespace-nowrap">{(customTime && isUserView) ? customTime : tour.time}</span>
           </div>
         </div>
 

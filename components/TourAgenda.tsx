@@ -66,16 +66,19 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
         // Compatibilidade: pode ser TourAttendanceInfo ou string[] (versão antiga)
         let members: string[] = [];
         let customDate: string | null = null;
+        let customTime: string | null = null;
         
         if (Array.isArray(attendance)) {
           members = attendance;
         } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
           members = attendance.members || [];
           customDate = attendance.customDate || null;
+          customTime = attendance.customTime || null;
         }
         
         // Usar data personalizada se existir, senão usar data original do tour
         const displayDate = customDate || tour.date;
+        const displayTime = customTime || tour.time;
         
         return {
           ...tour,
@@ -83,7 +86,9 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
           attendanceCount: members.length,
           attendingMembers: members,
           customDate: customDate,
+          customTime: customTime,
           displayDate: displayDate, // Data que será exibida/agrupada
+          displayTime: displayTime,
           isCustomTour: false
         };
       });
@@ -106,7 +111,9 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
         attendanceCount: 1, // Passeios personalizados são sempre confirmados
         attendingMembers: [userGroup.leaderName],
         customDate: null,
+        customTime: null,
         displayDate: customTour.date,
+        displayTime: customTour.time,
         isCustomTour: true // Marcar como passeio personalizado
       };
       return tour;
@@ -297,11 +304,11 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                         </div>
                         <div className="flex items-center gap-1 text-text-secondary">
                           <Clock size={10} className="text-primary" />
-                          <span>{tour.time}</span>
+                          <span>{tour.displayTime}</span>
                         </div>
-                        {tour.customDate && (
+                        {(tour.customDate || tour.customTime) && (
                           <div className="text-[10px] text-primary mt-1 font-medium">
-                            📅 Data personalizada
+                            📅 {tour.customDate && tour.customTime ? 'Data e horário personalizados' : tour.customDate ? 'Data personalizada' : 'Horário personalizado'}
                           </div>
                         )}
                       </div>
@@ -401,7 +408,7 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                           <div className="flex flex-wrap gap-2 sm:gap-4 mb-2 sm:mb-3 text-xs sm:text-sm">
                             <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary">
                               <Clock size={14} className="sm:w-4 sm:h-4 text-primary flex-shrink-0" />
-                              <span className="whitespace-nowrap">{tour.time}</span>
+                              <span className="whitespace-nowrap">{tour.displayTime}</span>
                             </div>
                             <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary min-w-0">
                               <MapPin size={14} className="sm:w-4 sm:h-4 text-primary flex-shrink-0" />
@@ -411,10 +418,10 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                               <Users size={14} className="sm:w-4 sm:h-4 text-primary flex-shrink-0" />
                               <span className="whitespace-nowrap">{tour.attendanceCount} pessoa{tour.attendanceCount !== 1 ? 's' : ''} confirmada{tour.attendanceCount !== 1 ? 's' : ''}</span>
                             </div>
-                            {tour.customDate && (
+                            {(tour.customDate || tour.customTime) && (
                               <div className="flex items-center gap-2 text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
                                 <Calendar size={14} className="text-primary" />
-                                Data personalizada
+                                {tour.customDate && tour.customTime ? 'Data e horário personalizados' : tour.customDate ? 'Data personalizada' : 'Horário personalizado'}
                               </div>
                             )}
                           </div>

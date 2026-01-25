@@ -50,17 +50,23 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
       // Extract members correctly based on format
       const attendance = g.tourAttendance![tour.id];
       let members: string[] = [];
+      let customDate: string | null = null;
+      let customTime: string | null = null;
       
       if (Array.isArray(attendance)) {
         members = attendance;
       } else if (attendance && typeof attendance === 'object' && 'members' in attendance) {
         members = attendance.members || [];
+        customDate = attendance.customDate || null;
+        customTime = attendance.customTime || null;
       }
       
       return {
         ...g,
         attendingCount: members.length,
-        attendingNames: members
+        attendingNames: members,
+        customDate,
+        customTime
       };
     });
 
@@ -218,6 +224,25 @@ const TourAttendanceView: React.FC<TourAttendanceViewProps> = ({
                           <td className="py-4 px-6 align-top">
                              <div className="font-semibold text-text-primary">{group.name}</div>
                              <div className="text-xs text-text-secondary mt-1">Ref: #{group.id.substring(0,6)}</div>
+                             {(group.customDate || group.customTime) && (
+                               <div className="mt-2 p-1.5 bg-primary/5 rounded border border-primary/10 w-fit">
+                                 <div className="text-[10px] font-bold text-primary uppercase tracking-wider mb-0.5">Agendamento Personalizado</div>
+                                 <div className="flex items-center gap-2 text-[11px] text-text-primary">
+                                   {group.customDate && (
+                                     <span className="flex items-center gap-1">
+                                       <Calendar size={10} className="text-primary" />
+                                       {new Date(group.customDate + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                     </span>
+                                   )}
+                                   {group.customTime && (
+                                     <span className="flex items-center gap-1">
+                                       <Clock size={10} className="text-primary" />
+                                       {group.customTime}
+                                     </span>
+                                   )}
+                                 </div>
+                               </div>
+                             )}
                           </td>
                           <td className="py-4 px-6 align-top">
                              <div className="font-medium text-text-primary">{group.leaderName}</div>

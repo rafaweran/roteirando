@@ -50,6 +50,7 @@ export interface Tour {
 export interface TourAttendanceInfo {
   members: string[]; // Array of Member Names who are attending
   customDate?: string | null; // Data personalizada (null = data original do tour)
+  customTime?: string | null; // Horário personalizado (null = horário original do tour)
   selectedPriceKey?: string; // Chave do tipo de ingresso selecionado (ex: "inteira", "meia", "price_0", etc.) - DEPRECATED
   priceQuantities?: Record<string, number>; // Quantidade de cada tipo de ingresso (ex: { "adulto": 2, "crianca": 3 })
 }

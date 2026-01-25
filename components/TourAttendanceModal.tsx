@@ -7,7 +7,7 @@ import { Tour, Group, TourAttendanceInfo } from '../types';
 interface TourAttendanceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (tourId: string, selectedMembers: string[], customDate?: string | null, selectedPriceKey?: string, priceQuantities?: Record<string, number>) => void;
+  onConfirm: (tourId: string, selectedMembers: string[], customDate?: string | null, customTime?: string | null, selectedPriceKey?: string, priceQuantities?: Record<string, number>) => void;
   tour: Tour;
   group: Group;
 }
@@ -22,6 +22,7 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [dateOption, setDateOption] = useState<'group' | 'custom'>('group'); // 'group' = data original, 'custom' = data personalizada
   const [customDate, setCustomDate] = useState<string>('');
+  const [customTime, setCustomTime] = useState<string>('');
   const [selectedPriceKey, setSelectedPriceKey] = useState<string>(''); // Chave do tipo de ingresso selecionado (DEPRECATED - manter para compatibilidade)
   const [priceQuantities, setPriceQuantities] = useState<Record<string, number>>({}); // Quantidade de cada tipo de ingresso
 
@@ -68,6 +69,12 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
         } else {
           setDateOption('group');
           setCustomDate('');
+        }
+        
+        if (attendanceInfo.customTime) {
+          setCustomTime(attendanceInfo.customTime);
+        } else {
+          setCustomTime('');
         }
         
         // Restaurar quantidades de tipos de ingresso se existir (nova versão)
@@ -121,6 +128,7 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
   const handleSave = () => {
     // Se escolheu data personalizada, usar customDate, senão null (data original)
     const finalCustomDate = dateOption === 'custom' && customDate ? customDate : null;
+    const finalCustomTime = dateOption === 'custom' && customTime ? customTime : null;
     
     // Filtrar apenas quantidades maiores que zero
     const validPriceQuantities = Object.fromEntries(
@@ -132,13 +140,14 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
       tourName: tour.name,
       selectedMembers: selectedMembers.length,
       finalCustomDate,
+      finalCustomTime,
       priceQuantities: validPriceQuantities,
       totalPeople: totalPeopleFromPrices,
       totalPrice: calculateTotalPrice()
     });
     
     // Passar quantidades de tipos de ingresso
-    onConfirm(tour.id, selectedMembers, finalCustomDate, undefined, validPriceQuantities);
+    onConfirm(tour.id, selectedMembers, finalCustomDate, finalCustomTime, undefined, validPriceQuantities);
     onClose();
   };
 
@@ -264,12 +273,27 @@ const TourAttendanceModal: React.FC<TourAttendanceModalProps> = ({
                     Ir em outra data
                   </div>
                   {dateOption === 'custom' && (
-                    <DatePicker
-                      label=""
-                      value={customDate}
-                      onChange={(date) => setCustomDate(date)}
-                      required={dateOption === 'custom'}
-                    />
+                    <div className="space-y-3 mt-2">
+                      <DatePicker
+                        label="Data"
+                        value={customDate}
+                        onChange={(date) => setCustomDate(date)}
+                        required={dateOption === 'custom'}
+                      />
+                      <div className="relative">
+                        <label className="text-xs font-medium text-text-secondary mb-1 block">Horário</label>
+                        <div className="relative">
+                          <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                          <input
+                            type="time"
+                            value={customTime}
+                            onChange={(e) => setCustomTime(e.target.value)}
+                            className="w-full h-10 pl-10 pr-4 rounded-lg border border-border bg-white text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                            required={dateOption === 'custom'}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               </label>
