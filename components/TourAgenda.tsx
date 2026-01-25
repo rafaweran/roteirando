@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Plus, X, Check } from 'lucide-react';
 import Button from './Button';
 import Modal from './Modal';
 import { Tour, Trip, Group, TourAttendanceInfo, UserCustomTour } from '../types';
