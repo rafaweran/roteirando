@@ -459,10 +459,8 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                   className="w-full h-full object-cover"
                 />
                 {isSelected && userRole === 'user' && (
-                  <div className={`absolute top-4 left-4 px-4 py-2 rounded-lg text-sm font-bold shadow-lg flex items-center gap-2 ${
-                    isPartial ? 'bg-status-warning text-white' : 'bg-status-success text-white'
-                  }`}>
-                    <Check size={16} strokeWidth={3} />
+                  <div className={`absolute top-4 left-4 px-4 py-2 rounded-lg text-sm font-bold shadow-lg flex items-center gap-2 bg-primary text-white`}>
+                    <Users size={16} strokeWidth={3} />
                     {isPartial ? 'CONFIRMAÇÃO PARCIAL' : 'CONFIRMADO'}
                   </div>
                 )}
@@ -472,16 +470,10 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
 
             <div className="flex items-start justify-between gap-4 mb-3 sm:mb-4">
               <h2 className="text-lg sm:text-xl font-bold text-text-primary break-words">{tour.name}</h2>
-              {isSelected && (
-                (attendance as any)?.isPaid ? (
-                  <span className="px-3 py-1 bg-status-success/10 text-status-success text-xs font-bold rounded-full uppercase tracking-wider flex-shrink-0">
-                    Pago
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 bg-status-error/10 text-status-error text-xs font-bold rounded-full uppercase tracking-wider flex-shrink-0">
-                    Pendente
-                  </span>
-                )
+              {isSelected && (attendance as any)?.isPaid && (
+                <span className="px-3 py-1 bg-status-success text-white text-xs font-bold rounded-full uppercase tracking-wider flex-shrink-0">
+                  Pago
+                </span>
               )}
             </div>
             

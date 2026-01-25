@@ -154,8 +154,8 @@ const TourCard: React.FC<TourCardProps> = ({
             {getDisplayPrice()}
           </div>
           {isSelected && (
-            <div className={`absolute top-3 left-3 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1 ${isPartial ? 'bg-status-warning text-white' : 'bg-status-success text-white'}`}>
-              <Check size={12} strokeWidth={3} />
+            <div className={`absolute top-3 left-3 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1 bg-primary text-white`}>
+              <Users size={12} strokeWidth={3} />
               {isPartial ? 'PARCIAL' : 'CONFIRMADO'}
             </div>
           )}
@@ -180,16 +180,10 @@ const TourCard: React.FC<TourCardProps> = ({
           <h4 className="font-bold text-text-primary text-base sm:text-lg line-clamp-2 group-hover:text-primary transition-colors flex-1" title={tour.name}>
             {tour.name}
           </h4>
-          {isSelected && (
-            isPaid ? (
-              <span className="px-2 py-0.5 bg-status-success/10 text-status-success text-[10px] font-bold rounded-full uppercase tracking-wider flex-shrink-0 mt-1">
-                Pago
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 bg-status-error/10 text-status-error text-[10px] font-bold rounded-full uppercase tracking-wider flex-shrink-0 mt-1">
-                Pendente
-              </span>
-            )
+          {isSelected && isPaid && (
+            <span className="px-2 py-0.5 bg-status-success text-white text-[10px] font-bold rounded-full uppercase tracking-wider flex-shrink-0 mt-1">
+              Pago
+            </span>
           )}
         </div>
         

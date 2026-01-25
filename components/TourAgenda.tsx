@@ -307,12 +307,10 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                           <div className="font-semibold text-text-primary line-clamp-1 flex-1">
                             {tour.name}
                           </div>
-                          {tour.isPaid ? (
-                            <span className="bg-status-success text-white p-0.5 rounded-full flex-shrink-0" title="Pago">
-                              <Check size={8} strokeWidth={4} />
+                          {tour.isPaid && (
+                            <span className="bg-status-success text-white px-1 py-0.5 rounded text-[8px] font-bold flex-shrink-0">
+                              PAGO
                             </span>
-                          ) : (
-                            <span className="w-2 h-2 bg-status-error rounded-full flex-shrink-0" title="Pendente" />
                           )}
                         </div>
                         <div className="flex items-center gap-1 text-text-secondary">
@@ -387,16 +385,11 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-                                <CheckCircle2 size={18} className="sm:w-5 sm:h-5 text-status-success flex-shrink-0" />
                                 <h3 className="text-base sm:text-xl font-bold text-text-primary break-words">{tour.name}</h3>
-                                {tour.isPaid ? (
+                                {tour.isPaid && (
                                   <span className="px-2.5 py-1 bg-status-success text-white text-[10px] sm:text-xs font-bold rounded-lg uppercase tracking-wider flex items-center gap-1 shadow-sm">
                                     <Check size={12} strokeWidth={4} />
                                     Pago
-                                  </span>
-                                ) : (
-                                  <span className="px-2.5 py-1 bg-status-error/10 text-status-error text-[10px] sm:text-xs font-bold rounded-lg uppercase tracking-wider">
-                                    Pendente
                                   </span>
                                 )}
                                 {onCancelAttendance && (
