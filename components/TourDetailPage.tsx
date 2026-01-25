@@ -122,7 +122,9 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
       selectedPriceKey,
       hasSelectedPriceKey: !!selectedPriceKey
     });
-  } else {
+  }
+  
+  const isConfirmed = attendingMembers.length > 0; else {
     console.warn('⚠️ TourDetailPage - Attendance não está no formato esperado:', attendance);
   }
 
