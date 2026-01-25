@@ -470,9 +470,20 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
             </div>
           )}
 
-          {/* Informações Básicas */}
-          <div className="bg-white rounded-xl sm:rounded-[24px] border border-border p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-bold text-text-primary mb-3 sm:mb-4 break-words">{tour.name}</h2>
+            <div className="flex items-start justify-between gap-4 mb-3 sm:mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-text-primary break-words">{tour.name}</h2>
+              {isSelected && (
+                (attendance as any)?.isPaid ? (
+                  <span className="px-3 py-1 bg-status-success/10 text-status-success text-xs font-bold rounded-full uppercase tracking-wider flex-shrink-0">
+                    Pago
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 bg-status-error/10 text-status-error text-xs font-bold rounded-full uppercase tracking-wider flex-shrink-0">
+                    Pendente
+                  </span>
+                )
+              )}
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
               <div className="flex items-start gap-3">

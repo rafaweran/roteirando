@@ -67,6 +67,7 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
         let members: string[] = [];
         let customDate: string | null = null;
         let customTime: string | null = null;
+        let isPaid = false;
         
         if (Array.isArray(attendance)) {
           members = attendance;
@@ -74,6 +75,7 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
           members = attendance.members || [];
           customDate = attendance.customDate || null;
           customTime = attendance.customTime || null;
+          isPaid = (attendance as any).isPaid || false;
         }
         
         // Usar data personalizada se existir, senão usar data original do tour
@@ -87,6 +89,7 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
           attendingMembers: members,
           customDate: customDate,
           customTime: customTime,
+          isPaid: isPaid,
           displayDate: displayDate, // Data que será exibida/agrupada
           displayTime: displayTime,
           isCustomTour: false
@@ -297,10 +300,20 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                           p-2 rounded-lg text-xs cursor-pointer transition-all duration-200
                           bg-white border border-primary/30 hover:bg-primary/10 hover:border-primary
                           ${onViewTourDetail ? 'hover:shadow-md' : ''}
+                          ${tour.isPaid ? 'border-status-success/50 bg-status-success/5' : ''}
                         `}
                       >
-                        <div className="font-semibold text-text-primary line-clamp-1 mb-1">
-                          {tour.name}
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <div className="font-semibold text-text-primary line-clamp-1 flex-1">
+                            {tour.name}
+                          </div>
+                          {tour.isPaid ? (
+                            <span className="bg-status-success text-white p-0.5 rounded-full flex-shrink-0" title="Pago">
+                              <Check size={8} strokeWidth={4} />
+                            </span>
+                          ) : (
+                            <span className="w-2 h-2 bg-status-error rounded-full flex-shrink-0" title="Pendente" />
+                          )}
                         </div>
                         <div className="flex items-center gap-1 text-text-secondary">
                           <Clock size={10} className="text-primary" />
@@ -376,6 +389,16 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                               <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                                 <CheckCircle2 size={18} className="sm:w-5 sm:h-5 text-status-success flex-shrink-0" />
                                 <h3 className="text-base sm:text-xl font-bold text-text-primary break-words">{tour.name}</h3>
+                                {tour.isPaid ? (
+                                  <span className="px-2.5 py-1 bg-status-success text-white text-[10px] sm:text-xs font-bold rounded-lg uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                                    <Check size={12} strokeWidth={4} />
+                                    Pago
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 bg-status-error/10 text-status-error text-[10px] sm:text-xs font-bold rounded-lg uppercase tracking-wider">
+                                    Pendente
+                                  </span>
+                                )}
                                 {onCancelAttendance && (
                                   <button
                                     onClick={(e) => handleCancelClick(tour, e)}

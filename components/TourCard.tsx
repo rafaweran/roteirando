@@ -39,11 +39,13 @@ const TourCard: React.FC<TourCardProps> = ({
   let selectedPriceKey: string | undefined = undefined;
   let customDate: string | null = null;
   let customTime: string | null = null;
+  let isPaid = false;
 
   if (attendance && typeof attendance === 'object' && !Array.isArray(attendance)) {
     selectedPriceKey = attendance.selectedPriceKey || undefined;
     customDate = attendance.customDate || null;
     customTime = attendance.customTime || null;
+    isPaid = (attendance as any).isPaid || false;
   }
 
   // Calcular valor total baseado no tipo de ingresso selecionado
@@ -174,9 +176,22 @@ const TourCard: React.FC<TourCardProps> = ({
       {/* Content */}
       <div className="p-4 sm:p-5 flex flex-col flex-1">
         {/* Nome do Passeio */}
-        <h4 className="font-bold text-text-primary text-base sm:text-lg line-clamp-2 mb-3 group-hover:text-primary transition-colors" title={tour.name}>
-          {tour.name}
-        </h4>
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <h4 className="font-bold text-text-primary text-base sm:text-lg line-clamp-2 group-hover:text-primary transition-colors flex-1" title={tour.name}>
+            {tour.name}
+          </h4>
+          {isSelected && (
+            isPaid ? (
+              <span className="px-2 py-0.5 bg-status-success/10 text-status-success text-[10px] font-bold rounded-full uppercase tracking-wider flex-shrink-0 mt-1">
+                Pago
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 bg-status-error/10 text-status-error text-[10px] font-bold rounded-full uppercase tracking-wider flex-shrink-0 mt-1">
+                Pendente
+              </span>
+            )
+          )}
+        </div>
         
         {/* Data e Horário */}
         <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
