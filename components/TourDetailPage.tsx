@@ -104,12 +104,13 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   let customTime: string | null = null;
   let selectedPriceKey: string | undefined = undefined;
   
-  console.log('🔍 TourDetailPage - Verificando attendance:', {
+    console.log('🔍 TourDetailPage - Verificando attendance:', {
     hasUserGroup: !!userGroup,
     tourId: tour.id,
     attendance: attendance,
     attendanceType: Array.isArray(attendance) ? 'array' : typeof attendance,
-    attendanceKeys: attendance && typeof attendance === 'object' ? Object.keys(attendance) : []
+    attendanceKeys: attendance && typeof attendance === 'object' ? Object.keys(attendance) : [],
+    customTime: (attendance && typeof attendance === 'object' && !Array.isArray(attendance)) ? (attendance as any).customTime : 'n/a'
   });
   
   if (Array.isArray(attendance)) {

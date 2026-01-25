@@ -115,7 +115,7 @@ function dbTourToTour(dbTour: DBTour, links: TourLink[] = []): Tour {
   };
 }
 
-function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }> = {}): Group {
+function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, { members: string[]; customDate?: string | null; customTime?: string | null; selectedPriceKey?: string }> = {}): Group {
   // Se password_changed for null, undefined ou false, considerar como primeiro acesso
   // Apenas se for explicitamente true, considerar que já alterou
   const passwordChanged = dbGroup.password_changed === true;
@@ -642,8 +642,8 @@ export const groupsApi = {
       .from('tour_attendance')
       .select('*');
 
-    const attendanceByGroupId: Record<string, Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }>> = {};
-    attendance?.forEach((att: DBTourAttendance) => {
+    const attendanceByGroupId: Record<string, Record<string, { members: string[]; customDate?: string | null; customTime?: string | null; selectedPriceKey?: string }>> = {};
+    attendance?.forEach((att: any) => {
       if (!attendanceByGroupId[att.group_id]) {
         attendanceByGroupId[att.group_id] = {};
       }
@@ -687,8 +687,8 @@ export const groupsApi = {
       .select('*')
       .in('group_id', groupIds);
 
-    const attendanceByGroupId: Record<string, Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }>> = {};
-    attendance?.forEach((att: DBTourAttendance) => {
+    const attendanceByGroupId: Record<string, Record<string, { members: string[]; customDate?: string | null; customTime?: string | null; selectedPriceKey?: string }>> = {};
+    attendance?.forEach((att: any) => {
       if (!attendanceByGroupId[att.group_id]) {
         attendanceByGroupId[att.group_id] = {};
       }
@@ -731,8 +731,8 @@ export const groupsApi = {
       .select('*')
       .eq('group_id', id);
 
-    const attendanceMap: Record<string, { members: string[]; customDate?: string | null; selectedPriceKey?: string }> = {};
-    attendance?.forEach((att: DBTourAttendance) => {
+    const attendanceMap: Record<string, { members: string[]; customDate?: string | null; customTime?: string | null; selectedPriceKey?: string }> = {};
+    attendance?.forEach((att: any) => {
       const attendanceInfo = {
         members: att.members,
         customDate: att.custom_date || null,

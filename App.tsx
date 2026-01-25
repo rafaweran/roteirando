@@ -814,6 +814,17 @@ const AppContent: React.FC = () => {
       // Recarregar dados
       await loadGroups();
       
+      // Atualizar currentUserGroup com os dados mais recentes
+      try {
+        const refreshedGroup = await groupsApi.getById(currentUserGroup.id);
+        if (refreshedGroup) {
+          setCurrentUserGroup(refreshedGroup);
+          console.log('✅ App.tsx - currentUserGroup atualizado após salvar presença');
+        }
+      } catch (err) {
+        console.warn('⚠️ Não foi possível atualizar currentUserGroup após salvar presença:', err);
+      }
+      
       showSuccess(members.length > 0 ? 'Presença confirmada com sucesso!' : 'Presença cancelada com sucesso!');
     } catch (error: any) {
       console.error('❌ Erro ao salvar presença:', error);
@@ -844,6 +855,17 @@ const AppContent: React.FC = () => {
 
       // Recarregar dados
       await loadGroups();
+      
+      // Atualizar currentUserGroup com os dados mais recentes
+      try {
+        const refreshedGroup = await groupsApi.getById(currentUserGroup.id);
+        if (refreshedGroup) {
+          setCurrentUserGroup(refreshedGroup);
+          console.log('✅ App.tsx - currentUserGroup atualizado após alterar data/hora');
+        }
+      } catch (err) {
+        console.warn('⚠️ Não foi possível atualizar currentUserGroup após alterar data/hora:', err);
+      }
       
       showSuccess('Data e horário alterados com sucesso!');
     } catch (error: any) {
