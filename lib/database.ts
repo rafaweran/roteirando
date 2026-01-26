@@ -727,6 +727,40 @@ export const groupsApi = {
     );
   },
 
+  async getByLeaderEmail(email: string): Promise<Group | null> {
+    const normalizedEmail = email.toLowerCase().trim();
+    const { data: group, error } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('leader_email', normalizedEmail)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!group) return null;
+
+    // Fetch attendance for this group
+    const { data: attendance } = await supabase
+      .from('tour_attendance')
+      .select('*')
+      .eq('group_id', group.id);
+
+    const attendanceMap: Record<string, any> = {};
+    attendance?.forEach((att: any) => {
+      attendanceMap[att.tour_id] = {
+        members: att.members,
+        customDate: att.custom_date || null,
+        customTime: att.custom_time || null,
+        selectedPriceKey: att.selected_price_key || undefined,
+        isPaid: att.is_paid || false,
+        paymentDate: att.payment_date || null,
+        paymentMethod: att.payment_method || null,
+        documentUrls: att.document_urls || (att.document_url ? [att.document_url] : [])
+      };
+    });
+
+    return dbGroupToGroup(group, attendanceMap);
+  },
+
   async getById(id: string): Promise<Group | null> {
     const { data: group, error } = await supabase
       .from('groups')

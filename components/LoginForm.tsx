@@ -120,12 +120,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         return;
       }
 
-      // Buscar grupo específico por email
-      const allGroups = await groupsApi.getAll();
-      const userGroup = allGroups.find(g => {
-        if (!g.leaderEmail) return false;
-        return g.leaderEmail.toLowerCase().trim() === normalizedEmail;
-      });
+      // Buscar grupo específico por email - OTIIZADO
+      const userGroup = await groupsApi.getByLeaderEmail(normalizedEmail);
       
       if (userGroup) {
         // Verificar senha se o grupo tiver senha

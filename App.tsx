@@ -62,6 +62,7 @@ const AppContent: React.FC = () => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [isInitializing, setIsInitializing] = useState<boolean>(false);
 
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
@@ -299,24 +300,25 @@ const AppContent: React.FC = () => {
   const handleLoginSuccess = async (role: UserRole, group?: Group, adminData?: { email: string; password: string | null; passwordChanged?: boolean | null }, weakPassword?: boolean) => {
     try {
       setUserRole(role);
+      setIsInitializing(true);
       
       if (role === 'user' && group) {
         setCurrentUserGroup(group);
         setSelectedTripId(group.tripId);
         
-        // Não salvar sessão no localStorage por segurança
-        // O usuário deve fazer login sempre que acessar o sistema
-        
-        // Carregar dados em paralelo para melhor performance
+        // Carregar apenas o necessário para o usuário (OTIMIZADO)
+        // Usuário não precisa carregar todos os grupos do sistema
         const [updatedGroup] = await Promise.all([
           groupsApi.getById(group.id).catch(() => group),
           loadTrips(),
-          loadTours(),
-          loadGroups()
+          loadTours()
         ]);
         
+        // Para o usuário, o estado 'groups' conterá apenas o seu próprio grupo inicialmente
+        // ou os grupos da mesma viagem se necessário. Por enquanto, apenas o seu.
         if (updatedGroup) {
           setCurrentUserGroup(updatedGroup);
+          setGroups([updatedGroup]); // Otimização: não carrega todos os grupos
 
           // Verificar se precisa alterar senha (primeiro acesso OU senha fraca)
           if (!updatedGroup.passwordChanged || weakPassword) {
@@ -344,9 +346,6 @@ const AppContent: React.FC = () => {
           navigateToView('trip-details', null);
         }
       } else {
-        // Não salvar sessão do admin no localStorage por segurança
-        // O admin deve fazer login sempre que acessar o sistema
-        
         // Admin: carregar todos os dados em paralelo
         await Promise.all([
           loadTrips(),
@@ -375,6 +374,8 @@ const AppContent: React.FC = () => {
     } catch (err) {
       console.error('Erro no handleLoginSuccess:', err);
       showError('Erro ao fazer login. Tente novamente.');
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -1007,10 +1008,28 @@ const AppContent: React.FC = () => {
   // Rendering logic
   if (currentView === 'login') {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-white">
-        <div className="w-full max-w-md">
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-white relative">
+        <div className="w-full max-w-md relative z-10">
           <LoginForm onSuccess={handleLoginSuccess} />
         </div>
+        
+        {/* Overlay de Inicialização */}
+        {isInitializing && (
+          <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-300">
+            <div className="flex flex-col items-center max-w-xs text-center">
+              <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-6"></div>
+              <img 
+                src="/assets/logo.svg?v=2" 
+                alt="Roteirando" 
+                className="h-6 mb-4 opacity-50"
+              />
+              <h2 className="text-xl font-bold text-text-primary mb-2">Preparando tudo...</h2>
+              <p className="text-text-secondary text-sm">
+                Estamos carregando as informações das suas viagens. Só um instante!
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1090,6 +1109,7 @@ const AppContent: React.FC = () => {
           onAddTour={handleNewTourClick}
           tours={tours}
           trips={trips}
+          groups={groups}
         />
       )}
 

@@ -13,6 +13,7 @@ interface ToursListProps {
   onAddTour?: () => void;
   tours?: Tour[]; // Dados já carregados (opcional)
   trips?: Trip[]; // Dados já carregados (opcional)
+  groups?: Group[]; // Dados já carregados (opcional)
 }
 
 // Helper function to parse date string without timezone issues
@@ -27,11 +28,13 @@ const ToursList: React.FC<ToursListProps> = ({
   onDelete, 
   onAddTour,
   tours: toursProp,
-  trips: tripsProp
+  trips: tripsProp,
+  groups: groupsProp
 }) => {
   const [tours, setTours] = useState<Tour[]>(toursProp || []);
   const [trips, setTrips] = useState<Trip[]>(tripsProp || []);
-  const [loading, setLoading] = useState<boolean>(!toursProp || !tripsProp);
+  const [groups, setGroups] = useState<Group[]>(groupsProp || []);
+  const [loading, setLoading] = useState<boolean>(!toursProp || !tripsProp || !groupsProp);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -66,14 +69,17 @@ const ToursList: React.FC<ToursListProps> = ({
     if (tripsProp) {
       setTrips(tripsProp);
     }
-    if (toursProp && tripsProp) {
+    if (groupsProp) {
+      setGroups(groupsProp);
+    }
+    if (toursProp && tripsProp && groupsProp) {
       setLoading(false);
     }
-  }, [toursProp, tripsProp]);
+  }, [toursProp, tripsProp, groupsProp]);
 
   // Load data from database apenas se não foram fornecidos via props
   useEffect(() => {
-    if (toursProp && tripsProp) {
+    if (toursProp && tripsProp && groupsProp) {
       // Dados já foram fornecidos via props, não precisa carregar
       return;
     }
@@ -81,22 +87,25 @@ const ToursList: React.FC<ToursListProps> = ({
     const loadData = async () => {
       try {
         setLoading(true);
-        const [toursData, tripsData] = await Promise.all([
+        const [toursData, tripsData, groupsData] = await Promise.all([
           toursApi.getAll(),
-          tripsApi.getAll()
+          tripsApi.getAll(),
+          groupsApi.getAll()
         ]);
         setTours(toursData);
         setTrips(tripsData);
+        setGroups(groupsData);
       } catch (err: any) {
         console.error('Erro ao carregar dados:', err);
         setTours([]);
         setTrips([]);
+        setGroups([]);
       } finally {
         setLoading(false);
       }
     };
     loadData();
-  }, [toursProp, tripsProp]);
+  }, [toursProp, tripsProp, groupsProp]);
 
   // Close menu when clicking outside
   useEffect(() => {
