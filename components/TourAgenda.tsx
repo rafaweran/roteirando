@@ -246,93 +246,92 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
           </div>
 
           {/* Cabeçalho dos Dias */}
-          <div className="grid grid-cols-6 gap-2 sm:gap-3 mb-2 sm:mb-3">
-            {calendarDays.map((calendarDay) => (
-              <div 
-                key={calendarDay.day} 
-                className="text-center text-[10px] sm:text-xs font-semibold text-text-secondary py-1.5 sm:py-2"
-              >
-                {calendarDay.dayOfWeek}
-              </div>
-            ))}
-          </div>
-
-          {/* Dias 20 a 25 */}
-          <div className="grid grid-cols-6 gap-2 sm:gap-3">
-            {calendarDays.map((calendarDay) => {
-              const hasTours = calendarDay.tours.length > 0;
-              const isToday = new Date().toDateString() === calendarDay.date.toDateString();
-
-              return (
-                <div
-                  key={calendarDay.day}
-                  className={`
-                    min-h-[100px] sm:min-h-[120px] rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200
-                    ${hasTours 
-                      ? 'border-primary bg-primary/5 shadow-md' 
-                      : 'border-border bg-surface/30'
-                    }
-                    ${isToday && !hasTours ? 'border-primary/30 bg-primary/5' : ''}
-                  `}
-                >
-                  {/* Número do Dia */}
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`
-                      text-lg font-bold
-                      ${hasTours ? 'text-primary' : isToday ? 'text-primary' : 'text-text-secondary'}
-                    `}>
-                      {calendarDay.day}
-                    </span>
-                    {isToday && (
-                      <span className="text-[10px] font-medium text-primary bg-primary/20 px-1.5 py-0.5 rounded">
-                        Hoje
-                      </span>
-                    )}
+          <div className="overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-none">
+            <div className="min-w-[600px] sm:min-w-0">
+              <div className="grid grid-cols-6 gap-2 sm:gap-3 mb-2 sm:mb-3">
+                {calendarDays.map((calendarDay) => (
+                  <div 
+                    key={calendarDay.day} 
+                    className="text-center text-[10px] sm:text-xs font-semibold text-text-secondary py-1.5 sm:py-2"
+                  >
+                    {calendarDay.dayOfWeek}
                   </div>
+                ))}
+              </div>
 
-                  {/* Passeios do Dia */}
-                  <div className="space-y-2 max-h-[80px] overflow-y-auto">
-                    {calendarDay.tours.map((tour) => (
-                      <div
-                        key={tour.id}
-                        onClick={() => onViewTourDetail && onViewTourDetail(tour)}
-                        className={`
-                          p-2 rounded-lg text-xs cursor-pointer transition-all duration-200
-                          bg-white border border-primary/30 hover:bg-primary/10 hover:border-primary
-                          ${onViewTourDetail ? 'hover:shadow-md' : ''}
-                          ${tour.isPaid ? 'border-status-success/50 bg-status-success/5' : ''}
-                        `}
-                      >
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <div className="font-semibold text-text-primary line-clamp-1 flex-1">
-                            {tour.name}
+              {/* Dias 20 a 25 */}
+              <div className="grid grid-cols-6 gap-2 sm:gap-3">
+                {calendarDays.map((calendarDay) => {
+                  const hasTours = calendarDay.tours.length > 0;
+                  const isToday = new Date().toDateString() === calendarDay.date.toDateString();
+
+                  return (
+                    <div
+                      key={calendarDay.day}
+                      className={`
+                        min-h-[110px] sm:min-h-[120px] rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200
+                        ${hasTours 
+                          ? 'border-primary bg-primary/5 shadow-md' 
+                          : 'border-border bg-surface/30'
+                        }
+                        ${isToday && !hasTours ? 'border-primary/30 bg-primary/5' : ''}
+                      `}
+                    >
+                      {/* Número do Dia */}
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`
+                          text-base sm:text-lg font-bold
+                          ${hasTours ? 'text-primary' : isToday ? 'text-primary' : 'text-text-secondary'}
+                        `}>
+                          {calendarDay.day}
+                        </span>
+                        {isToday && (
+                          <span className="text-[8px] sm:text-[10px] font-medium text-primary bg-primary/20 px-1 sm:px-1.5 py-0.5 rounded">
+                            Hoje
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Passeios do Dia */}
+                      <div className="space-y-1.5 sm:space-y-2 max-h-[70px] sm:max-h-[80px] overflow-y-auto pr-0.5">
+                        {calendarDay.tours.map((tour) => (
+                          <div
+                            key={tour.id}
+                            onClick={() => onViewTourDetail && onViewTourDetail(tour)}
+                            className={`
+                              p-1.5 sm:p-2 rounded-lg text-[10px] sm:text-xs cursor-pointer transition-all duration-200
+                              bg-white border border-primary/30 hover:bg-primary/10 hover:border-primary
+                              ${onViewTourDetail ? 'hover:shadow-md' : ''}
+                              ${tour.isPaid ? 'border-status-success/50 bg-status-success/5' : ''}
+                            `}
+                          >
+                            <div className="flex flex-col gap-0.5 mb-1">
+                              <div className="font-semibold text-text-primary line-clamp-1 leading-tight">
+                                {tour.name}
+                              </div>
+                              {tour.isPaid && (
+                                <div className="w-fit bg-status-success text-white px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] font-bold">
+                                  PAGO
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 text-text-secondary">
+                              <Clock size={8} className="text-primary sm:w-[10px] sm:h-[10px]" />
+                              <span className="text-[9px] sm:text-[10px]">{tour.displayTime}</span>
+                            </div>
                           </div>
-                          {tour.isPaid && (
-                            <span className="bg-status-success text-white px-1 py-0.5 rounded text-[8px] font-bold flex-shrink-0">
-                              PAGO
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-text-secondary">
-                          <Clock size={10} className="text-primary" />
-                          <span>{tour.displayTime}</span>
-                        </div>
-                        {(tour.customDate || tour.customTime) && (
-                          <div className="text-[10px] text-primary mt-1 font-medium">
-                            📅 {tour.customDate && tour.customTime ? 'Data e horário personalizados' : tour.customDate ? 'Data personalizada' : 'Horário personalizado'}
+                        ))}
+                        {!hasTours && (
+                          <div className="text-[9px] sm:text-[10px] text-text-disabled text-center py-2 leading-tight">
+                            Sem passeio
                           </div>
                         )}
                       </div>
-                    ))}
-                    {!hasTours && (
-                      <div className="text-[10px] text-text-disabled text-center py-2">
-                        Sem passeios
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -491,15 +490,15 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
       )}
 
       {/* Resumo */}
-      <div className="mt-6 bg-white rounded-[24px] border border-border p-6">
-        <div className="flex items-center justify-between">
+      <div className="mt-6 bg-white rounded-xl sm:rounded-[24px] border border-border p-4 sm:p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-text-secondary mb-1">Total de passeios confirmados</p>
-            <p className="text-2xl font-bold text-text-primary">{totalTours}</p>
+            <p className="text-[10px] sm:text-sm text-text-secondary uppercase tracking-wider font-bold mb-1">Total de passeios</p>
+            <p className="text-xl sm:text-2xl font-bold text-text-primary">{totalTours}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-text-secondary mb-1">Valor total estimado</p>
-            <p className="text-2xl font-bold text-status-success">
+            <p className="text-[10px] sm:text-sm text-text-secondary uppercase tracking-wider font-bold mb-1">Valor total estimado</p>
+            <p className="text-xl sm:text-2xl font-bold text-status-success">
               R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
           </div>
