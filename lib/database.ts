@@ -119,7 +119,7 @@ function dbTourToTour(dbTour: DBTour, links: TourLink[] = []): Tour {
   };
 }
 
-function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, { members: string[]; customDate?: string | null; customTime?: string | null; selectedPriceKey?: string }> = {}): Group {
+function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, any> = {}): Group {
   // Se password_changed for null, undefined ou false, considerar como primeiro acesso
   // Apenas se for explicitamente true, considerar que já alterou
   const passwordChanged = dbGroup.password_changed === true;

@@ -38,6 +38,8 @@ const FinancialView: React.FC = () => {
   // Calcular estatísticas financeiras baseadas em confirmações reais
   const financials = useMemo(() => {
     let totalRevenue = 0;
+    let paidRevenue = 0;
+    let pendingRevenue = 0;
     let totalTours = 0;
     let totalGroups = 0;
     let totalPeople = 0;
@@ -92,7 +94,16 @@ const FinancialView: React.FC = () => {
               }
             }
             
-            totalRevenue += pricePerPerson * members.length;
+            const revenue = pricePerPerson * members.length;
+            totalRevenue += revenue;
+
+            // Verificar se está pago
+            const isPaid = (attendance as any)?.isPaid || false;
+            if (isPaid) {
+              paidRevenue += revenue;
+            } else {
+              pendingRevenue += revenue;
+            }
           }
         }
       });
@@ -123,6 +134,8 @@ const FinancialView: React.FC = () => {
 
     return {
       totalRevenue,
+      paidRevenue,
+      pendingRevenue,
       totalTours,
       totalGroups,
       totalPeople,
@@ -225,10 +238,20 @@ const FinancialView: React.FC = () => {
             </div>
             <TrendingUp size={18} className="sm:w-5 sm:h-5 text-status-success" />
           </div>
-          <h3 className="text-xs sm:text-sm font-medium text-text-secondary mb-1">Receita Total</h3>
+          <h3 className="text-xs sm:text-sm font-medium text-text-secondary mb-1">Receita Total Estimada</h3>
           <p className="text-xl sm:text-2xl font-bold text-text-primary break-words">
             R$ {financials.totalRevenue.toFixed(2).replace('.', ',')}
           </p>
+          <div className="mt-3 space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-status-success font-medium">Recebido:</span>
+              <span className="font-bold text-text-primary">R$ {financials.paidRevenue.toFixed(2).replace('.', ',')}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-status-error font-medium">Pendente:</span>
+              <span className="font-bold text-text-primary">R$ {financials.pendingRevenue.toFixed(2).replace('.', ',')}</span>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white rounded-custom border border-border p-4 sm:p-6 shadow-sm">

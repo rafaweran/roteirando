@@ -7,6 +7,15 @@ interface GroupCardProps {
 }
 
 const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
+  // Calcular resumo de pagamentos
+  const attendance = group.tourAttendance || {};
+  const tourIds = Object.keys(attendance);
+  const confirmedCount = tourIds.length;
+  const paidCount = tourIds.filter(id => {
+    const att = attendance[id];
+    return Array.isArray(att) ? false : !!att.isPaid;
+  }).length;
+
   return (
     <div className="bg-white rounded-custom border border-border p-4 flex items-center justify-between hover:bg-surface/50 transition-colors cursor-pointer group">
       <div className="flex items-center gap-4">
@@ -14,7 +23,20 @@ const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
           <Users size={20} />
         </div>
         <div>
-          <h4 className="font-semibold text-text-primary">{group.name}</h4>
+          <div className="flex items-center gap-2">
+            <h4 className="font-semibold text-text-primary">{group.name}</h4>
+            {confirmedCount > 0 && (
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                paidCount === confirmedCount 
+                  ? 'bg-status-success text-white' 
+                  : paidCount > 0 
+                    ? 'bg-status-warning text-white' 
+                    : 'bg-status-error text-white'
+              }`}>
+                {paidCount}/{confirmedCount} PAGOS
+              </span>
+            )}
+          </div>
           <div className="flex items-center text-xs text-text-secondary gap-3">
             <span className="flex items-center">
               <User size={12} className="mr-1" />

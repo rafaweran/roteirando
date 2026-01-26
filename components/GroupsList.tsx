@@ -274,11 +274,33 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
                             </div>
                           </div>
                         </td>
-                         <td className="py-4 px-6">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-surface text-text-primary border border-border">
-                            <Users size={12} className="text-text-secondary" />
-                            {group.membersCount} pessoas
-                          </span>
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-surface text-text-primary border border-border">
+                              <Users size={12} className="text-text-secondary" />
+                              {group.membersCount} pessoas
+                            </span>
+                            {group.tourAttendance && Object.keys(group.tourAttendance).length > 0 && (
+                              <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider w-fit ${
+                                Object.keys(group.tourAttendance).every(id => {
+                                  const att = group.tourAttendance![id];
+                                  return Array.isArray(att) ? false : !!att.isPaid;
+                                }) 
+                                  ? 'text-status-success bg-status-success/10' 
+                                  : Object.keys(group.tourAttendance).some(id => {
+                                      const att = group.tourAttendance![id];
+                                      return Array.isArray(att) ? false : !!att.isPaid;
+                                    })
+                                    ? 'text-status-warning bg-status-warning/10'
+                                    : 'text-status-error bg-status-error/10'
+                              }`}>
+                                {Object.keys(group.tourAttendance).filter(id => {
+                                  const att = group.tourAttendance![id];
+                                  return Array.isArray(att) ? false : !!att.isPaid;
+                                }).length}/{Object.keys(group.tourAttendance).length} Pagos
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-2">

@@ -334,7 +334,8 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
         return {
           ...g,
           attendingCount: members.length,
-          attendingNames: members
+          attendingNames: members,
+          isPaid: (attendance as any)?.isPaid || false
         };
       });
 
@@ -952,7 +953,18 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
                         <Users size={18} className="text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-text-primary mb-1 break-words">{group.name}</h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-text-primary break-words">{group.name}</h3>
+                          {group.isPaid ? (
+                            <span className="px-2 py-0.5 bg-status-success text-white text-[10px] font-bold rounded uppercase tracking-wider">
+                              Pago
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-status-error/10 text-status-error text-[10px] font-bold rounded uppercase tracking-wider">
+                              Pendente
+                            </span>
+                          )}
+                        </div>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-sm text-text-secondary">
                             <span className="font-medium">Líder:</span>

@@ -163,11 +163,32 @@ const ToursList: React.FC<ToursListProps> = ({
   // Join Tours with Trip data to access Trip Status and Name
   const enrichedTours = tours.map(tour => {
     const trip = trips.find(t => t.id === tour.tripId);
+    
+    // Calcular estatísticas de pagamento para este tour
+    let confirmedPeople = 0;
+    let paidPeople = 0;
+    
+    groups.forEach(group => {
+      const attendance = group.tourAttendance?.[tour.id];
+      if (attendance) {
+        const members = Array.isArray(attendance) ? attendance : (attendance.members || []);
+        if (members.length > 0) {
+          confirmedPeople += members.length;
+          const isPaid = Array.isArray(attendance) ? false : !!attendance.isPaid;
+          if (isPaid) {
+            paidPeople += members.length;
+          }
+        }
+      }
+    });
+
     return {
       ...tour,
       tripName: trip ? trip.name : 'Viagem desconhecida',
       tripDestination: trip ? trip.destination : '',
-      tripStatus: trip ? trip.status : ''
+      tripStatus: trip ? trip.status : '',
+      confirmedPeople,
+      paidPeople
     };
   });
 
@@ -568,6 +589,7 @@ const ToursList: React.FC<ToursListProps> = ({
                       <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider">Passeio</th>
                       <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider">Viagem Associada</th>
                       <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider">Data & Hora</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider">Pagamentos</th>
                       <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider">Valor</th>
                       <th className="py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider text-right">Ações</th>
                     </tr>
@@ -624,6 +646,26 @@ const ToursList: React.FC<ToursListProps> = ({
                               <Clock size={14} className="text-text-disabled" />
                               {tour.time}
                             </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5">
+                              <Users size={14} className="text-primary/70" />
+                              <span className="text-sm font-bold text-text-primary">{tour.confirmedPeople}</span>
+                              <span className="text-xs text-text-secondary">confirmados</span>
+                            </div>
+                            {tour.confirmedPeople > 0 && (
+                              <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase w-fit ${
+                                tour.paidPeople === tour.confirmedPeople 
+                                  ? 'bg-status-success text-white' 
+                                  : tour.paidPeople > 0 
+                                    ? 'bg-status-warning text-white' 
+                                    : 'bg-status-error text-white'
+                              }`}>
+                                {tour.paidPeople}/{tour.confirmedPeople} PAGOS
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="py-4 px-6">
