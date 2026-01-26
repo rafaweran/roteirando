@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CalendarDays, Check, Plus, Edit2, ListChecks, X, Eye } from 'lucide-react';
+import { Clock, CalendarDays, Check, Plus, Edit2, ListChecks, X, Eye, Users } from 'lucide-react';
 import { Tour, Group } from '../types';
 import Button from './Button';
 
