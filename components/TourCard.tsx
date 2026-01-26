@@ -123,7 +123,9 @@ const TourCard: React.FC<TourCardProps> = ({
   };
 
   const handleCardClick = () => {
-    if (onViewTourDetail) {
+    if (!isUserView && onViewAttendanceList) {
+      onViewAttendanceList(tour);
+    } else if (onViewTourDetail) {
       onViewTourDetail(tour);
     }
   };

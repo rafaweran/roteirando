@@ -8,7 +8,11 @@ const parseLocalDate = (dateStr: string): Date => {
   return new Date(dateStr + 'T12:00:00');
 };
 
-const FinancialView: React.FC = () => {
+interface FinancialViewProps {
+  onTourClick?: (tour: Tour) => void;
+}
+
+const FinancialView: React.FC<FinancialViewProps> = ({ onTourClick }) => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tours, setTours] = useState<Tour[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -315,7 +319,8 @@ const FinancialView: React.FC = () => {
               return (
                 <div 
                   key={stat.tour.id} 
-                  className="p-4 bg-surface rounded-xl border border-border hover:border-primary/30 transition-all hover:shadow-md"
+                  className="p-4 bg-surface rounded-xl border border-border hover:border-primary/30 transition-all hover:shadow-md cursor-pointer"
+                  onClick={() => onTourClick?.(stat.tour)}
                 >
                   <div className="flex items-start gap-4">
                     {/* Ranking Badge */}

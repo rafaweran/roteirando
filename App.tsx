@@ -449,11 +449,13 @@ const AppContent: React.FC = () => {
     navigateToView('edit-tour', tour.tripId);
   };
 
+  const handleViewTourAttendanceDirect = (tour: Tour) => {
+    setSelectedTourForAttendance(tour);
+    navigateToView('tour-attendance', tour.tripId, tour.id);
+  };
+
   const handleViewTourAttendance = (tour: Tour) => {
-    // Quando clica em "Ver Lista", ir para a aba de grupos do TripDetails com o passeio selecionado
-    setSelectedTourForGroups(tour.id);
-    setTripDetailsInitialTab('groups');
-    navigateToView('trip-details', tour.tripId);
+    handleViewTourAttendanceDirect(tour);
   };
 
   const handleViewTourDetail = (tour: Tour) => {
@@ -530,10 +532,7 @@ const AppContent: React.FC = () => {
   };
 
   const handleViewTourGroups = (tour: Tour) => {
-    // Visualizar grupos que confirmaram presença neste passeio específico
-    setSelectedTourForGroups(tour.id);
-    setTripDetailsInitialTab('groups');
-    navigateToView('trip-details', tour.tripId);
+    handleViewTourAttendanceDirect(tour);
   };
 
   const handleNewGroupClick = () => {
@@ -1214,7 +1213,7 @@ const AppContent: React.FC = () => {
       )}
 
       {currentView === 'financial' && userRole === 'admin' && (
-        <FinancialView />
+        <FinancialView onTourClick={handleViewTourAttendanceDirect} />
       )}
 
       {currentView === 'agenda' && userRole === 'user' && currentUserGroup && (
