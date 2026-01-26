@@ -1134,6 +1134,7 @@ const AppContent: React.FC = () => {
         <GroupsList 
           onEdit={handleEditGroup}
           onDelete={handleDeleteGroup}
+          onViewGroup={handleViewGroup}
           onAddGroup={handleNewGroupClick}
         />
       )}

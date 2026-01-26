@@ -8,10 +8,11 @@ import { Group, Trip } from '../types';
 interface GroupsListProps {
   onEdit?: (group: Group) => void;
   onDelete?: (groupId: string) => void;
+  onViewGroup?: (tripId: string) => void;
   onAddGroup: () => void;
 }
 
-const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup }) => {
+const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onViewGroup, onAddGroup }) => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -102,6 +103,11 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
     }
   };
 
+  const handleViewClick = (group: Group) => {
+    setActiveMenuId(null);
+    if (onViewGroup) onViewGroup(group.tripId);
+  };
+
   // Enrich groups with Trip data
   const enrichedGroups = groups.map(group => {
     const trip = trips.find(t => t.id === group.tripId);
@@ -126,6 +132,13 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
   const ActionMenu = ({ group }: { group: any }) => (
     <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-border z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
       <div className="p-1 flex flex-col gap-0.5">
+        <button 
+          onClick={() => handleViewClick(group)}
+          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-text-secondary hover:text-primary hover:bg-surface rounded-lg transition-colors text-left"
+        >
+          <Search size={16} />
+          Visualizar Viagem
+        </button>
         <button 
           onClick={() => handleEditClick(group)}
           className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-text-secondary hover:text-primary hover:bg-surface rounded-lg transition-colors text-left"
@@ -179,7 +192,7 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
                 type="text"
                 placeholder="Buscar por nome do grupo, líder ou viagem..."
                 className="w-full h-10 pl-10 pr-4 rounded-lg border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                style={{ opacity: 0, color: 'rgba(102, 102, 102, 1)' }}
+                style={{ color: 'rgba(102, 102, 102, 1)' }}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -246,8 +259,8 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
             </div>
 
             {/* DESKTOP VIEW: Table */}
-            <div className="hidden md:block bg-white rounded-custom border border-border shadow-sm overflow-visible"> 
-              <div className="overflow-x-auto min-h-[400px]">
+            <div className="hidden md:block bg-white rounded-custom border border-border shadow-sm"> 
+              <div className="overflow-visible min-h-[400px]">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-surface border-b border-border">
@@ -323,14 +336,44 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
                             </span>
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-right relative action-menu-container">
-                          <button 
-                            onClick={(e) => handleToggleMenu(e, group.id)}
-                            className={`p-2 rounded-full transition-colors ${activeMenuId === group.id ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:text-primary hover:bg-surface'}`}
-                          >
-                            <MoreVertical size={18} />
-                          </button>
-                          {activeMenuId === group.id && <ActionMenu group={group} />}
+                        <td className="py-4 px-6 text-right overflow-visible">
+                          <div className="inline-block relative action-menu-container text-left">
+                            <button 
+                              onClick={(e) => handleToggleMenu(e, group.id)}
+                              className={`p-2 rounded-full transition-colors ${activeMenuId === group.id ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:text-primary hover:bg-surface'}`}
+                            >
+                              <MoreVertical size={18} />
+                            </button>
+                            
+                            {activeMenuId === group.id && (
+                              <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-border z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                <div className="p-1 flex flex-col gap-0.5">
+                                  <button 
+                                    onClick={() => handleViewClick(group)}
+                                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-text-secondary hover:text-primary hover:bg-surface rounded-lg transition-colors text-left"
+                                  >
+                                    <Search size={16} />
+                                    Visualizar Viagem
+                                  </button>
+                                  <button 
+                                    onClick={() => handleEditClick(group)}
+                                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-text-secondary hover:text-primary hover:bg-surface rounded-lg transition-colors text-left"
+                                  >
+                                    <Edit size={16} />
+                                    Editar Grupo
+                                  </button>
+                                  <div className="h-px bg-border my-1 mx-2"></div>
+                                  <button 
+                                    onClick={() => handleDeleteClick(group)}
+                                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-status-error hover:bg-status-error/5 rounded-lg transition-colors text-left font-medium"
+                                  >
+                                    <Trash2 size={16} />
+                                    Deletar
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
