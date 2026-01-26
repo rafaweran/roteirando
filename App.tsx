@@ -134,16 +134,20 @@ const AppContent: React.FC = () => {
     setCurrentView('login');
     console.log('🔒 Sistema de login: sessão antiga removida, login obrigatório');
     
+    // Inicializar estado do histórico para a página inicial (login)
+    // Isso garante que o botão voltar funcione corretamente desde o início
+    const currentHash = window.location.hash || '#login';
+    window.history.replaceState({ view: 'login' }, '', currentHash);
+    
     // Inicializar histórico de navegação
     setNavigationHistory([{ view: 'login' }]);
   }, []); // Executar apenas uma vez ao montar
 
   // Função para adicionar entrada ao histórico e atualizar URL
   const navigateToView = (view: View, tripId?: string | null, tourId?: string | null, addToHistory: boolean = true) => {
-    // Se estiver navegando para trás, apenas atualizar o estado sem adicionar ao histórico
+    // Se estiver navegando para trás (via popstate), apenas atualizar o estado sem adicionar ao histórico
     if (isNavigatingBack) {
       setIsNavigatingBack(false);
-      // Apenas atualizar estado, não adicionar ao histórico
       setCurrentView(view);
       if (tripId !== undefined) setSelectedTripId(tripId);
       if (tourId !== undefined) {
@@ -158,36 +162,41 @@ const AppContent: React.FC = () => {
       return;
     }
     
-    if (addToHistory && currentView !== 'login') {
-      // Adicionar estado atual ao histórico antes de mudar
-      const currentState = {
-        view: currentView,
-        tripId: selectedTripId,
-        tourId: selectedTourForDetail?.id || selectedTourForAttendance?.id || undefined
-      };
-      
-      setNavigationHistory(prev => {
-        // Não adicionar se for o mesmo estado
-        const lastState = prev[prev.length - 1];
-        if (lastState && 
-            lastState.view === currentState.view && 
-            lastState.tripId === currentState.tripId && 
-            lastState.tourId === currentState.tourId) {
-          return prev;
-        }
-        return [...prev, currentState];
-      });
-      
-      // Adicionar ao histórico do navegador
+    if (addToHistory) {
       const urlFragment = VIEW_URL_MAP[view] || view;
-      window.history.pushState(
-        { view, tripId, tourId },
-        '',
-        `#${urlFragment}`
-      );
+      const newState = { view, tripId, tourId };
+
+      if (currentView === 'login') {
+        // Se estamos saindo do login, substituímos a entrada atual (login) pela nova (dashboard/etc)
+        // Isso evita que o usuário volte para a tela de login após entrar no app
+        window.history.replaceState(newState, '', `#${urlFragment}`);
+        setNavigationHistory([{ view, tripId, tourId }]);
+      } else {
+        // Navegação normal: adicionar entrada ao histórico do navegador
+        window.history.pushState(newState, '', `#${urlFragment}`);
+        
+        // Adicionar estado ATUAL ao histórico interno antes de mudar (para fallback no popstate)
+        const currentState = {
+          view: currentView,
+          tripId: selectedTripId,
+          tourId: selectedTourForDetail?.id || selectedTourForAttendance?.id || undefined
+        };
+        
+        setNavigationHistory(prev => {
+          // Não adicionar se for exatamente igual ao último (evita loops)
+          const lastState = prev[prev.length - 1];
+          if (lastState && 
+              lastState.view === currentState.view && 
+              lastState.tripId === currentState.tripId && 
+              lastState.tourId === currentState.tourId) {
+            return prev;
+          }
+          return [...prev, currentState];
+        });
+      }
     }
     
-    // Atualizar estado
+    // Atualizar estado do React para refletir a nova view
     setCurrentView(view);
     if (tripId !== undefined) setSelectedTripId(tripId);
     if (tourId !== undefined) {
@@ -207,17 +216,31 @@ const AppContent: React.FC = () => {
       if (event.state) {
         setIsNavigatingBack(true);
         const { view, tripId, tourId } = event.state;
+        
+        // Atualizar estado do React
         setCurrentView(view as View);
         if (tripId !== undefined) setSelectedTripId(tripId);
         if (tourId !== undefined) {
-          if (view === 'tour-detail') {
-            const tour = tours.find(t => t.id === tourId);
-            if (tour) setSelectedTourForDetail(tour);
-          } else if (view === 'tour-attendance') {
-            const tour = tours.find(t => t.id === tourId);
-            if (tour) setSelectedTourForAttendance(tour);
+          const tour = tours.find(t => t.id === tourId);
+          if (tour) {
+            if (view === 'tour-detail') setSelectedTourForDetail(tour);
+            else if (view === 'tour-attendance') setSelectedTourForAttendance(tour);
           }
         }
+
+        // Sincronizar o histórico interno para refletir que voltamos
+        // Isso ajuda a manter o fallback (else block) preciso
+        setNavigationHistory(prev => {
+          let lastMatchIndex = -1;
+          for (let i = prev.length - 1; i >= 0; i--) {
+            if (prev[i].view === view && prev[i].tripId === (tripId || null) && prev[i].tourId === (tourId || undefined)) {
+              lastMatchIndex = i;
+              break;
+            }
+          }
+          if (lastMatchIndex !== -1) return prev.slice(0, lastMatchIndex + 1);
+          return prev;
+        });
       } else {
         // Se não houver state, tentar recuperar do hash amigável (bookmark ou link externo)
         const hash = window.location.hash.replace('#', '');
