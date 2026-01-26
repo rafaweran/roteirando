@@ -1051,6 +1051,7 @@ const AppContent: React.FC = () => {
       onNavigateDestinosGuide={handleNavigateDestinosGuide}
       onNavigateMyTrip={handleNavigateMyTrip}
       onNavigateCustomTours={handleNavigateCustomTours}
+      currentView={currentView}
       userRole={userRole}
       userName={userRole === 'user' ? currentUserGroup?.leaderName : 'Admin User'}
       userEmail={userRole === 'user' ? currentUserGroup?.leaderEmail : 'admin@travel.com'}

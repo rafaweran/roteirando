@@ -30,6 +30,7 @@ interface LayoutProps {
   onNavigateDestinosGuide?: () => void;
   onNavigateMyTrip?: () => void;
   onNavigateCustomTours?: () => void;
+  currentView?: string;
   title?: string;
   userRole?: UserRole;
   userName?: string;
@@ -48,6 +49,7 @@ const Layout: React.FC<LayoutProps> = ({
   onNavigateDestinosGuide,
   onNavigateMyTrip,
   onNavigateCustomTours,
+  currentView = 'dashboard',
   userRole = 'admin',
   userName = 'Admin User',
   userEmail = 'admin@travel.com'
@@ -159,26 +161,31 @@ const Layout: React.FC<LayoutProps> = ({
                 <NavItem 
                   icon={Map} 
                   label="Lista de Passeios" 
+                  isActive={currentView === 'trip-details' || currentView === 'dashboard'}
                   onClick={onNavigateHome} 
                 />
                 <NavItem 
                   icon={Calendar} 
                   label="Minha Agenda" 
+                  isActive={currentView === 'agenda'}
                   onClick={onNavigateAgenda || onNavigateHome} 
                 />
                 <NavItem 
                   icon={CalendarPlus} 
                   label="Meus Passeios" 
+                  isActive={currentView === 'custom-tours'}
                   onClick={onNavigateCustomTours || onNavigateHome} 
                 />
                 <NavItem 
                   icon={Luggage} 
                   label="Minha Viagem" 
+                  isActive={currentView === 'my-trip'}
                   onClick={onNavigateMyTrip || onNavigateHome} 
                 />
                 <NavItem 
                   icon={BookOpen} 
                   label="Guia de Destinos" 
+                  isActive={currentView === 'destinos-guide'}
                   onClick={onNavigateDestinosGuide || (() => console.warn('onNavigateDestinosGuide não está definido'))}
                 />
               </>
@@ -187,13 +194,14 @@ const Layout: React.FC<LayoutProps> = ({
                 <NavItem 
                   icon={LayoutDashboard} 
                   label="Dashboard" 
+                  isActive={currentView === 'dashboard'}
                   onClick={onNavigateHome} 
                 />
                 
                 <NavItem 
                   icon={Map} 
                   label="Viagens" 
-                  isActive={true} 
+                  isActive={currentView === 'trip-details' || currentView === 'all-tours' || currentView === 'all-groups' || currentView === 'tour-attendance' || currentView === 'tour-detail'} 
                   hasSubmenu={userRole === 'admin'} 
                   onClick={onNavigateHome}
                 >
@@ -214,11 +222,13 @@ const Layout: React.FC<LayoutProps> = ({
                 <NavItem 
                   icon={CreditCard} 
                   label="Administrativo" 
+                  isActive={currentView === 'financial'}
                   onClick={onNavigateFinancial || (() => {})}
                 />
                 <NavItem 
                   icon={BookOpen} 
                   label="Guia de Cidades" 
+                  isActive={currentView === 'city-guide'}
                   onClick={onNavigateCityGuide || onNavigateHome}
                 />
                 <NavItem icon={Settings} label="Configurações" />
@@ -293,6 +303,7 @@ const Layout: React.FC<LayoutProps> = ({
                   <MobileNavItem 
                     icon={Map} 
                     label="Lista de Passeios" 
+                    isActive={currentView === 'trip-details' || currentView === 'dashboard'}
                     onClick={() => {
                       onNavigateHome();
                       setIsMobileMenuOpen(false);
@@ -301,6 +312,7 @@ const Layout: React.FC<LayoutProps> = ({
                   <MobileNavItem 
                     icon={Calendar} 
                     label="Minha Agenda" 
+                    isActive={currentView === 'agenda'}
                     onClick={() => {
                       onNavigateAgenda?.();
                       setIsMobileMenuOpen(false);
@@ -309,6 +321,7 @@ const Layout: React.FC<LayoutProps> = ({
                   <MobileNavItem 
                     icon={CalendarPlus} 
                     label="Meus Passeios" 
+                    isActive={currentView === 'custom-tours'}
                     onClick={() => {
                       onNavigateCustomTours?.();
                       setIsMobileMenuOpen(false);
@@ -317,6 +330,7 @@ const Layout: React.FC<LayoutProps> = ({
                   <MobileNavItem 
                     icon={Luggage} 
                     label="Minha Viagem" 
+                    isActive={currentView === 'my-trip'}
                     onClick={() => {
                       onNavigateMyTrip?.();
                       setIsMobileMenuOpen(false);
@@ -325,6 +339,7 @@ const Layout: React.FC<LayoutProps> = ({
                   <MobileNavItem 
                     icon={BookOpen} 
                     label="Guia de Destinos" 
+                    isActive={currentView === 'destinos-guide'}
                     onClick={() => {
                       onNavigateDestinosGuide?.();
                       setIsMobileMenuOpen(false);
@@ -335,6 +350,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <MobileNavItem 
                   icon={LayoutDashboard} 
                   label="Dashboard" 
+                  isActive={currentView === 'dashboard'}
                   onClick={() => {
                     onNavigateHome();
                     setIsMobileMenuOpen(false);
@@ -345,7 +361,7 @@ const Layout: React.FC<LayoutProps> = ({
               <MobileNavItem 
                 icon={Map} 
                 label="Viagens" 
-                isActive={true}
+                isActive={currentView === 'trip-details' || currentView === 'all-tours' || currentView === 'all-groups' || currentView === 'tour-attendance' || currentView === 'tour-detail'}
                 hasSubmenu={userRole === 'admin'}
                 isOpen={isMobileSubmenuOpen}
                 onToggle={() => setIsMobileSubmenuOpen(!isMobileSubmenuOpen)}
@@ -363,7 +379,7 @@ const Layout: React.FC<LayoutProps> = ({
                       onNavigateHome();
                       setIsMobileMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm ${currentView === 'dashboard' ? 'text-primary bg-primary/5 font-medium' : 'text-text-secondary hover:text-primary hover:bg-surface'}`}
                   >
                     <Map size={16} />
                     Minhas Viagens
@@ -373,7 +389,7 @@ const Layout: React.FC<LayoutProps> = ({
                       onNavigateTours();
                       setIsMobileMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm ${currentView === 'all-tours' ? 'text-primary bg-primary/5 font-medium' : 'text-text-secondary hover:text-primary hover:bg-surface'}`}
                   >
                     <TentTree size={16} />
                     Passeios
@@ -383,7 +399,7 @@ const Layout: React.FC<LayoutProps> = ({
                       onNavigateGroups();
                       setIsMobileMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface text-sm"
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm ${currentView === 'all-groups' ? 'text-primary bg-primary/5 font-medium' : 'text-text-secondary hover:text-primary hover:bg-surface'}`}
                   >
                     <Users size={16} />
                     Grupos
@@ -396,18 +412,20 @@ const Layout: React.FC<LayoutProps> = ({
                   <MobileNavItem 
                     icon={CreditCard} 
                     label="Administrativo" 
+                    isActive={currentView === 'financial'}
                     onClick={() => {
                       onNavigateFinancial?.();
                       setIsMobileMenuOpen(false);
-                    }}
+                    }} 
                   />
                   <MobileNavItem 
                     icon={BookOpen} 
                     label="Guia de Cidades" 
+                    isActive={currentView === 'city-guide'}
                     onClick={() => {
                       onNavigateCityGuide?.();
                       setIsMobileMenuOpen(false);
-                    }}
+                    }} 
                   />
                   <MobileNavItem icon={Settings} label="Configurações" />
                 </>
