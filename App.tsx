@@ -56,6 +56,7 @@ const AppContent: React.FC = () => {
   // User Session State
   const [userRole, setUserRole] = useState<UserRole>('admin');
   const [currentUserGroup, setCurrentUserGroup] = useState<Group | null>(null);
+  const [companionGroup, setCompanionGroup] = useState<Group | null>(null);
 
   // Data State - Carregar do banco de dados
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -319,6 +320,19 @@ const AppContent: React.FC = () => {
         if (updatedGroup) {
           setCurrentUserGroup(updatedGroup);
           setGroups([updatedGroup]); // Otimização: não carrega todos os grupos
+
+          // Carregar grupo parceiro se existir
+          if (updatedGroup.companionGroupId) {
+            try {
+              const companion = await groupsApi.getById(updatedGroup.companionGroupId);
+              if (companion) {
+                setCompanionGroup(companion);
+                console.log('✅ Grupo parceiro carregado:', companion.name);
+              }
+            } catch (err) {
+              console.warn('⚠️ Não foi possível carregar o grupo parceiro:', err);
+            }
+          }
 
           // Verificar se precisa alterar senha (primeiro acesso OU senha fraca)
           if (!updatedGroup.passwordChanged || weakPassword) {
@@ -614,6 +628,7 @@ const AppContent: React.FC = () => {
           leaderEmail: groupData.leaderEmail,
           leaderPhone: groupData.leaderPhone || '',
           tripId: groupData.tripId,
+          companionGroupId: groupData.companionGroupId,
           // Se senha foi alterada, usar a nova, senão manter a existente
           leaderPassword: groupData.leaderPassword || editingGroup.leaderPassword,
           // Manter passwordChanged do grupo original
@@ -645,6 +660,7 @@ const AppContent: React.FC = () => {
           leaderPhone: groupData.leaderPhone || '',
           leaderPassword: groupData.leaderPassword, // CRÍTICO: senha hasheada
           tripId: groupData.tripId,
+          companionGroupId: groupData.companionGroupId,
           passwordChanged: false, // Primeiro acesso, precisa alterar senha
         };
         
@@ -1206,6 +1222,7 @@ const AppContent: React.FC = () => {
             trip={trip}
             userRole={userRole}
             userGroup={userRole === 'user' ? currentUserGroup : undefined}
+            companionGroup={userRole === 'user' ? companionGroup : undefined}
             groups={tourGroups}
             onBack={handleBackFromTourDetail}
             onConfirmAttendance={userRole === 'user' ? handleSaveAttendance : undefined}
@@ -1265,6 +1282,7 @@ const AppContent: React.FC = () => {
           tours={tours}
           trips={trips}
           userGroup={currentUserGroup}
+          companionGroup={companionGroup}
           onViewTourDetail={handleViewTourDetail}
           onAddCustomTour={handleNavigateCustomTours}
           onCancelAttendance={handleCancelAttendance}

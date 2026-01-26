@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MoreVertical, Download, Edit, Trash2, Users, X, User, Plus } from 'lucide-react';
+import { Search, MoreVertical, Download, Edit, Trash2, Users, X, User, Plus, Link } from 'lucide-react';
 import { groupsApi, tripsApi } from '../lib/database';
 import Button from './Button';
 import Modal from './Modal';
@@ -267,9 +267,20 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onAddGroup })
                             </div>
                             <div>
                               <p className="font-semibold text-text-primary">{group.name}</p>
-                              <div className="flex items-center text-xs text-text-secondary mt-0.5">
-                                <User size={12} className="mr-1" />
-                                {group.leaderName}
+                              <div className="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
+                                <span className="flex items-center">
+                                  <User size={12} className="mr-1" />
+                                  {group.leaderName}
+                                </span>
+                                {group.companionGroupId && (
+                                  <>
+                                    <span className="text-text-disabled">•</span>
+                                    <span className="flex items-center gap-1 text-amber-600 font-medium">
+                                      <Link size={10} />
+                                      Com Parceiro
+                                    </span>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>

@@ -43,6 +43,7 @@ interface DBGroup {
   leader_email: string | null;
   leader_password: string | null;
   password_changed: boolean;
+  companion_group_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -154,6 +155,7 @@ function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, any> = {}):
     leaderEmail: dbGroup.leader_email || undefined,
     leaderPassword: dbGroup.leader_password || undefined, // Não expor senha em produção
     passwordChanged: passwordChanged,
+    companionGroupId: dbGroup.companion_group_id || undefined,
     tourAttendance: Object.keys(attendance).length > 0 ? attendance : undefined, // Record<string, TourAttendanceInfo>
   };
 }
@@ -823,6 +825,7 @@ export const groupsApi = {
       leader_email: group.leaderEmail || null,
       leader_password: group.leaderPassword || null,
       password_changed: false, // Senha inicial, ainda não foi alterada
+      companion_group_id: group.companionGroupId || null,
     };
 
     console.log('📝 groupsApi.create - Dados para inserir:', {
@@ -861,6 +864,7 @@ export const groupsApi = {
     if (group.leaderEmail !== undefined) updateData.leader_email = group.leaderEmail;
     if ((group as any).leaderPassword !== undefined) updateData.leader_password = (group as any).leaderPassword;
     if (group.passwordChanged !== undefined) updateData.password_changed = group.passwordChanged;
+    if (group.companionGroupId !== undefined) updateData.companion_group_id = group.companionGroupId;
 
     const { data, error } = await supabase
       .from('groups')

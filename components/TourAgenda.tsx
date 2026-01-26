@@ -9,6 +9,7 @@ interface TourAgendaProps {
   tours: Tour[];
   trips: Trip[];
   userGroup: Group;
+  companionGroup?: Group | null;
   onViewTourDetail?: (tour: Tour) => void;
   onAddCustomTour?: () => void;
   onCancelAttendance?: (tourId: string, isCustomTour: boolean) => void;
@@ -20,7 +21,15 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onViewTourDetail, onAddCustomTour, onCancelAttendance }) => {
+const TourAgenda: React.FC<TourAgendaProps> = ({ 
+  tours, 
+  trips, 
+  userGroup, 
+  companionGroup,
+  onViewTourDetail, 
+  onAddCustomTour, 
+  onCancelAttendance 
+}) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [customTours, setCustomTours] = useState<UserCustomTour[]>([]);
   const [loadingCustomTours, setLoadingCustomTours] = useState(true);
@@ -125,11 +134,55 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
 
   // Mesclar passeios confirmados oficiais com passeios personalizados
   const allTours = useMemo(() => {
-    return [...confirmedTours, ...customToursAsTours].sort((a, b) => {
+    const baseTours = [...confirmedTours, ...customToursAsTours];
+    
+    // Adicionar passeios do grupo parceiro que este grupo ainda não confirmou
+    if (companionGroup && companionGroup.tourAttendance) {
+      const companionTours = tours.filter(tour => {
+        // Verificar se o grupo parceiro confirmou presença
+        const companionAttendance = companionGroup.tourAttendance?.[tour.id];
+        let companionAttending = false;
+        
+        if (Array.isArray(companionAttendance)) {
+          companionAttending = companionAttendance.length > 0;
+        } else if (companionAttendance && typeof companionAttendance === 'object' && 'members' in companionAttendance) {
+          companionAttending = companionAttendance.members && companionAttendance.members.length > 0;
+        }
+
+        if (!companionAttending) return false;
+
+        // Verificar se o grupo ATUAL ainda NÃO confirmou presença
+        const myAttendance = userGroup.tourAttendance?.[tour.id];
+        let iAmAttending = false;
+        if (Array.isArray(myAttendance)) {
+          iAmAttending = myAttendance.length > 0;
+        } else if (myAttendance && typeof myAttendance === 'object' && 'members' in myAttendance) {
+          iAmAttending = myAttendance.members && myAttendance.members.length > 0;
+        }
+
+        return !iAmAttending;
+      }).map(tour => {
+        const trip = trips.find(t => t.id === tour.tripId);
+        return {
+          ...tour,
+          trip,
+          displayDate: tour.date,
+          displayTime: tour.time,
+          attendanceCount: 0,
+          attendingMembers: [],
+          isCompanionTour: true, // Marcar como passeio do parceiro
+          companionGroupName: companionGroup.name
+        };
+      });
+
+      baseTours.push(...(companionTours as any[]));
+    }
+
+    return baseTours.sort((a, b) => {
       // Ordenar por data
       return new Date(a.displayDate).getTime() - new Date(b.displayDate).getTime();
     });
-  }, [confirmedTours, customToursAsTours]);
+  }, [confirmedTours, customToursAsTours, companionGroup, tours, trips, userGroup]);
 
   // Obter ano e mês do mês atual (ou do primeiro passeio se houver)
   const getCalendarMonthYear = () => {
@@ -300,9 +353,10 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                             onClick={() => onViewTourDetail && onViewTourDetail(tour)}
                             className={`
                               p-1.5 sm:p-2 rounded-lg text-[10px] sm:text-xs cursor-pointer transition-all duration-200
-                              bg-white border border-primary/30 hover:bg-primary/10 hover:border-primary
+                              bg-white border hover:bg-primary/10 hover:border-primary
                               ${onViewTourDetail ? 'hover:shadow-md' : ''}
                               ${tour.isPaid ? 'border-status-success/50 bg-status-success/5' : ''}
+                              ${tour.isCompanionTour ? 'border-amber-400/50 bg-amber-50/50 border-dashed' : 'border-primary/30'}
                             `}
                           >
                             <div className="flex flex-col gap-0.5 mb-1">
@@ -312,6 +366,11 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                               {tour.isPaid && (
                                 <div className="w-fit bg-status-success text-white px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] font-bold">
                                   PAGO
+                                </div>
+                              )}
+                              {tour.isCompanionTour && (
+                                <div className="w-fit bg-amber-500 text-white px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] font-bold uppercase">
+                                  Passeio do Grupo Parceiro
                                 </div>
                               )}
                             </div>
@@ -391,7 +450,12 @@ const TourAgenda: React.FC<TourAgendaProps> = ({ tours, trips, userGroup, onView
                                     Pago
                                   </span>
                                 )}
-                                {onCancelAttendance && (
+                                {tour.isCompanionTour && (
+                                  <span className="px-2.5 py-1 bg-amber-500 text-white text-[10px] sm:text-xs font-bold rounded-lg uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                                    Passeio do Parceiro ({tour.companionGroupName})
+                                  </span>
+                                )}
+                                {onCancelAttendance && !tour.isCompanionTour && (
                                   <button
                                     onClick={(e) => handleCancelClick(tour, e)}
                                     className="ml-auto p-2 rounded-lg text-status-error hover:bg-status-error/10 transition-colors flex-shrink-0"

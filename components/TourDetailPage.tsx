@@ -28,6 +28,7 @@ interface TourDetailPageProps {
     documentUrls?: string[]
   ) => void;
   onUpdateCustomDateTime?: (tourId: string, customDate: string, customTime: string) => void;
+  companionGroup?: Group | null;
 }
 
 const TourDetailPage: React.FC<TourDetailPageProps> = ({
@@ -38,7 +39,8 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
   groups: groupsProp = [],
   onBack,
   onConfirmAttendance,
-  onUpdateCustomDateTime
+  onUpdateCustomDateTime,
+  companionGroup
 }) => {
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -765,6 +767,30 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({
         {userRole === 'user' && userGroup && (
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl sm:rounded-[24px] border border-border p-4 sm:p-6 sticky top-4 sm:top-6">
+              {companionGroup && (() => {
+                const companionAttendance = companionGroup.tourAttendance?.[tour.id];
+                let isCompanionAttending = false;
+                if (Array.isArray(companionAttendance)) {
+                  isCompanionAttending = companionAttendance.length > 0;
+                } else if (companionAttendance && typeof companionAttendance === 'object' && 'members' in companionAttendance) {
+                  isCompanionAttending = (companionAttendance.members || []).length > 0;
+                }
+
+                if (!isCompanionAttending) return null;
+
+                return (
+                  <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <div className="flex items-center gap-2 text-amber-700 mb-2">
+                      <Users size={18} className="text-amber-600" />
+                      <span className="text-sm font-bold uppercase tracking-wider">Grupo Parceiro Confirmado</span>
+                    </div>
+                    <p className="text-xs text-amber-800 leading-relaxed">
+                      O grupo <strong>{companionGroup.name}</strong> confirmou presença neste passeio. Eles estão esperando por vocês!
+                    </p>
+                  </div>
+                );
+              })()}
+
               <h3 className="text-lg font-bold text-text-primary mb-4">
                 {isSelected ? 'Sua Confirmação' : 'Confirmar Presença'}
               </h3>

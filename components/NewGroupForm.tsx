@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Users, User, Phone, Mail, Baby, Plus, X, Check, Map, Lock, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Users, User, Phone, Mail, Baby, Plus, X, Check, Map, Lock, RefreshCw, Eye, EyeOff, Link, ChevronDown } from 'lucide-react';
 import { Trip, Group } from '../types';
-import { tripsApi } from '../lib/database';
+import { tripsApi, groupsApi } from '../lib/database';
 import { generatePassword, hashPassword } from '../lib/password';
 import Input from './Input';
 import Button from './Button';
@@ -18,6 +18,8 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, initialData, onSave, 
   const [isLoading, setIsLoading] = useState(false);
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
+  const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
   
   // Trip Selection State (if no trip prop provided)
   const [selectedTripId, setSelectedTripId] = useState<string>(trip?.id || initialData?.tripId || '');
@@ -32,6 +34,7 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, initialData, onSave, 
     initialPassword: '', // Sempre vazio - não mostrar senha atual
     hasChildren: false,
     childrenCount: '',
+    companionGroupId: initialData?.companionGroupId || '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -58,6 +61,31 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, initialData, onSave, 
       loadTrips();
     }
   }, [trip]);
+
+  // Carregar grupos da viagem selecionada para o select de grupo parceiro
+  useEffect(() => {
+    const loadGroups = async () => {
+      if (!selectedTripId) {
+        setAvailableGroups([]);
+        return;
+      }
+      try {
+        setLoadingGroups(true);
+        const data = await groupsApi.getByTripId(selectedTripId);
+        // Não mostrar o próprio grupo na lista de parceiros se estiver editando
+        const filteredData = isEditing 
+          ? data.filter(g => g.id !== initialData.id)
+          : data;
+        setAvailableGroups(filteredData);
+      } catch (err: any) {
+        console.error('Erro ao carregar grupos para parceiro:', err);
+        setAvailableGroups([]);
+      } finally {
+        setLoadingGroups(false);
+      }
+    };
+    loadGroups();
+  }, [selectedTripId, isEditing, initialData?.id]);
 
   // Derived state for the active trip context
   const activeTrip = trip || availableTrips.find(t => t.id === selectedTripId);
@@ -130,6 +158,7 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, initialData, onSave, 
         leaderPhone: formData.leaderPhone,
         ...(hashedPassword && { leaderPassword: hashedPassword }),
         tripId: activeTrip.id,
+        companionGroupId: formData.companionGroupId || null,
         ...(isEditing ? {} : { passwordChanged: false }), // Só definir passwordChanged ao criar
       };
 
@@ -241,6 +270,41 @@ const NewGroupForm: React.FC<NewGroupFormProps> = ({ trip, initialData, onSave, 
                 onChange={(e) => handleChange('totalPeople', e.target.value)}
                 required
               />
+            </div>
+          </div>
+
+          {/* Section: Companion Group */}
+          <div className="bg-white rounded-[24px] border border-border p-6 md:p-8 shadow-sm">
+            <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
+              <Link size={20} className="text-primary" />
+              Grupo Parceiro (Agenda Compartilhada)
+            </h2>
+            
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="companionGroupId" className="text-sm font-medium text-text-primary">
+                Selecione um grupo parceiro (opcional)
+              </label>
+              <div className="relative">
+                <select
+                  id="companionGroupId"
+                  className="w-full h-[48px] appearance-none rounded-custom border border-border bg-white px-4 text-text-primary outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  value={formData.companionGroupId}
+                  onChange={(e) => handleChange('companionGroupId', e.target.value)}
+                >
+                  <option value="">Nenhum (agenda individual)</option>
+                  {availableGroups.map(g => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} (Líder: {g.leaderName})
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary">
+                  <ChevronDown size={18} />
+                </div>
+              </div>
+              <p className="text-xs text-text-secondary mt-1 italic">
+                Ao selecionar um grupo parceiro, os passeios que eles confirmarem aparecerão como sugestão na agenda deste grupo.
+              </p>
             </div>
           </div>
 

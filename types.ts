@@ -70,6 +70,7 @@ export interface Group {
   leaderPhone?: string;
   leaderPassword?: string; // Senha hasheada do responsável
   passwordChanged?: boolean; // Se já alterou a senha do primeiro acesso
+  companionGroupId?: string; // ID do grupo parceiro
   // Key: TourID, Value: AttendanceInfo (members + customDate)
   tourAttendance?: Record<string, TourAttendanceInfo | string[]>; // Compatível com versão antiga (apenas string[])
 }
