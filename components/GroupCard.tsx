@@ -4,9 +4,10 @@ import { Group } from '../types';
 
 interface GroupCardProps {
   group: Group;
+  onClick?: () => void;
 }
 
-const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
+const GroupCard: React.FC<GroupCardProps> = ({ group, onClick }) => {
   // Calcular resumo de pagamentos
   const attendance = group.tourAttendance || {};
   const tourIds = Object.keys(attendance);
@@ -17,7 +18,10 @@ const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
   }).length;
 
   return (
-    <div className="bg-white rounded-custom border border-border p-4 flex items-center justify-between hover:bg-surface/50 transition-colors cursor-pointer group">
+    <div 
+      onClick={onClick}
+      className="bg-white rounded-custom border border-border p-4 flex items-center justify-between hover:bg-surface/50 transition-colors cursor-pointer group"
+    >
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
           <Users size={20} />

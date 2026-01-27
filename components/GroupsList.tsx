@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MoreVertical, Download, Edit, Trash2, Users, X, User, Plus, Link } from 'lucide-react';
-import { groupsApi, tripsApi } from '../lib/database';
+import { Search, MoreVertical, Download, Edit, Trash2, Users, X, User, Plus, Link, Calendar } from 'lucide-react';
+import { groupsApi, tripsApi, toursApi } from '../lib/database';
 import Button from './Button';
 import Modal from './Modal';
-import { Group, Trip } from '../types';
+import GroupToursModal from './GroupToursModal';
+import { Group, Trip, Tour } from '../types';
 
 interface GroupsListProps {
   onEdit?: (group: Group) => void;
@@ -15,27 +16,33 @@ interface GroupsListProps {
 const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onViewGroup, onAddGroup }) => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [allTours, setAllTours] = useState<Tour[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
+  const [selectedGroupForTours, setSelectedGroupForTours] = useState<Group | null>(null);
+  const [groupToursModalOpen, setGroupToursModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Função para recarregar dados
   const loadData = async () => {
     try {
       setLoading(true);
-      const [groupsData, tripsData] = await Promise.all([
+      const [groupsData, tripsData, toursData] = await Promise.all([
         groupsApi.getAll(),
-        tripsApi.getAll()
+        tripsApi.getAll(),
+        toursApi.getAll()
       ]);
       setGroups(groupsData);
       setTrips(tripsData);
+      setAllTours(toursData);
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
       setGroups([]);
       setTrips([]);
+      setAllTours([]);
     } finally {
       setLoading(false);
     }
@@ -106,6 +113,11 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onViewGroup, 
   const handleViewClick = (group: Group) => {
     setActiveMenuId(null);
     if (onViewGroup) onViewGroup(group.tripId);
+  };
+
+  const handleGroupClick = (group: Group) => {
+    setSelectedGroupForTours(group);
+    setGroupToursModalOpen(true);
   };
 
   // Enrich groups with Trip data
@@ -216,7 +228,11 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onViewGroup, 
             {/* MOBILE VIEW: Cards */}
             <div className="md:hidden flex flex-col gap-4">
               {filteredGroups.map((group) => (
-                <div key={group.id} className="bg-white rounded-[20px] border border-border p-5 shadow-sm relative overflow-visible">
+                <div 
+                  key={group.id} 
+                  className="bg-white rounded-[20px] border border-border p-5 shadow-sm relative overflow-visible cursor-pointer hover:border-primary/30 transition-colors"
+                  onClick={() => handleGroupClick(group)}
+                >
                   <div className="flex gap-4 mb-4">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                       <Users size={20} />
@@ -272,7 +288,11 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onViewGroup, 
                   </thead>
                   <tbody className="divide-y divide-border">
                     {filteredGroups.map((group) => (
-                      <tr key={group.id} className="hover:bg-surface/50 transition-colors group">
+                      <tr 
+                        key={group.id} 
+                        className="hover:bg-surface/50 transition-colors group cursor-pointer"
+                        onClick={() => handleGroupClick(group)}
+                      >
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center text-text-secondary group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/20 transition-colors">
@@ -411,6 +431,20 @@ const GroupsList: React.FC<GroupsListProps> = ({ onEdit, onDelete, onViewGroup, 
         onConfirm={handleConfirmDelete}
         isLoading={isDeleting}
       />
+
+      {/* Group Tours Modal */}
+      {selectedGroupForTours && (
+        <GroupToursModal
+          isOpen={groupToursModalOpen}
+          onClose={() => {
+            setGroupToursModalOpen(false);
+            setSelectedGroupForTours(null);
+          }}
+          group={selectedGroupForTours}
+          allTours={allTours}
+          trips={trips}
+        />
+      )}
     </>
   );
 };

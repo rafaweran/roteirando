@@ -3,6 +3,7 @@ import { Trip, Tour, Group, UserRole } from '../types';
 import { Calendar, MapPin, Map as MapIcon, Users, ArrowLeft, Plus, Camera, ExternalLink, Info, ChevronDown, ChevronUp, Filter, X, Edit } from 'lucide-react';
 import TourCard from './TourCard';
 import GroupCard from './GroupCard';
+import GroupToursModal from './GroupToursModal';
 import Button from './Button';
 import TourAttendanceModal from './TourAttendanceModal';
 import CancelTourModal from './CancelTourModal';
@@ -59,6 +60,8 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [selectedTourForAttendance, setSelectedTourForAttendance] = useState<Tour | null>(null);
   const [selectedTourForCancel, setSelectedTourForCancel] = useState<Tour | null>(null);
+  const [selectedGroupForTours, setSelectedGroupForTours] = useState<Group | null>(null);
+  const [groupToursModalOpen, setGroupToursModalOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [clearTourFilter, setClearTourFilter] = useState(false);
@@ -142,6 +145,11 @@ const TripDetails: React.FC<TripDetailsProps> = ({
     setEditedStartDate(trip.startDate);
     setEditedEndDate(trip.endDate);
     setIsEditingDates(false);
+  };
+
+  const handleGroupClick = (group: Group) => {
+    setSelectedGroupForTours(group);
+    setGroupToursModalOpen(true);
   };
 
   // Agrupar tours por categoria/tag
@@ -636,7 +644,11 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {filteredGroups.map(group => (
-                  <GroupCard key={group.id} group={group} />
+                  <GroupCard 
+                    key={group.id} 
+                    group={group} 
+                    onClick={() => handleGroupClick(group)}
+                  />
                 ))}
                 {filteredGroups.length === 0 && (
                   <div className="col-span-full text-center py-12 text-text-secondary bg-white rounded-custom border border-border border-dashed">
@@ -678,6 +690,20 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           }}
           onConfirm={handleConfirmCancel}
           tour={selectedTourForCancel}
+        />
+      )}
+
+      {/* Group Tours Modal */}
+      {selectedGroupForTours && (
+        <GroupToursModal
+          isOpen={groupToursModalOpen}
+          onClose={() => {
+            setGroupToursModalOpen(false);
+            setSelectedGroupForTours(null);
+          }}
+          group={selectedGroupForTours}
+          allTours={tours}
+          trips={[trip]}
         />
       )}
     </div>
