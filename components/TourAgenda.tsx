@@ -445,12 +445,13 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
                     </div>
 
                     {/* Passeios do Dia (Miniaturas) */}
-                    <div className="flex-1 flex flex-col justify-end gap-1">
+                    <div className="flex-1 flex flex-col justify-end gap-1.5">
                       {calendarDay.tours.slice(0, 2).map((tour) => (
                         <div
                           key={tour.id}
                           className={`
-                            px-1.5 py-1 rounded-md text-[9px] font-bold truncate leading-none
+                            px-1.5 py-1.5 rounded-md text-[9px] font-bold leading-none
+                            flex flex-col gap-1
                             ${tour.isPaid 
                               ? 'bg-status-success text-white' 
                               : tour.isCompanionTour 
@@ -458,7 +459,11 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
                                 : 'bg-primary text-white'}
                           `}
                         >
-                          {tour.name}
+                          <div className="truncate">{tour.name}</div>
+                          <div className="flex items-center gap-1 opacity-90 text-[8px]">
+                            <Clock size={8} strokeWidth={3} />
+                            <span>{tour.displayTime}</span>
+                          </div>
                         </div>
                       ))}
                       {calendarDay.tours.length > 2 && (
@@ -573,10 +578,10 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
                           </div>
 
                           {/* Informações */}
-                          <div className="flex flex-wrap gap-2 sm:gap-4 mb-2 sm:mb-3 text-xs sm:text-sm">
-                            <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary">
-                              <Clock size={14} className="sm:w-4 sm:h-4 text-primary flex-shrink-0" />
-                              <span className="whitespace-nowrap">{tour.displayTime}</span>
+                          <div className="flex flex-wrap gap-2 sm:gap-4 mb-2 sm:mb-3 text-xs sm:text-sm items-center">
+                            <div className="flex items-center gap-1.5 sm:gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-lg font-bold">
+                              <Clock size={16} className="flex-shrink-0" />
+                              <span className="whitespace-nowrap text-sm">{tour.displayTime}</span>
                             </div>
                             <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary min-w-0">
                               <MapPin size={14} className="sm:w-4 sm:h-4 text-primary flex-shrink-0" />
@@ -587,8 +592,8 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
                               <span className="whitespace-nowrap">{tour.attendanceCount} pessoa{tour.attendanceCount !== 1 ? 's' : ''} confirmada{tour.attendanceCount !== 1 ? 's' : ''}</span>
                             </div>
                             {(tour.customDate || tour.customTime) && (
-                              <div className="flex items-center gap-2 text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                                <Calendar size={14} className="text-primary" />
+                              <div className="flex items-center gap-2 text-sm font-medium text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                                <Calendar size={14} />
                                 {tour.customDate && tour.customTime ? 'Data e horário personalizados' : tour.customDate ? 'Data personalizada' : 'Horário personalizado'}
                               </div>
                             )}
