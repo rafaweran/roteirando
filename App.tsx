@@ -82,6 +82,30 @@ const AppContent: React.FC = () => {
   const [navigationHistory, setNavigationHistory] = useState<Array<{ view: View; tripId?: string | null; tourId?: string | null }>>([]);
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
 
+  // Efeito para carregar o grupo parceiro sempre que o grupo do usuário mudar
+  useEffect(() => {
+    const loadCompanion = async () => {
+      if (currentUserGroup?.companionGroupId && (!companionGroup || companionGroup.id !== currentUserGroup.companionGroupId)) {
+        try {
+          console.log('🔄 Carregando grupo parceiro:', currentUserGroup.companionGroupId);
+          const companion = await groupsApi.getById(currentUserGroup.companionGroupId);
+          if (companion) {
+            setCompanionGroup(companion);
+            console.log('✅ Grupo parceiro carregado com sucesso:', companion.name);
+          }
+        } catch (err) {
+          console.warn('⚠️ Erro ao carregar grupo parceiro:', err);
+        }
+      } else if (!currentUserGroup?.companionGroupId && companionGroup) {
+        setCompanionGroup(null);
+      }
+    };
+
+    if (userRole === 'user' && currentUserGroup) {
+      loadCompanion();
+    }
+  }, [currentUserGroup?.companionGroupId, userRole]);
+
   // Load data functions
   const loadTrips = async () => {
     try {
@@ -618,6 +642,7 @@ const AppContent: React.FC = () => {
     try {
       setLoading(true);
       
+      let savedGroup: Group;
       if (editingGroup) {
         // EDITAR GRUPO EXISTENTE
         const groupToUpdate = {
@@ -635,49 +660,44 @@ const AppContent: React.FC = () => {
           passwordChanged: editingGroup.passwordChanged !== undefined ? editingGroup.passwordChanged : false,
         };
         
-        console.log('📝 App.tsx - Atualizando grupo:', {
-          id: editingGroup.id,
-          name: groupToUpdate.name,
-          leaderEmail: groupToUpdate.leaderEmail,
-        });
-        
-        await groupsApi.update(editingGroup.id, groupToUpdate);
-        
-        // Recarregar grupos após atualizar
-        await loadGroups();
-        
+        savedGroup = await groupsApi.update(editingGroup.id, groupToUpdate);
         showSuccess('Grupo atualizado com sucesso!');
       } else {
         // CRIAR NOVO GRUPO
-        // Garantir que password_changed seja false para novos grupos
-        // IMPORTANTE: Manter todos os campos do grupo, especialmente leaderEmail e leaderPassword
         const groupToSave = {
           name: groupData.name,
           membersCount: parseInt(groupData.totalPeople) || groupData.membersCount || 0,
           members: groupData.members || [],
           leaderName: groupData.leaderName,
-          leaderEmail: groupData.leaderEmail, // CRÍTICO: email do responsável
+          leaderEmail: groupData.leaderEmail,
           leaderPhone: groupData.leaderPhone || '',
-          leaderPassword: groupData.leaderPassword, // CRÍTICO: senha hasheada
+          leaderPassword: groupData.leaderPassword,
           tripId: groupData.tripId,
           companionGroupId: groupData.companionGroupId,
-          passwordChanged: false, // Primeiro acesso, precisa alterar senha
+          passwordChanged: false,
         };
         
-        console.log('📝 App.tsx - Salvando grupo:', {
-          name: groupToSave.name,
-          leaderEmail: groupToSave.leaderEmail,
-          hasPassword: !!groupToSave.leaderPassword,
-          tripId: groupToSave.tripId
-        });
-        
-        await groupsApi.create(groupToSave);
-        
-        // Recarregar grupos após salvar
-        await loadGroups();
-        
-        showSuccess('Grupo criado com sucesso! O responsável receberá as credenciais de acesso.');
+        savedGroup = await groupsApi.create(groupToSave);
+        showSuccess('Grupo criado com sucesso!');
       }
+
+      // VINCULAÇÃO BIDIRECIONAL (Opcional, mas melhora UX)
+      // Se este grupo tem um parceiro, garantir que o parceiro também tenha este grupo como parceiro
+      if (savedGroup.companionGroupId) {
+        try {
+          const companion = await groupsApi.getById(savedGroup.companionGroupId);
+          // Só atualizar se o parceiro não tiver parceiro ou tiver um parceiro diferente
+          if (companion && companion.companionGroupId !== savedGroup.id) {
+            console.log('🔗 Criando vínculo bidirecional com o grupo:', companion.name);
+            await groupsApi.update(companion.id, { companionGroupId: savedGroup.id });
+          }
+        } catch (err) {
+          console.warn('⚠️ Não foi possível criar o vínculo bidirecional:', err);
+        }
+      }
+      
+      // Recarregar grupos após atualizar
+      await loadGroups();
       
       // Limpar estado de edição
       setEditingGroup(null);

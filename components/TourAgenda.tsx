@@ -32,28 +32,52 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [customTours, setCustomTours] = useState<UserCustomTour[]>([]);
+  const [companionCustomTours, setCompanionCustomTours] = useState<UserCustomTour[]>([]);
   const [loadingCustomTours, setLoadingCustomTours] = useState(true);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [tourToCancel, setTourToCancel] = useState<{ id: string; name: string; isCustomTour: boolean } | null>(null);
+
+  // Debug companion group
+  useEffect(() => {
+    console.log('🔍 TourAgenda - Estado do Grupo Parceiro:', {
+      hasCompanionId: !!userGroup.companionGroupId,
+      companionId: userGroup.companionGroupId,
+      companionGroupLoaded: !!companionGroup,
+      companionGroupName: companionGroup?.name
+    });
+  }, [userGroup.companionGroupId, companionGroup]);
 
   // Carregar passeios personalizados
   useEffect(() => {
     const loadCustomTours = async () => {
       try {
         setLoadingCustomTours(true);
-        const data = await userCustomToursApi.getByGroupId(userGroup.id);
-        setCustomTours(data);
-        console.log('✅ TourAgenda - Passeios personalizados carregados:', data.length);
+        
+        // Carregar meus próprios passeios
+        const myData = await userCustomToursApi.getByGroupId(userGroup.id);
+        setCustomTours(myData);
+        
+        // Carregar passeios do parceiro se existir
+        if (companionGroup) {
+          console.log('🔄 Buscando passeios personalizados do parceiro:', companionGroup.name);
+          const companionData = await userCustomToursApi.getByGroupId(companionGroup.id);
+          setCompanionCustomTours(companionData);
+          console.log('✅ Passeios personalizados do parceiro carregados:', companionData.length);
+        } else {
+          setCompanionCustomTours([]);
+        }
+        
       } catch (error) {
         console.error('❌ Erro ao carregar passeios personalizados:', error);
         setCustomTours([]);
+        setCompanionCustomTours([]);
       } finally {
         setLoadingCustomTours(false);
       }
     };
     
     loadCustomTours();
-  }, [userGroup.id]);
+  }, [userGroup.id, companionGroup?.id]);
 
   // Filtrar apenas passeios confirmados pelo grupo
   const confirmedTours = useMemo(() => {
@@ -134,55 +158,84 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
 
   // Mesclar passeios confirmados oficiais com passeios personalizados
   const allTours = useMemo(() => {
+    // Meus passeios oficiais e personalizados
     const baseTours = [...confirmedTours, ...customToursAsTours];
     
     // Adicionar passeios do grupo parceiro que este grupo ainda não confirmou
-    if (companionGroup && companionGroup.tourAttendance) {
-      const companionTours = tours.filter(tour => {
-        // Verificar se o grupo parceiro confirmou presença
-        const companionAttendance = companionGroup.tourAttendance?.[tour.id];
-        let companionAttending = false;
-        
-        if (Array.isArray(companionAttendance)) {
-          companionAttending = companionAttendance.length > 0;
-        } else if (companionAttendance && typeof companionAttendance === 'object' && 'members' in companionAttendance) {
-          companionAttending = companionAttendance.members && companionAttendance.members.length > 0;
-        }
+    if (companionGroup) {
+      // 1. Passeios Oficiais do Parceiro
+      if (companionGroup.tourAttendance) {
+        const companionOfficialTours = tours.filter(tour => {
+          // Verificar se o grupo parceiro confirmou presença
+          const companionAttendance = companionGroup.tourAttendance?.[tour.id];
+          let companionAttending = false;
+          
+          if (Array.isArray(companionAttendance)) {
+            companionAttending = companionAttendance.length > 0;
+          } else if (companionAttendance && typeof companionAttendance === 'object' && 'members' in companionAttendance) {
+            companionAttending = companionAttendance.members && companionAttendance.members.length > 0;
+          }
 
-        if (!companionAttending) return false;
+          if (!companionAttending) return false;
 
-        // Verificar se o grupo ATUAL ainda NÃO confirmou presença
-        const myAttendance = userGroup.tourAttendance?.[tour.id];
-        let iAmAttending = false;
-        if (Array.isArray(myAttendance)) {
-          iAmAttending = myAttendance.length > 0;
-        } else if (myAttendance && typeof myAttendance === 'object' && 'members' in myAttendance) {
-          iAmAttending = myAttendance.members && myAttendance.members.length > 0;
-        }
+          // Verificar se o grupo ATUAL ainda NÃO confirmou presença
+          const myAttendance = userGroup.tourAttendance?.[tour.id];
+          let iAmAttending = false;
+          if (Array.isArray(myAttendance)) {
+            iAmAttending = myAttendance.length > 0;
+          } else if (myAttendance && typeof myAttendance === 'object' && 'members' in myAttendance) {
+            iAmAttending = myAttendance.members && myAttendance.members.length > 0;
+          }
 
-        return !iAmAttending;
-      }).map(tour => {
-        const trip = trips.find(t => t.id === tour.tripId);
-        return {
-          ...tour,
-          trip,
-          displayDate: tour.date,
-          displayTime: tour.time,
+          return !iAmAttending;
+        }).map(tour => {
+          const trip = trips.find(t => t.id === tour.tripId);
+          return {
+            ...tour,
+            trip,
+            displayDate: tour.date,
+            displayTime: tour.time,
+            attendanceCount: 0,
+            attendingMembers: [],
+            isCompanionTour: true,
+            companionGroupName: companionGroup.name
+          };
+        });
+
+        baseTours.push(...(companionOfficialTours as any[]));
+      }
+
+      // 2. Passeios Personalizados do Parceiro
+      if (companionCustomTours.length > 0) {
+        const companionCustomAsTours = companionCustomTours.map(ct => ({
+          id: ct.id,
+          tripId: userGroup.tripId || '',
+          name: ct.name,
+          date: ct.date,
+          time: ct.time,
+          price: ct.price || 0,
+          description: ct.description || '',
+          address: ct.address,
+          imageUrl: ct.imageUrl,
+          trip: trips.find(t => t.id === userGroup.tripId),
           attendanceCount: 0,
           attendingMembers: [],
-          isCompanionTour: true, // Marcar como passeio do parceiro
+          displayDate: ct.date,
+          displayTime: ct.time,
+          isCustomTour: true,
+          isCompanionTour: true,
           companionGroupName: companionGroup.name
-        };
-      });
-
-      baseTours.push(...(companionTours as any[]));
+        }));
+        
+        baseTours.push(...(companionCustomAsTours as any[]));
+      }
     }
 
     return baseTours.sort((a, b) => {
       // Ordenar por data
       return new Date(a.displayDate).getTime() - new Date(b.displayDate).getTime();
     });
-  }, [confirmedTours, customToursAsTours, companionGroup, tours, trips, userGroup]);
+  }, [confirmedTours, customToursAsTours, companionGroup, companionCustomTours, tours, trips, userGroup]);
 
   // Obter ano e mês do mês atual (ou do primeiro passeio se houver)
   const getCalendarMonthYear = () => {

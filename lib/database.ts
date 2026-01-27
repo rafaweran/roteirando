@@ -41,6 +41,7 @@ interface DBGroup {
   members: string[];
   leader_name: string;
   leader_email: string | null;
+  leader_phone: string | null;
   leader_password: string | null;
   password_changed: boolean;
   companion_group_id: string | null;
@@ -153,6 +154,7 @@ function dbGroupToGroup(dbGroup: DBGroup, attendance: Record<string, any> = {}):
     members: dbGroup.members,
     leaderName: dbGroup.leader_name,
     leaderEmail: dbGroup.leader_email || undefined,
+    leaderPhone: dbGroup.leader_phone || undefined,
     leaderPassword: dbGroup.leader_password || undefined, // Não expor senha em produção
     passwordChanged: passwordChanged,
     companionGroupId: dbGroup.companion_group_id || undefined,
@@ -823,6 +825,7 @@ export const groupsApi = {
       members: group.members || [],
       leader_name: group.leaderName,
       leader_email: group.leaderEmail || null,
+      leader_phone: group.leaderPhone || null,
       leader_password: group.leaderPassword || null,
       password_changed: false, // Senha inicial, ainda não foi alterada
       companion_group_id: group.companionGroupId || null,
@@ -862,6 +865,7 @@ export const groupsApi = {
     if (group.members !== undefined) updateData.members = group.members;
     if (group.leaderName !== undefined) updateData.leader_name = group.leaderName;
     if (group.leaderEmail !== undefined) updateData.leader_email = group.leaderEmail;
+    if (group.leaderPhone !== undefined) updateData.leader_phone = group.leaderPhone;
     if ((group as any).leaderPassword !== undefined) updateData.leader_password = (group as any).leaderPassword;
     if (group.passwordChanged !== undefined) updateData.password_changed = group.passwordChanged;
     if (group.companionGroupId !== undefined) updateData.companion_group_id = group.companionGroupId;
