@@ -254,31 +254,65 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
 
   const { year, month } = getCalendarMonthYear();
 
-  // Criar dias do calendário (20 a 25)
+  // Criar dias do calendário baseados nos passeios existentes
   const calendarDays = useMemo(() => {
+    if (allTours.length === 0) return [];
+
+    // Encontrar a menor e maior data entre todos os passeios
+    const dates = allTours.map(t => new Date(t.displayDate + 'T12:00:00').getTime());
+    const minDate = new Date(Math.min(...dates));
+    const maxDate = new Date(Math.max(...dates));
+    
+    // Garantir que mostramos pelo menos alguns dias antes e depois, ou um intervalo mínimo
+    const startDay = new Date(minDate);
+    startDay.setDate(startDay.getDate() - 1);
+    
+    const endDay = new Date(maxDate);
+    endDay.setDate(endDay.getDate() + 1);
+
     const days = [];
-    for (let day = 20; day <= 25; day++) {
-      const date = new Date(year, month, day);
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const current = new Date(startDay);
+    
+    // Limitar o calendário a no máximo 15 dias para não quebrar o layout
+    let count = 0;
+    while (current <= endDay && count < 20) {
+      const d = current.getDate();
+      const m = current.getMonth();
+      const y = current.getFullYear();
+      const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       
-      // Buscar passeios para este dia
-      const toursForDay = allTours.filter(tour => {
-        const tourDate = new Date(tour.displayDate + 'T12:00:00');
-        return tourDate.getDate() === day && 
-               tourDate.getMonth() === month && 
-               tourDate.getFullYear() === year;
-      });
+      const toursForDay = allTours.filter(tour => tour.displayDate === dateStr);
 
       days.push({
-        day,
-        date,
+        day: d,
+        month: m,
+        year: y,
+        date: new Date(current),
         dateStr,
         tours: toursForDay,
-        dayOfWeek: DAYS_OF_WEEK[date.getDay()]
+        dayOfWeek: DAYS_OF_WEEK[current.getDay()]
       });
+      
+      current.setDate(current.getDate() + 1);
+      count++;
     }
     return days;
-  }, [year, month, allTours]);
+  }, [allTours]);
+
+  // Função para rolar até o dia selecionado
+  const scrollToDay = (dateStr: string) => {
+    const element = document.getElementById(`day-section-${dateStr}`);
+    if (element) {
+      const offset = 100; // Espaço para o header fixo se houver
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // Calcular total de passeios e valor
   const totalTours = allTours.length;
@@ -365,102 +399,82 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
         <div className="mb-4 sm:mb-6">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h2 className="text-lg sm:text-xl font-bold text-text-primary">
-              {MONTHS[month]} {year}
+              {MONTHS[calendarDays[0]?.month || month]} {calendarDays[0]?.year || year}
             </h2>
           </div>
 
           {/* Cabeçalho dos Dias */}
-          <div className="overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-none">
-            <div className="min-w-[600px] sm:min-w-0">
-              <div className="grid grid-cols-6 gap-2 sm:gap-3 mb-2 sm:mb-3">
-                {calendarDays.map((calendarDay) => (
-                  <div 
-                    key={calendarDay.day} 
-                    className="text-center text-[10px] sm:text-xs font-semibold text-text-secondary py-1.5 sm:py-2"
+          <div className="overflow-x-auto pb-4 -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+            <div className="flex gap-3 sm:gap-4 min-w-max">
+              {calendarDays.map((calendarDay) => {
+                const hasTours = calendarDay.tours.length > 0;
+                const isToday = new Date().toDateString() === calendarDay.date.toDateString();
+
+                return (
+                  <div
+                    key={calendarDay.dateStr}
+                    onClick={() => hasTours && scrollToDay(calendarDay.dateStr)}
+                    className={`
+                      w-[120px] sm:w-[140px] min-h-[130px] sm:min-h-[140px] rounded-2xl border-2 p-3 transition-all duration-300 cursor-pointer
+                      flex flex-col
+                      ${hasTours 
+                        ? 'border-primary bg-primary/5 shadow-md hover:shadow-lg hover:-translate-y-1' 
+                        : 'border-border bg-surface/30 opacity-60'
+                      }
+                      ${isToday && !hasTours ? 'border-primary/30 bg-primary/5 opacity-100' : ''}
+                    `}
                   >
-                    {calendarDay.dayOfWeek}
-                  </div>
-                ))}
-              </div>
-
-              {/* Dias 20 a 25 */}
-              <div className="grid grid-cols-6 gap-2 sm:gap-3">
-                {calendarDays.map((calendarDay) => {
-                  const hasTours = calendarDay.tours.length > 0;
-                  const isToday = new Date().toDateString() === calendarDay.date.toDateString();
-
-                  return (
-                    <div
-                      key={calendarDay.day}
-                      className={`
-                        min-h-[110px] sm:min-h-[120px] rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200
-                        ${hasTours 
-                          ? 'border-primary bg-primary/5 shadow-md' 
-                          : 'border-border bg-surface/30'
-                        }
-                        ${isToday && !hasTours ? 'border-primary/30 bg-primary/5' : ''}
-                      `}
-                    >
-                      {/* Número do Dia */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`
-                          text-base sm:text-lg font-bold
-                          ${hasTours ? 'text-primary' : isToday ? 'text-primary' : 'text-text-secondary'}
-                        `}>
-                          {calendarDay.day}
-                        </span>
-                        {isToday && (
-                          <span className="text-[8px] sm:text-[10px] font-medium text-primary bg-primary/20 px-1 sm:px-1.5 py-0.5 rounded">
-                            Hoje
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Passeios do Dia */}
-                      <div className="space-y-1.5 sm:space-y-2 max-h-[70px] sm:max-h-[80px] overflow-y-auto pr-0.5">
-                        {calendarDay.tours.map((tour) => (
-                          <div
-                            key={tour.id}
-                            onClick={() => onViewTourDetail && onViewTourDetail(tour)}
-                            className={`
-                              p-1.5 sm:p-2 rounded-lg text-[10px] sm:text-xs cursor-pointer transition-all duration-200
-                              bg-white border hover:bg-primary/10 hover:border-primary
-                              ${onViewTourDetail ? 'hover:shadow-md' : ''}
-                              ${tour.isPaid ? 'border-status-success/50 bg-status-success/5' : ''}
-                              ${tour.isCompanionTour ? 'border-amber-400/50 bg-amber-50/50 border-dashed' : 'border-primary/30'}
-                            `}
-                          >
-                            <div className="flex flex-col gap-0.5 mb-1">
-                              <div className="font-semibold text-text-primary line-clamp-1 leading-tight">
-                                {tour.name}
-                              </div>
-                              {tour.isPaid && (
-                                <div className="w-fit bg-status-success text-white px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] font-bold">
-                                  PAGO
-                                </div>
-                              )}
-                              {tour.isCompanionTour && (
-                                <div className="w-fit bg-amber-500 text-white px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] font-bold uppercase">
-                                  Passeio do Grupo Parceiro
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 text-text-secondary">
-                              <Clock size={8} className="text-primary sm:w-[10px] sm:h-[10px]" />
-                              <span className="text-[9px] sm:text-[10px]">{tour.displayTime}</span>
-                            </div>
-                          </div>
-                        ))}
-                        {!hasTours && (
-                          <div className="text-[9px] sm:text-[10px] text-text-disabled text-center py-2 leading-tight">
-                            Sem passeio
-                          </div>
-                        )}
-                      </div>
+                    {/* Dia da Semana */}
+                    <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1">
+                      {calendarDay.dayOfWeek}
                     </div>
-                  );
-                })}
-              </div>
+
+                    {/* Número do Dia */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`
+                        text-xl font-black
+                        ${hasTours ? 'text-primary' : isToday ? 'text-primary' : 'text-text-secondary'}
+                      `}>
+                        {calendarDay.day}
+                      </span>
+                      {isToday && (
+                        <span className="text-[8px] font-bold text-white bg-primary px-1.5 py-0.5 rounded-full uppercase">
+                          Hoje
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Passeios do Dia (Miniaturas) */}
+                    <div className="flex-1 flex flex-col justify-end gap-1">
+                      {calendarDay.tours.slice(0, 2).map((tour) => (
+                        <div
+                          key={tour.id}
+                          className={`
+                            px-1.5 py-1 rounded-md text-[9px] font-bold truncate leading-none
+                            ${tour.isPaid 
+                              ? 'bg-status-success text-white' 
+                              : tour.isCompanionTour 
+                                ? 'bg-amber-500 text-white' 
+                                : 'bg-primary text-white'}
+                          `}
+                        >
+                          {tour.name}
+                        </div>
+                      ))}
+                      {calendarDay.tours.length > 2 && (
+                        <div className="text-[9px] font-bold text-primary bg-primary/10 py-1 text-center rounded-md">
+                          + {calendarDay.tours.length - 2} outros
+                        </div>
+                      )}
+                      {!hasTours && (
+                        <div className="text-[9px] text-text-disabled text-center py-2 italic">
+                          Livre
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -473,7 +487,11 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
             if (calendarDay.tours.length === 0) return null;
 
             return (
-              <div key={calendarDay.day} className="bg-white rounded-xl sm:rounded-[24px] border border-border overflow-hidden shadow-sm">
+              <div 
+                key={calendarDay.dateStr} 
+                id={`day-section-${calendarDay.dateStr}`}
+                className="bg-white rounded-xl sm:rounded-[24px] border border-border overflow-hidden shadow-sm scroll-mt-24"
+              >
                 {/* Data Header */}
                 <div className="bg-primary/5 border-b border-border p-3 sm:p-4">
                   <div className="flex items-center gap-2 sm:gap-3">
@@ -482,9 +500,9 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
                     </div>
                     <div className="min-w-0 flex-1">
                       <h2 className="text-base sm:text-lg font-bold text-text-primary capitalize truncate">
-                        {calendarDay.dayOfWeek}, {calendarDay.day} de {MONTHS[month]}
+                        {calendarDay.dayOfWeek}, {calendarDay.day} de {MONTHS[calendarDay.month]}
                       </h2>
-                      <p className="text-xs sm:text-sm text-text-secondary">{year}</p>
+                      <p className="text-xs sm:text-sm text-text-secondary">{calendarDay.year}</p>
                     </div>
                   </div>
                 </div>
