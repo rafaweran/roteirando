@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Plus, X, Check } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Plus, X, Check, Link } from 'lucide-react';
 import Button from './Button';
 import Modal from './Modal';
 import { Tour, Trip, Group, TourAttendanceInfo, UserCustomTour } from '../types';
@@ -269,6 +269,24 @@ const TourAgenda: React.FC<TourAgendaProps> = ({
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Banner de Grupo Parceiro */}
+      {companionGroup && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-4 shadow-sm">
+          <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-md">
+            <Link size={24} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-amber-900 uppercase tracking-wider mb-0.5">Agenda Compartilhada</h3>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              Sua agenda está conectada com o grupo <strong>{companionGroup.name}</strong>. Os passeios confirmados por eles aparecerão aqui como sugestão para vocês!
+            </p>
+          </div>
+          <div className="hidden sm:block px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-lg border border-amber-200 uppercase">
+            Ativado
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-4 sm:mb-6 flex items-center justify-between gap-4">
         <div>

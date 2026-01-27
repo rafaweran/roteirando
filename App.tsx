@@ -1301,6 +1301,7 @@ const AppContent: React.FC = () => {
       {currentView === 'my-trip' && userRole === 'user' && currentUserGroup && (
         <MyTripPage 
           userGroup={currentUserGroup}
+          companionGroup={companionGroup}
           onBack={() => setCurrentView('dashboard')}
         />
       )}

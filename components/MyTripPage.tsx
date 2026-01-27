@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Hotel, Plane, Car, User, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Hotel, Plane, Car, User, Save, Loader2, Users, Link } from 'lucide-react';
 import { UserTravelInfo, Group } from '../types';
 import { userTravelInfoApi } from '../lib/database';
 import Input from './Input';
@@ -9,14 +9,15 @@ import { useToast } from '../hooks/useToast';
 
 interface MyTripPageProps {
   userGroup: Group;
+  companionGroup?: Group | null;
   onBack: () => void;
 }
 
-const MyTripPage: React.FC<MyTripPageProps> = ({ userGroup, onBack }) => {
+const MyTripPage: React.FC<MyTripPageProps> = ({ userGroup, companionGroup, onBack }) => {
   const { showSuccess, showError } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<'hotel' | 'flight' | 'car' | 'personal'>('hotel');
+  const [activeSection, setActiveSection] = useState<'hotel' | 'flight' | 'car' | 'personal' | 'companion'>('hotel');
   
   const [formData, setFormData] = useState<UserTravelInfo>({
     groupId: userGroup.id,
@@ -252,6 +253,7 @@ const MyTripPage: React.FC<MyTripPageProps> = ({ userGroup, onBack }) => {
     { id: 'flight' as const, label: 'Voo', icon: Plane },
     { id: 'car' as const, label: 'Aluguel de Carro', icon: Car },
     { id: 'personal' as const, label: 'Meus Dados', icon: User },
+    ...(companionGroup ? [{ id: 'companion' as const, label: 'Grupo Parceiro', icon: Link }] : []),
   ];
 
   if (isLoading) {
@@ -748,16 +750,76 @@ const MyTripPage: React.FC<MyTripPageProps> = ({ userGroup, onBack }) => {
           </div>
         )}
 
+        {/* Seção Grupo Parceiro */}
+        {activeSection === 'companion' && companionGroup && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600">
+                <Link size={24} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-text-primary">Grupo Parceiro</h2>
+                <p className="text-sm text-text-secondary">Informações da sua agenda compartilhada</p>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6">
+              <div className="w-20 h-20 bg-amber-500 rounded-full flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                <Users size={40} />
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <h3 className="text-2xl font-bold text-amber-900 mb-1">{companionGroup.name}</h3>
+                <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-amber-800">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <User size={16} />
+                    Líder: {companionGroup.leaderName}
+                  </div>
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <Users size={16} />
+                    {companionGroup.membersCount} integrantes
+                  </div>
+                </div>
+              </div>
+              <div className="px-4 py-2 bg-white rounded-xl border border-amber-200 text-amber-700 text-xs font-bold uppercase tracking-wider shadow-sm">
+                Agenda Conectada
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-5 bg-white border border-border rounded-2xl shadow-sm">
+                <h4 className="font-bold text-text-primary mb-3 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                  O que isso significa?
+                </h4>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  Vocês estão fazendo a viagem juntos! Sempre que o grupo <strong>{companionGroup.name}</strong> confirmar presença em um passeio oficial, ele aparecerá automaticamente na sua <strong>Agenda</strong> como uma sugestão marcada em amarelo.
+                </p>
+              </div>
+              <div className="p-5 bg-white border border-border rounded-2xl shadow-sm">
+                <h4 className="font-bold text-text-primary mb-3 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                  Eu preciso confirmar?
+                </h4>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  Sim! Mesmo com a agenda compartilhada, cada grupo precisa confirmar seus próprios participantes e realizar o pagamento individualmente. A sugestão apenas facilita para vocês ficarem juntos.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Botão Salvar */}
         <div className="flex justify-end pt-6 mt-8 border-t border-surface">
-          <Button
-            onClick={handleSave}
-            isLoading={isSaving}
-            className="px-8"
-          >
-            <Save size={18} className="mr-2" />
-            Salvar Alterações
-          </Button>
+          {activeSection !== 'companion' && (
+            <Button
+              onClick={handleSave}
+              isLoading={isSaving}
+              className="px-8"
+            >
+              <Save size={18} className="mr-2" />
+              Salvar Alterações
+            </Button>
+          )}
         </div>
       </div>
     </div>
